@@ -1,0 +1,3 @@
+import { createUrl } from '@/@core/composable/createUrl'
+
+export const transactionsListEndpoint = (query: any) => createUrl('finances/transactions', { query })
