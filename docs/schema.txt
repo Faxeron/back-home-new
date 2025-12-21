@@ -1,70 +1,68 @@
-Schema snapshot (Dec 2025)
+Schema snapshot (current)
 
 Notes
-- Connection `legacy_new` is primary for domain data; default connection tables (users/cache/jobs/etc.) also received meta columns via migrations where noted.
-- Meta migration (2025_11_22_000002) adds if missing: tenant_id (default 1), created_by, updated_by, created_at, updated_at, and renames summ->sum.
+- Default connection is not used; auth/system tables live in `legacy_new`.
+- Primary domain data lives in `legacy_new`.
+- Canonical SQL dump: `database/schema/legacy_new-schema.sql`.
+- Meta migration adds tenant_id/company_id + created_at/updated_at + created_by/updated_by on most domain tables.
+- Cashbox naming is canonical: `cashboxes`, `cashbox_company`, `cashbox_id`, `from_cashbox_id`, `to_cashbox_id`.
+- Sanctum tokens are stored in `legacy_new` (`personal_access_tokens` migration 2025_12_12_000002).
 
-Core auth/system (default connection unless noted)
-- users: id PK; tenant_id (FK->tenants, nullable, legacy_new); company_id nullable; name; email UNIQUE; email_verified_at; password; remember_token; created_at; updated_at; created_by; updated_by.
-- password_reset_tokens: email PK; token; created_at; tenant_id default 1; created_by; updated_by; updated_at.
+Core auth/system (legacy_new)
+- users: id PK; tenant_id FK->tenants; company_id FK->companies; name; email UNIQUE; email_verified_at; password; remember_token; created_at/updated_at; created_by/updated_by.
+- password_reset_tokens: email PK; token; created_at; tenant_id default 1; created_by/updated_by; updated_at.
 - sessions: id PK; user_id; ip_address; user_agent; payload; last_activity; tenant_id default 1; created_at/updated_at; created_by/updated_by.
-- cache: key PK; value; expiration; tenant_id default 1; created_at/updated_at; created_by/updated_by.
-- cache_locks: key PK; owner; expiration; tenant_id default 1; created_at/updated_at; created_by/updated_by.
-- jobs: id PK; queue; payload; attempts; reserved_at; available_at; created_at (int); tenant_id; created_by/updated_by; updated_at.
-- job_batches: id PK; name; total_jobs; pending_jobs; failed_jobs; failed_job_ids; options; cancelled_at; created_at; finished_at; tenant_id; created_by/updated_by; updated_at.
-- failed_jobs: id PK; uuid UNIQUE; connection; queue; payload; exception; failed_at; tenant_id; created_at/updated_at; created_by/updated_by.
+- cache, cache_locks: key PK; value/owner; expiration; tenant_id default 1; created_at/updated_at; created_by/updated_by.
+- jobs, job_batches, failed_jobs: queue/payload metadata + tenant/company + audit columns.
 - migrations: id PK; migration; batch.
-- dev_control (legacy_new): id PK; module UNIQUE; er_status, model_status, list_api_status, crud_api_status, filters_status, list_ui_status, form_ui_status, tests_status, docs_status, deploy_status; sort_index; timestamps; tenant_id; created_by/updated_by.
+- personal_access_tokens (legacy_new): id PK; tokenable_type/id; name; token UNIQUE; abilities; last_used_at; expires_at; timestamps.
 
 Tenancy/roles (legacy_new)
-- tenants: id PK; name; code UNIQUE; owner_user_id nullable; is_active bool; timestamps; tenant_id; created_by/updated_by.
-- roles: id PK; name; code UNIQUE; is_active bool; timestamps; tenant_id; created_by/updated_by.
-- user_profiles: id PK; user_id UNIQUE FK->users; first_name; last_name; phone; position; avatar; timestamps; tenant_id; company_id; created_by/updated_by.
+- tenants: id PK; name; code UNIQUE; owner_user_id FK->users; is_active; timestamps; tenant_id; created_by/updated_by.
+- roles: id PK; name; code UNIQUE; is_active; timestamps; tenant_id; created_by/updated_by.
 - role_users: id PK; role_id FK->roles; user_id FK->users; UNIQUE(role_id,user_id); timestamps; tenant_id; company_id; created_by/updated_by.
-- user_company: id PK; user_id FK->users; company_id FK->companies; role nullable; UNIQUE(user_id,company_id); timestamps; tenant_id; created_by/updated_by.
+- user_profiles: id PK; user_id UNIQUE FK->users; first_name; last_name; phone; position; avatar; timestamps; tenant_id; company_id; created_by/updated_by.
+- user_company: id PK; user_id FK->users; company_id FK->companies; role nullable; UNIQUE(user_id,company_id); timestamps.
 
 Reference/settings (legacy_new)
-- companies: id PK; name; code UNIQUE; address; phone; email; is_active bool; tenant_id; created_at; created_by; updated_at; updated_by.
+- companies: id PK; name; code UNIQUE; address; phone; email; is_active; tenant_id; created_at; created_by; updated_at; updated_by.
 - cities: id PK; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- cities_districts: id PK; city_id FK->cities; name; is_active bool; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- cities_districts: id PK; city_id FK->cities; name; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
 - sale_types: id PK; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- contract_statuses: id PK; name; code UNIQUE; color; sort_order; is_active bool; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- contract_statuses: id PK; name; code UNIQUE; color; sort_order; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
 
 CRM/contracts (legacy_new)
-- counterparties: id PK; type; name; phone; email; address nullable; comment; is_active bool; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- counterparty_individuals: id PK; counterparty_id FK->counterparties; first_name; last_name; patronymic; passport_series; passport_number; issued_by; issued_at; birth_date; snils; inn; comment; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- counterparty_companies: id PK; counterparty_id FK->counterparties; legal_name; short_name; inn; kpp; ogrn; legal_address; postal_address; director_name; accountant_name; bank_name; bik; account_number; correspondent_account; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- contracts: id PK; company_id FK->companies; counterparty_id FK->counterparties; contract_status_id FK->contract_statuses; system_status_code default NOT_PAID; title; total_amount; paid_amount; is_completed bool; contract_date; work_done_date; old_nomer_dogovora; work_start_date; work_end_date; old_pole_filtracii; worker_id; manager_id; sale_type_id; measurer_id; city_id; address; old_septic_old_scu; old_septik_old_water; tenant_id; created_at; created_by; updated_at; updated_by.
+- counterparties: id PK; type; name; phone; email; address; comment; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- counterparty_individuals: id PK; counterparty_id FK->counterparties; personal + passport fields; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- counterparty_companies: id PK; counterparty_id FK->counterparties; legal/bank fields; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- contracts: id PK; company_id; counterparty_id; contract_status_id; system_status_code; title; total_amount; paid_amount; is_completed; contract_date; work_done_date; plus legacy fields (old_*); tenant_id; created_at; created_by; updated_at; updated_by.
 
 Finance (legacy_new)
-- transaction_types: id PK; code UNIQUE; name; sign tinyint; is_active bool; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- payment_methods: id PK; code UNIQUE; name; is_active bool; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- cash_boxes: id PK; tenant_id; company_id FK->companies; name; description; is_active bool; created_at; created_by; updated_at; updated_by. (balance column removed).
-- cash_box_company: id PK; tenant_id; company_id FK->companies; cash_box_id FK->cash_boxes; created_at; created_by; updated_at; updated_by; UNIQUE(cash_box_id, company_id).
-- transactions: id PK; tenant_id; company_id FK->companies; is_paid bool; date_is_paid; is_completed bool; date_is_completed; sum decimal(15,2); cash_box_id FK->cash_boxes; transaction_type_id FK->transaction_types; payment_method_id FK->payment_methods; notes; counterparty_id FK->counterparties; contract_id FK->contracts; client_id; related_id nullable (FK dropped for flexibility); created_at; created_by; updated_at; updated_by.
-- receipts: id PK; tenant_id; company_id FK->companies; cash_box_id FK->cash_boxes; transaction_id FK->transactions; contract_id FK->contracts; sum decimal(14,2); description; payment_date date default 1970-01-01; counterparty_id FK->counterparties; created_at; created_by; updated_at; updated_by.
-- spendings: id PK; tenant_id; company_id FK->companies; old_id UNIQUE; cash_box_id FK->cash_boxes; transaction_id FK->transactions; spending_item_id FK->spending_items; spending_type_id; spending_type_name; fond_id FK->spending_funds; contract_id FK->contracts; sum decimal(14,2); description; counterparty_id FK->counterparties; spent_to_user_id FK->users; payment_date date; created_at; created_by; updated_at; updated_by.
-- cash_transfers: id PK; tenant_id default 1; company_id FK->companies; from_cash_box_id FK->cash_boxes; to_cash_box_id FK->cash_boxes; sum decimal(14,2); description; transaction_out_id FK->transactions; transaction_in_id FK->transactions; created_by; created_at; updated_at.
-- advances: id PK; tenant_id default 1; user_id; company_id; cash_box_id; transaction_id; amount decimal(14,2); balance decimal(14,2); created_at; created_by; updated_at; updated_by.
-- cashbox_history: id PK; cashbox_id FK->cash_boxes; transaction_id FK->transactions; balance_after decimal(14,2); created_at; updated_at; tenant_id; company_id; created_by; updated_by.
-- cashbox_balance_snapshots: id PK; tenant_id; company_id; cashbox_id; balance decimal(14,2); calculated_at; created_at; updated_at; created_by; updated_by.
-- spending_funds: id PK; tenant_id; company_id FK->companies; id_old UNIQUE; name; description; is_active bool; created_at; created_by; updated_at; updated_by.
-- spending_items: id PK; tenant_id; company_id FK->companies; old_id UNIQUE; name; description; fond_id FK->spending_funds; is_active bool; created_at; created_by; updated_at; updated_by.
+- transaction_types: id PK; code UNIQUE; name; sign; is_active; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- payment_methods: id PK; code UNIQUE; name; is_active; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- cashboxes: id PK; tenant_id; company_id; name; description; is_active; created_at/updated_at; created_by/updated_by.
+- cashbox_company: id PK; tenant_id; company_id; cashbox_id FK->cashboxes; UNIQUE(cashbox_id, company_id); created_at/updated_at; created_by/updated_by.
+- transactions: id PK; tenant_id; company_id; is_paid/date_is_paid; is_completed/date_is_completed; sum; cashbox_id FK->cashboxes; transaction_type_id; payment_method_id; notes; counterparty_id; contract_id; related_id self-FK; created_at/updated_at; created_by/updated_by. (client_id nullable via 2025_12_01_000001).
+- receipts: id PK; tenant_id; company_id; cashbox_id FK->cashboxes; transaction_id; contract_id; sum; description; payment_date default current_date; counterparty_id; created_at/updated_at; created_by/updated_by.
+- spendings: id PK; tenant_id; company_id; old_id UNIQUE; cashbox_id; transaction_id; spending_item_id; spending_type_id/name; fond_id; contract_id; sum; description; counterparty_id; spent_to_user_id; payment_date; created_at/updated_at; created_by/updated_by.
+- cash_transfers: id PK; tenant_id; company_id; from_cashbox_id; to_cashbox_id; sum; description; transaction_out_id; transaction_in_id; created_at/updated_at; created_by/updated_by.
+- advances: id PK; tenant_id; company_id; user_id; cashbox_id; transaction_id; amount; balance; created_at/updated_at; created_by/updated_by.
+- cashbox_history: id PK; cashbox_id; transaction_id; balance_after; created_at/updated_at; index (cashbox_id, created_at).
+- cashbox_balance_snapshots: id PK; tenant_id; company_id; cashbox_id; balance; calculated_at; created_at/updated_at; index (cashbox_id, calculated_at).
+- spending_funds: id PK; tenant_id; company_id; id_old UNIQUE; name; description; is_active; created_at/updated_at; created_by/updated_by.
+- spending_items: id PK; tenant_id; company_id; old_id UNIQUE; name; description; fond_id FK->spending_funds; is_active; created_at/updated_at; created_by/updated_by.
 
-Catalog / estimates (legacy_new; structure cloned from legacy with meta columns added)
-- products: cloned from legacy warehouse_products + columns tenant_id, company_id, created_at/by, updated_at/by; includes fields such as name, product_type_id, spending_type_id, scu, category_id, sub_category_id, brand_id, price/price_sale/price_vendor/price_zakup/delivery_price/montaj/montaj_sebest.
-- product_categories: cloned + meta columns; likely id, name, created_at/by, updated_at/by, tenant_id, company_id.
-- product_subcategories: cloned + meta; includes category_id, name, timestamps, tenant_id, company_id.
-- product_brands: cloned + meta; id, name, timestamps, tenant_id, company_id.
+Catalog / estimates (legacy_new)
+- products: id PK; tenant_id; company_id; name; product_type_id; spending_item_id FK->spending_items; scu; category_id; sub_category_id; brand_id; prices; created_at/updated_at; created_by/updated_by.
+- product_categories, product_subcategories, product_brands: cloned + meta columns.
 - product_types: id PK; code UNIQUE; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- estimates: cloned + meta; includes data text, link, random_id, lead_id, amo_lead_id, link_montaj, client_id, sms_sent, tenant_id, company_id, created_at/by, updated_at/by.
-- estimate_groups: cloned + meta; name; ids; tenant_id; company_id; created_at/by; updated_at/by.
-- estimate_template_materials: cloned + meta; title; data longtext; tenant_id; company_id; created_at/by; updated_at/by.
-- estimate_template_septiks: cloned + meta; title; data longtext; pattern_ids; tenant_id; company_id; created_at/by; updated_at/by.
-- estimate_items: id PK; tenant_id; company_id; estimate_id; product_id; qty decimal(14,2); price decimal(14,2); total decimal(14,2); group_id; created_at; created_by; updated_at; updated_by.
-- contract_estimates: id PK; tenant_id; company_id; contract_id; data_json longtext; total_sum decimal(14,2); created_at; created_by; updated_at; updated_by.
-- contract_act_estimates: id PK; tenant_id; company_id; act_id; data_json longtext; total_sum decimal(14,2); created_at; created_by; updated_at; updated_by.
+- estimates: id PK; tenant_id; company_id; data; link; random_id; lead_id; amo_lead_id; link_montaj; client_id; sms_sent; created_at/updated_at; created_by/updated_by.
+- estimate_groups: id PK; tenant_id; company_id; name; ids; created_at/updated_at; created_by/updated_by.
+- estimate_template_materials: id PK; tenant_id; company_id; title; data; created_at/updated_at; created_by/updated_by.
+- estimate_template_septiks: id PK; tenant_id; company_id; title; data; pattern_ids; created_at/updated_at; created_by/updated_by.
+- estimate_items: id PK; tenant_id; company_id; estimate_id; product_id; qty; price; total; group_id; created_at/updated_at; created_by/updated_by.
+- contract_estimates: id PK; tenant_id; company_id; contract_id; data_json; total_sum; created_at/updated_at; created_by/updated_by.
+- contract_act_estimates: id PK; tenant_id; company_id; act_id; data_json; total_sum; created_at/updated_at; created_by/updated_by.
 
 Misc tables
-- dev_control noted above.
-- Additional pivots/legacy-imported tables may carry tenant_id/company_id/created_by/updated_by from meta migration even if not enumerated individually.
+- dev_control: module UNIQUE; status fields; sort_index; timestamps.

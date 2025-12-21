@@ -1,39 +1,19 @@
-PrimeVue DataTable: ошибка filterConstraint2 is not a function
-- Причина: столбцы с matchMode="custom" ожидали filterFunction, но был передан неверный проп/формат значений (или вовсе отсутствовала функция). DataTable пытался вызвать undefined и падал с filterConstraint2 is not a function.
-- Как избежать: используйте встроенные matchMode (equals, contains, between и т.д.) с корректным форматом value. Если нужен custom, обязательно задайте :filterFunction="fn" и следите, что filters[field].value соответствует тому, что ожидает функция.
-- Форматы values: для between — массив [from, to], для equals — примитив, для contains — строка. Не смешивайте объекты вида { from, to } с between.
-- Обновлённые компоненты в PrimeVue v4: вместо Dropdown → Select, вместо Calendar → DatePicker. Это убирает deprecated предупреждения и сразу задаёт корректные типы значений.
+DataTable worklog (RU)
 
----
+Проблема
+- Ошибка PrimeVue: `filterConstraint2 is not a function` при custom matchMode.
 
-Инструкция для программиста: PrimeVue DataTable (filterDisplay="row")
+Как исправлять
+- Использовать стандартные matchMode (equals/contains/between) без `custom`.
+- Если нужен custom, обязательно задать `filterFunction` в Column.
+- Проверить, что filters[field] имеет форму `{ value, matchMode }`.
 
-Общее:
-- DataTable: filterDisplay="row", :filters="filters", фильтры в #filter слоте под заголовком. Каждый фильтр обновляет реактивный filters и таблица применяет сама.
-- Справочники для выпадашек — из Pinia (cashBoxes, transactionTypes, paymentMethods), грузятся один раз в onMounted (loadAll). Не собирать значения из строк таблицы.
-- Используй InputText для текстовых, Dropdown для списков, Popover/Dialog для расширенных фильтров (дата, метод, суммы).
+Согласованность с бэкендом
+- useTableLazy -> mapPrimeToDTO отправляет filters как `filter[field]` в query.
+- dateRange должен быть массивом `[from, to]`, маппится в `{ from, to }` с ISO датой.
+- boolean фильтр маппится в 1/0, number фильтр -> Number(value).
 
-Колонки и фильтры:
-- ID: Заголовок ID. Фильтр InputText, matchMode 'contains'. filters.id = { value: '', matchMode: 'contains' }.
-- Оплачено / Дата оплаты: Заголовок Оплачено. Dropdown с [{label:'Все',value:null},{label:'ДА',value:true},{label:'НЕТ',value:false}], matchMode 'equals'. Иконка календаря → поповер с двумя Calendar (от/до), пишет filters.date_is_paid.value = { from, to }, matchMode 'custom' (функция проверяет попадание даты в диапазон).
-- Исполнено / Дата исполнения: аналогично пункту выше, поля is_completed и date_is_completed.
-- Тип / Метод платежа: Заголовок Тип / Метод платежа. Dropdown для типа (transactionTypes из Pinia), matchMode 'equals', optionValue=id, optionLabel=name. Иконка “финансы” → поповер с Dropdown метода (paymentMethods), matchMode 'equals'. Значения в filters.transaction_type_id и filters.payment_method_id.
-- Договор / Контрагент: Заголовок Договор / Контрагент. Один InputText с matchMode 'custom': проверяет частичное вхождение в contract_id (как строка) ИЛИ counterparty.name. filters.contract_or_counterparty = { value: '', matchMode: 'custom' }.
-- Касса: Заголовок Касса. Dropdown с cashBoxes из Pinia, matchMode 'equals', optionValue=id, optionLabel=name.
-- Сумма: Заголовок Сумма. Иконка “диапазон”/раскрывашка → два InputNumber (мин/макс), matchMode 'custom': проверка sum.amount в [min,max]; пустые границы не ограничивают. filters.sum = { value: { min:null, max:null }, matchMode: 'custom' }.
-- Комментарий: Заголовок Комментарий. InputText, matchMode 'contains' по notes.
-- Связь: Заголовок Связь. InputText, matchMode 'contains' по related_id (как строка) или другому полю связи.
-
-Кастомные filterFunctions:
-- Диапазон дат: parse ISO, сравнить с from/to, пустое from/to не ограничивает.
-- Диапазон сумм: Number(amount) в [min,max], пустые границы не ограничивают.
-- Договор/Контрагент: includes по String(contract_id) или counterparty.name (регистронезависимо).
-
-Справочники (Pinia):
-- Грузить один раз: cashBoxes /api/finance/cashboxes, transactionTypes (из enum или API), paymentMethods /api/finance/payment-methods, companies /api/common/companies, spendingFunds /api/finance/funds, spendingItems /api/finance/spending-items, saleTypes /api/crm/sale-types (если используются на других страницах).
-- Хранить { id, name }, мапы id→name для форматтеров.
-
-UI детали:
-- Под заголовком — компактные инпуты. Иконки (календарь/финансы/диапазон) открывают поповер/диалог с расширенным фильтром.
-- Кнопка “Сброс фильтров” — обнуляет filters в дефолтные значения.
-- matchMode: Dropdown — 'equals', тексты — 'contains', диапазоны — 'custom'.
+Где смотреть
+- `resources/ts/components/BaseDataTable.vue`
+- `resources/ts/utils/filterMapper.ts`
+- `resources/ts/config/tables/*.ts`

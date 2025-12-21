@@ -1,16 +1,15 @@
-# KNOWN ISSUES (current pain points)
+# KNOWN ISSUES (актуально)
 
-- Legacy DB connection `legacy_new` is required for migrations/seeds; missing config blocks local setup.
-- Seeded names for `transaction_types` and `sale_types` are mojibake (encoding issue) and need re-seeding with UTF-8 labels.
-- Finance columns were renamed `summ` -> `sum` by migration `2025_11_22_000002_multi_table_meta_updates`; verify code/DB consistency and re-run renames on any restored dumps.
-- `transactions` still carries legacy `id_project` and `id_cash_box` naming; service layer uses new cashbox relations, so reconcile column usage and drop leftovers.
-- Cashboxes have both `balance` column and history/snapshot tables; define single source of truth and backfill to avoid drift.
-- Multi-tenant/user stamp columns are auto-added with default `tenant_id = 1`; enforcement/authorization by tenant is not implemented at DB level (risk of cross-tenant data mixing).
-- Laravel system tables (`users`, `sessions`, `cache`, `jobs`, etc.) lack tenant/company columns; cross-tenant isolation depends entirely on app logic.
-- Numerous data import migrations (`perenos_*`, `reload_spendings_*`) are not idempotent; re-running may duplicate or corrupt migrated finance data.
-- Receipts/spendings use nullable `transaction_id`; orphaned financial rows are possible if transaction creation fails mid-flow.
-- Contracts table retains legacy helper fields (`old_*`, worker/manager/measurer ids) with unclear current usage; UI/API should hide or clean them.
-- `companies.code` is unique; legacy imports can collide if codes are not normalized before sync.
-- Payment method/type seeds are hardcoded; any enum mismatch with frontend selects will break form submissions until synchronized.
-- No documented scheduling for `CashBoxBalanceSnapshotJob`; snapshots may never run without manual cron setup.
-- Dev-control endpoints exist but flags are undocumented; risk of toggling unknown behaviors in prod.
+Комментарий (RU)
+- Список основан на текущем коде и схеме `legacy_new`. Обновляй при правках миграций/сервисов.
+
+- Смешение `cash_boxes`/`cashboxes` и `cash_box_id`/`cashbox_id` в сервисах, FormRequest и тестах; после миграции `2025_12_19_000001` операции могут ломаться.
+- `FinanceService` блокирует `cash_boxes` и пишет `cash_box_id`, а модели/схема используют `cashboxes`/`cashbox_id`.
+- `TransactionService`, `ReceiptService`, `SpendingService` используют `DB::transaction()` без `legacy_new`, поэтому транзакции идут по default connection.
+- Скоупы `Transaction::scopeOnlyExpense`/`Spending::scopeOnlyExpense` фильтруют `sum < 0`, хотя знак хранится в `transaction_types.sign`.
+- Миграции `perenos_*` и `reload_spendings_*` не идемпотентны; повторный запуск может дублировать данные.
+- `receipts.transaction_id` и `spendings.transaction_id` допускают NULL — возможны "сироты" при сбоях.
+- Нет расписания для `CashBoxBalanceSnapshotJob`; без cron/queue снапшоты не пишутся.
+- Возможны проблемы с кодировкой в справочниках (transaction_types/sale_types) при импорте из legacy.
+- Dev-control флаги не документированы.
+- Межтенантная изоляция обеспечивается приложением; на уровне БД нет строгого разграничения по tenant_id.

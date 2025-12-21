@@ -1,39 +1,46 @@
 # PROJECT OVERVIEW
 
-## Purpose
-- ERP-style admin built on Laravel 12 back end with Vue 3 + Vite front end (Vuexy base).
-- Supports finance, catalog, contracts, and settings modules for multi-tenant companies.
+Комментарий (RU)
+- Краткий обзор модулей и техстека. Детали см. `docs/Finance Module.md` и `docs/schema.txt`.
 
-## Tech Stack
-- Backend: PHP 8.2+, Laravel 12, Domain/Services/Repositories layers, API resources + FormRequests, jobs/events for finance logging.
-- Frontend: Vite + TypeScript + Vue 3 with Pinia and Vue Router; UI kits PrimeVue 4 and Vuetify 3; charts via ApexCharts/Chart.js; editors Tiptap; mapbox-gl for maps.
-- Tooling: ESLint/Stylelint, vue-tsc, MSW for API mocking, Iconify pipeline (`pnpm build:icons` + `msw:init`), Docker Compose provided via `compose.yaml`.
+## Назначение
+- ERP-админка на Laravel 12 + Vue 3 (база Vuexy).
+- Модули: finance, catalog, CRM/contracts, settings, dev-control.
 
-## API and Domain Highlights
+## Технологии
+- Backend: PHP 8.2+, Laravel 12; Domain/Services/Repositories; FormRequest + Resources; события/джобы.
+- DB: основное подключение `legacy_new` (default connection не используется).
+- Frontend: Vue 3 + Vite + TypeScript; Pinia; Vue Router; PrimeVue 4 + Vuetify 3.
+- UI/Media: ApexCharts, Chart.js, Tiptap, mapbox-gl.
+- Tooling: ESLint/Stylelint, vue-tsc, Iconify (`npm run build:icons`), MSW (`npm run msw:init`).
+- Docker: `compose.yaml` для локального стека.
+
+## API и доменные акценты
 - Auth: `POST /api/auth/login`.
-- Finance: cashboxes + balances, receipts (contract/director loan), spendings, director withdrawal, cash transfers; transaction feed under `/api/finance/*` (legacy "finances" alias still responds).
+- Finance: список транзакций, кассы/балансы, поступления, расходы, переводы, справочники (`/api/finance/*`).
 - Settings: contract statuses, cash boxes, companies, spending funds/items, sale types, cities/districts, tenants (`/api/settings/*`).
-- Catalog: products, categories, subcategories, brands (`/api/products/*`).
-- Contracts: `/api/contracts` listing.
-- Finance service (`App\\Services\\Finance\\FinanceService`) enforces positive sums, tenant/company consistency, balance checks; writes cashbox history and emits `FinancialActionLogged`.
+- Catalog: products + categories/brands/subcategories (`/api/products/*`).
+- Contracts: `GET /api/contracts`.
+- Dev-control: `/api/dev-control`.
+- FinanceService (`App\Services\Finance\FinanceService`) контролирует суммы, балансы и пишет историю касс.
 
-## Data and Background Work
-- Key tables: `transactions`, `transaction_types`, `receipts`, `spendings`, `cash_transfers`, `cashbox_history`, `cash_boxes`, `payment_methods`, `cashbox_balance_snapshots`.
-- Snapshot job `CashBoxBalanceSnapshotJob` records daily balances; history is written per transaction for auditability.
-- Feature tests cover finance flows (`tests/Feature/FinanceServiceTest.php`).
+## Данные и фоновые задачи
+- Ключевые таблицы: `transactions`, `transaction_types`, `receipts`, `spendings`, `cash_transfers`, `cashbox_history`, `cashboxes`, `payment_methods`, `cashbox_balance_snapshots`.
+- Баланс считается по транзакциям и сохраняется в `cashbox_history`; снапшоты пишет `CashBoxBalanceSnapshotJob`.
+- Тесты: `tests/Feature/FinanceServiceTest.php` покрывает основные кейсы переводов и балансов.
 
-## Frontend App Structure
-- Source lives in `resources/ts` (api clients, components, navigation, pages, views, plugins, types, entrypoint `main.ts`).
-- Auto-imported components/types are tracked in generated `.d.ts` files (`auto-imports.d.ts`, `components.d.ts`, `typed-router.d.ts`).
+## Frontend структура
+- Исходники в `resources/ts` (api, components, composables, pages, stores, types, navigation, plugins, views, `main.ts`).
+- Автоген `.d.ts`: `auto-imports.d.ts`, `components.d.ts`, `typed-router.d.ts`.
 
-## Local Setup
-- Backend: `composer install`, copy `.env` from `.env.example`, `php artisan key:generate`, run migrations.
-- Frontend: `pnpm install` (or npm), `pnpm build:icons`, `pnpm dev` for Vite, `pnpm build` for production.
-- Combined dev stack: `composer run dev` launches artisan server, queue listener, pail logs, and Vite in parallel.
-- Tests: `composer test`; frontend lint/type check via `pnpm lint` and `pnpm typecheck`.
+## Локальный запуск
+- Backend: `composer install`, `.env` из `.env.example`, `php artisan key:generate`, миграции.
+- Frontend: `npm install` (или `pnpm install`), затем `npm run build:icons`, `npm run dev`.
+- Dev-стек: `composer run dev` (artisan + queue + pail + Vite).
+- Tests: `composer test`; фронтенд линт/типы: `npm run lint`, `npm run typecheck`.
 
-## Useful Docs
-- `docs/project-structure.txt` for directory map.
-- `docs/Finance Module.md` for finance rules and flows.
-- `docs/schema.txt` for database reference.
-- PrimeVue notes in `docs/primevue/` and related txt files.
+## Полезные документы
+- `docs/project-structure.txt`
+- `docs/Finance Module.md`
+- `docs/schema.txt`
+- `docs/ai/API_MAP.md`

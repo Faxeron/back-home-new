@@ -1,4 +1,4 @@
-﻿# FINANCE GUARDRAILS (P0 hardening)
+# FINANCE GUARDRAILS (P0 hardening)
 
 Статус: обязательный. Применяется ко всем изменениям Finance / Transactions / Cashboxes. Любое расхождение с документом считается ошибкой, даже если <сейчас работает>.
 
@@ -16,13 +16,13 @@
 
 ## 4. Конкурентный доступ и гонки (P0)
 - Проблема: параллельные запросы могут одновременно пройти проверку баланса и увезти кассу в минус.
-- Решение: все операции, влияющие на баланс, сериализуются row-level lock касс через `lockCashBoxes(...)` (`SELECT ... FOR UPDATE` по `cash_boxes`). Блокировка берётся **до** расчёта баланса, записи транзакций и установки `is_paid`/`is_completed`.
+- Решение: все операции, влияющие на баланс, сериализуются row-level lock касс через `lockCashBoxes(...)` (`SELECT ... FOR UPDATE` по таблице касс). Сейчас код блокирует `cash_boxes` (legacy); при переводе на `cashboxes` обновить `lockCashBoxes` и FormRequest.
 - Обязательные точки: все create* (приходы/расходы/корректировки), `transferBetweenCashBoxes`, `completeTransaction`.
 - Гарантия: операции над одной кассой выполняются последовательно; проверка <не уйти в минус> не обходится параллельным запросом.
 
 ## 5. Транзакции БД
 - Все операции FinanceService выполняются внутри транзакции `legacy_new` с учётом row-level locks.
-- Нельзя: читать баланс вне транзакции; читать, а потом блокировать.
+- Нельзя: читать баланс вне транзакции; читать, а потом блокировать; выполнять финансовые операции на default connection.
 
 ## 6. Легаси-слушатели и пересчёты
 - Слушатели намеренно отключены (no-op): `RecalcCashboxHistoryListener`, `RecalcCashboxAfterTransactionChanged`, `UpdateCashboxBalanceListener`.
@@ -74,7 +74,7 @@
 Допускается добавление: фильтра ?is_active=1, пагинации ?per_page=... (если фронт готов), сортировки по name. По умолчанию желательно возвращать <весь справочник> (если объём разумный).
 
 ## 11. Пользователи и компании (модель + FK)
-- Модель: multi. Источник правды - pivot `user_company (user_id, company_id, tenant_id)`, UNIQUE(user_id, company_id). Колонка в users - `default_company_id` (опциональная <компания по умолчанию>), не источник правды.
+- Модель: multi. Источник правды - pivot `user_company (user_id, company_id, tenant_id)`, UNIQUE(user_id, company_id). Колонка `users.company_id` трактуется как опциональная <компания по умолчанию>, не источник правды.
 - Пользователи и токены живут в `legacy_new` (users + personal_access_tokens), поэтому доменные FK на users валидны.
 - Требования к целостности: users.tenant_id FK->tenants; user_company.user_id FK->users; user_company.company_id FK->companies; role_users.user_id/role_id FK; профили user_profiles.user_id UNIQUE FK. Orphan-пивоты запрещены.
 - Права/ACL идут через `user_company`; `users.company_id` — только дефолт для удобства, его нельзя использовать для авторизации.
