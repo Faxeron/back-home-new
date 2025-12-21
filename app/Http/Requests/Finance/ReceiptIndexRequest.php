@@ -18,6 +18,7 @@ class ReceiptIndexRequest extends FormRequest
             'page' => 'sometimes|integer|min:1',
             'date_from' => 'sometimes|date',
             'date_to' => 'sometimes|date',
+            'cashbox_id' => 'sometimes|integer',
             'cash_box_id' => 'sometimes|integer',
             'company_id' => 'sometimes|integer',
             'contract_id' => 'sometimes|integer',

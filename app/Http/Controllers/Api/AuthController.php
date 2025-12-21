@@ -7,7 +7,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -36,7 +35,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => 'admin',
             'tenant_id' => $user->tenant_id,
-            'company_id' => $user->company_id ?? null,
+            'company_id' => $user->default_company_id ?? $user->company_id ?? null,
             'avatar' => null,
         ];
 
@@ -47,8 +46,10 @@ class AuthController extends Controller
             ],
         ];
 
+        $token = $user->createToken('api')->plainTextToken;
+
         return response()->json([
-            'accessToken' => Str::random(60),
+            'accessToken' => $token,
             'userData' => $userData,
             'userAbilityRules' => $abilityRules,
         ]);

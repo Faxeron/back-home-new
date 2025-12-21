@@ -40,8 +40,6 @@ class Transaction extends Model
         'date_is_paid' => 'datetime',
         'date_is_completed' => 'datetime',
         'sum' => MoneyCast::class,
-        'transaction_type_id' => TransactionTypeCast::class,
-        'payment_method_id' => PaymentMethodCast::class,
     ];
 
     public function company(): BelongsTo
@@ -49,9 +47,15 @@ class Transaction extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(CashBox::class, 'cashbox_id');
+    }
+
     public function cashBox(): BelongsTo
     {
-        return $this->belongsTo(CashBox::class, 'cash_box_id');
+        // legacy alias until all callers are updated
+        return $this->cashbox();
     }
 
     public function contract(): BelongsTo
@@ -106,6 +110,6 @@ class Transaction extends Model
 
     public function scopeOfCashbox($query, int $cashboxId)
     {
-        return $query->where('cash_box_id', $cashboxId);
+        return $query->where('cashbox_id', $cashboxId);
     }
 }

@@ -48,9 +48,15 @@ class Receipt extends Model
         return $this->belongsTo(Company::class, 'company_id');
     }
 
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(CashBox::class, 'cashbox_id');
+    }
+
     public function cashBox(): BelongsTo
     {
-        return $this->belongsTo(CashBox::class, 'cash_box_id');
+        // legacy alias until all callers are updated
+        return $this->cashbox();
     }
 
     public function counterparty(): BelongsTo
@@ -65,6 +71,6 @@ class Receipt extends Model
 
     public function scopeOfCashbox($query, int $cashboxId)
     {
-        return $query->where('cash_box_id', $cashboxId);
+        return $query->where('cashbox_id', $cashboxId);
     }
 }

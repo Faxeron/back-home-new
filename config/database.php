@@ -99,6 +99,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'dump' => [
+                'dump_binary_path' => 'C:\\xampp\\mysql\\bin\\',
+                'use_single_transaction' => true,
+                'timeout' => 300,
+            ],
         ],
         
         'mariadb' => [
@@ -167,6 +172,10 @@ return [
     'migrations' => [
         'table' => 'migrations',
         'update_date_on_publish' => true,
+        'paths' => [
+            database_path('migrations_baseline'),
+            database_path('migrations_new'),
+        ],
     ],
 
     /*
@@ -219,4 +228,3 @@ return [
     ],
 
 ];
-

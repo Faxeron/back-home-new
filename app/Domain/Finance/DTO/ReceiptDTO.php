@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Domain\Finance\DTO;
+
+use App\Domain\Finance\Models\Receipt;
+
+class ReceiptDTO
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly ?int $tenantId,
+        public readonly ?int $companyId,
+        public readonly ?int $cashBoxId,
+        public readonly ?int $transactionId,
+        public readonly float $sum,
+        public readonly ?int $contractId,
+        public readonly ?int $counterpartyId,
+        public readonly ?string $paymentDate,
+        public readonly ?string $description,
+    ) {
+    }
+
+    public static function fromModel(Receipt $receipt): self
+    {
+        return new self(
+            id: $receipt->id,
+            tenantId: $receipt->tenant_id,
+            companyId: $receipt->company_id,
+            cashBoxId: $receipt->cash_box_id,
+            transactionId: $receipt->transaction_id,
+            sum: (float) $receipt->sum,
+            contractId: $receipt->contract_id,
+            counterpartyId: $receipt->counterparty_id,
+            paymentDate: $receipt->payment_date?->toDateString(),
+            description: $receipt->description,
+        );
+    }
+}

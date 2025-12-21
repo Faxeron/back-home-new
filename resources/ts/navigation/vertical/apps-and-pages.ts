@@ -4,15 +4,43 @@ export default [
     title: 'Finance',
     icon: { icon: 'tabler-cash' },
     children: [
-      { title: 'Transactions', to: { path: '/finances/transactions' } },
-      { title: 'Receipts', to: { path: '/finances/receipts' } },
-      { title: 'Spendings', to: { path: '/finances/spendings' } },
+      { title: 'Transactions', to: { path: '/finance/transactions' } },
+      { title: 'Receipts', to: { path: '/finance/receipts' } },
+      { title: 'Spendings', to: { path: '/finance/spendings' } },
     ],
   },
   {
     title: 'Contracts',
     icon: { icon: 'tabler-file-text' },
     to: { path: '/contracts' },
+  },
+  {
+    title: 'Dev Control',
+    icon: { icon: 'tabler-clipboard-list' },
+    to: { path: '/dev-control' },
+  },
+  {
+    title: 'Товары',
+    icon: { icon: 'tabler-box' },
+    children: [
+      {
+        title: 'Товары',
+        children: [
+          { title: 'Товары', to: { path: '/products' } },
+          { title: 'Бренды', to: { path: '/products/brands' } },
+          { title: 'Категории', to: { path: '/products/categories' } },
+          { title: 'Подкатегории', to: { path: '/products/subcategories' } },
+        ],
+      },
+      {
+        title: 'Сметы',
+        to: { path: '/products/estimates' },
+      },
+      {
+        title: 'Шаблоны',
+        to: { path: '/products/templates' },
+      },
+    ],
   },
   {
     title: 'Справочники',

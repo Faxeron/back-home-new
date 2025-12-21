@@ -19,7 +19,8 @@ class ReceiptResource extends JsonResource
         return [
             'id' => $this->id,
             'company_id' => $this->company_id,
-            'cash_box_id' => $this->cash_box_id,
+            'cashbox_id' => $this->cashbox_id ?? $this->cash_box_id,
+            'cash_box_id' => $this->cash_box_id ?? $this->cashbox_id,
             'transaction_id' => $this->transaction_id,
             'sum' => $this->money($this->sum),
             'contract_id' => $this->contract_id,
@@ -33,6 +34,10 @@ class ReceiptResource extends JsonResource
             'company' => $this->whenLoaded('company', fn () => [
                 'id' => $this->company->id,
                 'name' => $this->company->name,
+            ]),
+            'cashbox' => $this->whenLoaded('cashbox', fn () => [
+                'id' => $this->cashbox->id,
+                'name' => $this->cashbox->name,
             ]),
             'cash_box' => $this->whenLoaded('cashBox', fn () => [
                 'id' => $this->cashBox->id,

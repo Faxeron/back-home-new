@@ -14,9 +14,7 @@ class RecalcCashboxAfterTransactionChanged
 
     public function handle(TransactionUpdated|TransactionDeleted $event): void
     {
-        $cashboxId = $event->transaction->cash_box_id;
-        if ($cashboxId) {
-            $this->balanceService->recalc((int) $cashboxId);
-        }
+        // Balances/history recalculation handled exclusively in FinanceService; legacy recalcs are disabled.
+        return;
     }
 }

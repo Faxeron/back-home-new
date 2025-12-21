@@ -20,6 +20,7 @@ class SpendingIndexRequest extends FormRequest
             'date_to' => 'sometimes|date',
             'fond_id' => 'sometimes|integer',
             'spending_item_id' => 'sometimes|integer',
+            'cashbox_id' => 'sometimes|integer',
             'cash_box_id' => 'sometimes|integer',
             'company_id' => 'sometimes|integer',
             'contract_id' => 'sometimes|integer',

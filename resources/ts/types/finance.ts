@@ -10,7 +10,7 @@ export type Transaction = {
   date_is_paid?: string
   is_completed: boolean
   date_is_completed?: string
-  cash_box_id?: number
+  cashbox_id?: number
   transaction_type_id?: number | string
   payment_method_id?: number | string
   company_id?: number
@@ -21,7 +21,7 @@ export type Transaction = {
   created_at?: string
   updated_at?: string
   company?: { id: number; name: string }
-  cash_box?: { id: number; name: string }
+  cashbox?: { id: number; name: string }
   counterparty?: { id: number; name?: string; phone?: string }
   transaction_type?: { id?: number; code?: string; name?: string; sign?: number }
   payment_method?: { id?: number; code?: string; name?: string }
@@ -32,13 +32,13 @@ export type Receipt = {
   sum: Money
   payment_date?: string
   company_id?: number
-  cash_box_id?: number
+  cashbox_id?: number
   transaction_id?: number
   contract_id?: number
   counterparty_id?: number
   description?: string
   company?: { id: number; name: string }
-  cash_box?: { id: number; name: string }
+  cashbox?: { id: number; name: string }
   counterparty?: { id: number; name?: string; phone?: string }
 }
 
@@ -47,7 +47,7 @@ export type Spending = {
   sum: Money
   payment_date?: string
   company_id?: number
-  cash_box_id?: number
+  cashbox_id?: number
   transaction_id?: number
   fond_id?: number
   spending_item_id?: number
@@ -56,7 +56,7 @@ export type Spending = {
   spent_to_user_id?: number
   description?: string
   company?: { id: number; name: string }
-  cash_box?: { id: number; name: string }
+  cashbox?: { id: number; name: string }
   fund?: { id: number; name: string }
   item?: { id: number; name: string }
 }

@@ -21,7 +21,7 @@ class CashBox extends Model
 
     protected $connection = 'legacy_new';
 
-    protected $table = 'cash_boxes';
+    protected $table = 'cashboxes';
 
     protected $guarded = [];
 
@@ -36,17 +36,17 @@ class CashBox extends Model
 
     public function transactions(): HasMany
     {
-        return $this->hasMany(Transaction::class, 'cash_box_id');
+        return $this->hasMany(Transaction::class, 'cashbox_id');
     }
 
     public function receipts(): HasMany
     {
-        return $this->hasMany(Receipt::class, 'cash_box_id');
+        return $this->hasMany(Receipt::class, 'cashbox_id');
     }
 
     public function spendings(): HasMany
     {
-        return $this->hasMany(Spending::class, 'cash_box_id');
+        return $this->hasMany(Spending::class, 'cashbox_id');
     }
 
     public function history(): HasMany
@@ -56,11 +56,11 @@ class CashBox extends Model
 
     public function transfersFrom(): HasMany
     {
-        return $this->hasMany(CashTransfer::class, 'from_cash_box_id');
+        return $this->hasMany(CashTransfer::class, 'from_cashbox_id');
     }
 
     public function transfersTo(): HasMany
     {
-        return $this->hasMany(CashTransfer::class, 'to_cash_box_id');
+        return $this->hasMany(CashTransfer::class, 'to_cashbox_id');
     }
 }

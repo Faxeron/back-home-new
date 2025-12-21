@@ -11,6 +11,9 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use Notifiable;
+    use \Laravel\Sanctum\HasApiTokens;
+
+    protected $connection = 'legacy_new';
 
     protected $fillable = [
         'name',

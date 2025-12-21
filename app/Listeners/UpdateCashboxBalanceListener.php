@@ -13,6 +13,7 @@ class UpdateCashboxBalanceListener
 
     public function handle(CashboxBalanceChanged $event): void
     {
-        $this->balanceService->recalc($event->cashboxId);
+        // Centralized balance logic lives in FinanceService; legacy balance updates are disabled.
+        return;
     }
 }

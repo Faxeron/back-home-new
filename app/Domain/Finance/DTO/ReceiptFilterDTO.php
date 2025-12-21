@@ -34,7 +34,7 @@ class ReceiptFilterDTO extends BaseFilterDTO
         return new static(
             tenantId: $base->tenantId,
             companyId: $base->companyId,
-            cashBoxId: $request->integer('cash_box_id') ?: null,
+            cashBoxId: $request->integer('cashbox_id') ?: $request->integer('cash_box_id') ?: null,
             contractId: $request->integer('contract_id') ?: null,
             counterpartyId: $request->integer('counterparty_id') ?: null,
             sumMin: $request->has('sum_min') ? (float) $request->input('sum_min') : null,

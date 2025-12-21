@@ -27,12 +27,12 @@ class CashTransfer extends Model
 
     public function fromCashBox(): BelongsTo
     {
-        return $this->belongsTo(CashBox::class, 'from_cash_box_id');
+        return $this->belongsTo(CashBox::class, 'from_cashbox_id');
     }
 
     public function toCashBox(): BelongsTo
     {
-        return $this->belongsTo(CashBox::class, 'to_cash_box_id');
+        return $this->belongsTo(CashBox::class, 'to_cashbox_id');
     }
 
     public function transactionOut(): BelongsTo

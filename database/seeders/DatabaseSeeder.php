@@ -21,8 +21,12 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Admin',
                 'password' => '$2y$10$nYxxvEnvnP4.kXqtuXUSK.rSEmG0VFC0MpAeWwQngwp0thF7eE1BC', // admin
                 'tenant_id' => 1,
-                'company_id' => null,
+                'default_company_id' => null,
             ]
         );
+
+        $this->call([
+            DevControlSeeder::class,
+        ]);
     }
 }

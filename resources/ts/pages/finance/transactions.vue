@@ -1,0 +1,66 @@
+<script setup lang="ts">
+import { onMounted, reactive } from 'vue'
+import BaseDataTable from '@/components/BaseDataTable.vue'
+import { useTableLazy } from '@/composables/useTableLazy'
+import { tableConfigTransactions } from '@/config/tables/transactions'
+import { useDictionariesStore } from '@/stores/dictionaries'
+
+const dictionaries = useDictionariesStore()
+
+const BOOLEAN_OPTIONS = [
+  { label: 'گ'‘?گç', value: null },
+  { label: 'گ"گّ', value: true },
+  { label: 'گ?گç‘'', value: false },
+]
+
+// گ>گ?گَگّگ>‘?گ?گّ‘? گَگ?گُگٌ‘? گَگ?گ?‘"گٌگ?گّ, ‘ط‘'گ?گ+‘< گ?گ?گُگ?گ>گ?‘?‘'‘? options گ+گçگْ گ?‘?‘'گّ‘إگٌگٌ گٌ‘?‘:گ?گ?گ?گ?گ?گ? export
+const config = reactive({
+  ...tableConfigTransactions,
+  columns: tableConfigTransactions.columns.map(col => ({ ...col })),
+})
+
+const applyDictionaryOptions = () => {
+  config.columns = tableConfigTransactions.columns.map(col => {
+    if (col.field === 'cashbox_id') {
+      return {
+        ...col,
+        options: (dictionaries.cashBoxes || []).map(item => ({
+          label: item.name,
+          value: item.id,
+        })),
+      }
+    }
+    if (col.field === 'transaction_type_id') {
+      return {
+        ...col,
+        options: (dictionaries.transactionTypes || []).map(item => ({
+          label: item.name ?? item.code ?? item.id,
+          value: item.id,
+        })),
+      }
+    }
+    if (col.field === 'is_paid') {
+      return { ...col, options: BOOLEAN_OPTIONS }
+    }
+    return { ...col }
+  })
+}
+
+const { data, total, loading, load } = useTableLazy(config)
+
+onMounted(async () => {
+  await Promise.all([dictionaries.loadCashBoxes(), dictionaries.loadTransactionTypes()])
+  applyDictionaryOptions()
+  await load()
+})
+</script>
+
+<template>
+  <BaseDataTable
+    :config="config"
+    :data="data"
+    :total="total"
+    :loading="loading"
+    :load="load"
+  />
+</template>

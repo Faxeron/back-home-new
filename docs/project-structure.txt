@@ -1,0 +1,39 @@
+Project structure (Dec 2025 snapshot)
+
+Root
+- app/                // Laravel 12 application layer (Domain + controllers/services/repositories/events/jobs)
+  - Domain/
+    - Catalog/
+    - Common/
+    - CRM/
+    - Finance/
+    - Storage/
+  - Http/Controllers/
+    - Api/ (Catalog, CRM, Finance, Storage, System, Auth, Settings)
+  - Services/         // FinanceService, CashTransferService, Catalog services
+  - Repositories/     // Finance, Catalog, Common, CRM repositories
+  - Events/, Jobs/, Listeners/
+- bootstrap/
+- config/
+- database/
+  - migrations/       // core + finance/catalog migrations, cashbox snapshots
+  - seeders/
+- docs/
+  - ai/PROJECT_OVERVIEW.md
+  - Finance Module.md
+  - project-structure.txt
+  - schema.txt
+  - primevue/*, PROMPT_*.txt
+- public/             // Vite build output, MSW worker
+- resources/
+  - ts/               // SPA source: api/, components/, composables/, navigation/, pages/, plugins/, types/, views/, main.ts
+  - views/            // Blade views if present
+- routes/
+  - api.php           // REST API (auth, finance, settings, products, contracts)
+  - web.php
+- storage/
+- tests/
+  - Feature/FinanceServiceTest.php
+- vendor/
+- node_modules/
+- package.json, pnpm-lock.yaml, composer.json, vite.config.ts, themeConfig.ts, env.d.ts, README.md, etc.
