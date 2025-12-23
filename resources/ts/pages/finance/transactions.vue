@@ -8,12 +8,12 @@ import { useDictionariesStore } from '@/stores/dictionaries'
 const dictionaries = useDictionariesStore()
 
 const BOOLEAN_OPTIONS = [
-  { label: 'گ'‘?گç', value: null },
-  { label: 'گ"گّ', value: true },
-  { label: 'گ?گç‘'', value: false },
+  { label: 'All', value: null },
+  { label: 'Yes', value: true },
+  { label: 'No', value: false },
 ]
 
-// گ>گ?گَگّگ>‘?گ?گّ‘? گَگ?گُگٌ‘? گَگ?گ?‘"گٌگ?گّ, ‘ط‘'گ?گ+‘< گ?گ?گُگ?گ>گ?‘?‘'‘? options گ+گçگْ گ?‘?‘'گّ‘إگٌگٌ گٌ‘?‘:گ?گ?گ?گ?گ?گ? export
+// Clone columns to avoid mutating the shared config.
 const config = reactive({
   ...tableConfigTransactions,
   columns: tableConfigTransactions.columns.map(col => ({ ...col })),

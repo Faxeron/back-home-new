@@ -47,12 +47,6 @@ class Spending extends Model
         return $this->belongsTo(CashBox::class, 'cashbox_id');
     }
 
-    public function cashBox(): BelongsTo
-    {
-        // legacy alias until all callers are updated
-        return $this->cashbox();
-    }
-
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'transaction_id');

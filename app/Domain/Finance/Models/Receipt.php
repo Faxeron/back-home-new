@@ -53,12 +53,6 @@ class Receipt extends Model
         return $this->belongsTo(CashBox::class, 'cashbox_id');
     }
 
-    public function cashBox(): BelongsTo
-    {
-        // legacy alias until all callers are updated
-        return $this->cashbox();
-    }
-
     public function counterparty(): BelongsTo
     {
         return $this->belongsTo(Counterparty::class, 'counterparty_id');

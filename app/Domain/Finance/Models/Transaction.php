@@ -52,12 +52,6 @@ class Transaction extends Model
         return $this->belongsTo(CashBox::class, 'cashbox_id');
     }
 
-    public function cashBox(): BelongsTo
-    {
-        // legacy alias until all callers are updated
-        return $this->cashbox();
-    }
-
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class, 'contract_id');
