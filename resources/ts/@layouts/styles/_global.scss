@@ -19,3 +19,89 @@ html {
 .p-datatable .p-datatable-column-filter-button {
   display: none;
 }
+
+// Compact filter row inputs in DataTable
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row > th {
+  padding-block: 0 !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-column-filter {
+  margin: 0 !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-column-filter-element-container {
+  padding: 0 !important;
+}
+
+.p-datatable .p-datatable-thead .p-datatable-filter {
+  align-items: center !important;
+  padding-block: 0 !important;
+}
+
+.p-datatable .p-datatable-thead .p-datatable-filter-element-container {
+  padding: 0 !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter {
+  align-items: center !important;
+  padding-block: 0 !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-inputtext,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-inputnumber-input,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-select,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-dropdown,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-button {
+  padding-block: 0.1rem !important;
+  min-block-size: 1.6rem !important;
+  block-size: 1.6rem !important;
+  line-height: 1.2rem !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-select-label {
+  padding-block: 0.1rem !important;
+  line-height: 1.2rem !important;
+  block-size: 1.6rem !important;
+}
+
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-select-trigger {
+  padding-block: 0.1rem !important;
+  block-size: 1.6rem !important;
+}
+
+.p-datatable .p-datatable-thead .p-datatable-filter .p-inputtext,
+.p-datatable .p-datatable-thead .p-datatable-filter .p-inputnumber-input,
+.p-datatable .p-datatable-thead .p-datatable-filter .p-select,
+.p-datatable .p-datatable-thead .p-datatable-filter .p-dropdown,
+.p-datatable .p-datatable-thead .p-datatable-filter .p-button {
+  padding-block: 0.1rem !important;
+  min-block-size: 1.6rem !important;
+  block-size: 1.6rem !important;
+  line-height: 1.2rem !important;
+}
+
+.p-datatable .p-datatable-thead .p-datatable-filter .p-select-label {
+  padding-block: 0.1rem !important;
+  line-height: 1.2rem !important;
+  block-size: 1.6rem !important;
+}
+
+.p-datatable .p-datatable-thead .p-datatable-filter .p-select-trigger {
+  padding-block: 0.1rem !important;
+  block-size: 1.6rem !important;
+}
+
+// Restore normal body row padding (filters are compact only in the header)
+.p-datatable .p-datatable-tbody > tr > td {
+  padding-block: 0.5rem !important;
+}
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter .p-inputtext,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter .p-inputnumber-input,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter .p-select,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter .p-dropdown,
+.p-datatable .p-datatable-thead > tr.p-datatable-filter-row .p-datatable-filter .p-button {
+  padding-block: 0.1rem !important;
+  min-block-size: 1.6rem !important;
+  block-size: 1.6rem !important;
+  line-height: 1.2rem !important;
+}

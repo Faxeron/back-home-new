@@ -1,71 +1,23 @@
-export const tableConfigTransactions = {
-  // Endpoint without /api prefix: $api already adds baseURL /api
-  endpoint: 'finance/transactions',
+export const TRANSACTION_TABLE = {
   include: 'cashbox,counterparty,contract,transactionType,paymentMethod',
+  perPage: 200,
+  rowHeight: 50,
+}
 
-  columns: [
-    { field: 'id', label: 'ID', sortable: true, filter: 'text' },
+export const TRANSACTION_BOOLEAN_OPTIONS = [
+  { label: 'Все', value: null },
+  { label: 'ДА', value: true },
+  { label: 'НЕТ', value: false },
+]
 
-    {
-      field: 'is_paid',
-      label: 'Оплачен\nДата оплаты',
-      sortable: true,
-      filter: 'boolean',
-      body: (row: any) => `${row.is_paid ? 'Да' : 'Нет'}\n${row.date_is_paid ?? ''}`,
-    },
-
-    {
-      field: 'is_completed',
-      label: 'Завершён\nДата завершения',
-      sortable: true,
-      filter: 'boolean',
-      body: (row: any) => `${row.is_completed ? 'Да' : 'Нет'}\n${row.date_is_completed ?? ''}`,
-    },
-
-    {
-      field: 'transaction_type_id',
-      label: 'Тип транзакции / Метод оплаты',
-      filter: 'select',
-      body: (row: any) => `${row.transaction_type?.name ?? row.transactionType?.name ?? ''}\n${row.payment_method?.name ?? row.paymentMethod?.name ?? ''}`,
-    },
-
-    {
-      field: 'sum',
-      label: 'Сумма',
-      sortable: true,
-      body: (row: any) => {
-        const val = row.sum?.amount ?? row.sum
-        return typeof val === 'number' ? val.toLocaleString('ru-RU') : val ?? ''
-      },
-    },
-
-    {
-      field: 'cashbox_id',
-      label: 'Касса',
-      filter: 'select',
-      body: (row: any) => row.cashbox?.name ?? row.cashBox?.name ?? row.cash_box?.name ?? '',
-    },
-
-    {
-      field: 'description',
-      label: 'Описание',
-      filter: 'text',
-    },
-
-    {
-      field: 'contract_id',
-      label: 'Договор / Контрагент',
-      sortable: true,
-      body: (row: any) => {
-        const contract = row.contract?.number ?? ''
-        const counterparty = row.counterparty?.name ?? ''
-        return `${contract}\n${counterparty}`
-      },
-    },
-
-    {
-      field: 'related_id',
-      label: 'ID связанной',
-    },
-  ],
+export const TRANSACTION_COLUMNS = {
+  id: { field: 'id', header: 'ID', sortable: true },
+  isPaid: { field: 'is_paid', header: 'Оплачено', sortable: true },
+  isCompleted: { field: 'is_completed', header: 'Исполнено', sortable: true },
+  transactionType: { field: 'transaction_type_id', header: 'Тип / Метод платежа' },
+  contractOrCounterparty: { field: 'contract_or_counterparty', header: 'Договор / Контрагент' },
+  cashbox: { field: 'cashbox_id', header: 'Касса' },
+  sum: { field: 'sum', header: 'Сумма', sortable: true },
+  notes: { field: 'notes', header: 'Комментарий' },
+  related: { field: 'related', header: 'Связь' },
 }

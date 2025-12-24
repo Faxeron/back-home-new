@@ -32,6 +32,9 @@ interface Props {
     columns: ConfigColumn[]
     rowsPerPage?: number
     paginator?: boolean
+    infiniteScroll?: boolean
+    scrollHeight?: string
+    virtualScrollerOptions?: Record<string, any>
   }
   data?: unknown[]
   total?: number
@@ -45,6 +48,7 @@ interface Props {
   rowHeight?: number
   scrollHeight?: string
   dataKey?: string
+  virtualScrollerOptions?: Record<string, any>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -64,6 +68,12 @@ const virtualScrollerOptions = computed(() => ({
   showLoader: true,
   onLazyLoad: (event: any) => emit('lazy-load', event),
 }))
+
+const resolvedVirtualScrollerOptions = computed(() => props.virtualScrollerOptions ?? virtualScrollerOptions.value)
+const configVirtualScrollerOptions = computed(
+  () => props.config?.virtualScrollerOptions ?? resolvedVirtualScrollerOptions.value,
+)
+const isConfigInfinite = computed(() => !!props.config?.infiniteScroll)
 
 const handleLazyLoad = (event: any) => {
   emit('lazy-load', event)
@@ -92,14 +102,18 @@ const genFilter = (col: ConfigColumn) => {
   <DataTable
     v-if="config"
     :value="data || rows || []"
-    :lazy="true"
+    :lazy="!isConfigInfinite"
     :loading="loading"
-    :paginator="config.paginator ?? true"
+    :paginator="isConfigInfinite ? false : config.paginator ?? true"
     :rows="config.rowsPerPage ?? 25"
     :totalRecords="total ?? totalRecords ?? 0"
     filterDisplay="row"
     sortMode="single"
     class="p-datatable-sm"
+    :scrollable="isConfigInfinite"
+    :scrollHeight="isConfigInfinite ? config.scrollHeight ?? scrollHeight : undefined"
+    :virtualScrollerOptions="isConfigInfinite ? configVirtualScrollerOptions : undefined"
+    stripedRows
     @lazy-load="handleLazyLoad"
     @row-click="emit('row-click', $event)"
   >
@@ -143,8 +157,9 @@ const genFilter = (col: ConfigColumn) => {
     scrollable
     :scrollHeight="scrollHeight"
     :dataKey="dataKey"
-    :virtualScrollerOptions="virtualScrollerOptions"
+    :virtualScrollerOptions="resolvedVirtualScrollerOptions"
     lazy
+    stripedRows
     @row-click="emit('row-click', $event)"
   >
     <ColumnBuilder :columns="columns || []" />

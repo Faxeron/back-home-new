@@ -40,6 +40,7 @@ export type Receipt = {
   company?: { id: number; name: string }
   cashbox?: { id: number; name: string }
   counterparty?: { id: number; name?: string; phone?: string }
+  contract?: { id: number; counterparty_id?: number }
 }
 
 export type Spending = {

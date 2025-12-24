@@ -95,8 +95,24 @@ class FilterBuilder
             $query->where('contract_id', 'like', '%' . $f->contractLike . '%');
         }
 
+        if ($f->contractOrCounterparty) {
+            if (!$joinedCounterparties) {
+                $query->leftJoin('counterparties as cp', 'cp.id', '=', 'transactions.counterparty_id');
+                $joinedCounterparties = true;
+            }
+            $term = $f->contractOrCounterparty;
+            $query->where(function (Builder $q) use ($term) {
+                $q->where('transactions.contract_id', 'like', '%' . $term . '%')
+                    ->orWhere('cp.name', 'like', '%' . $term . '%');
+            });
+        }
+
         if ($f->relatedId) {
             $query->where('related_id', $f->relatedId);
+        }
+
+        if ($f->relatedLike) {
+            $query->where('related_id', 'like', '%' . $f->relatedLike . '%');
         }
 
         if ($f->sumMin !== null) {
@@ -111,6 +127,10 @@ class FilterBuilder
             $query->where('is_paid', $f->isPaid);
         }
 
+        if ($f->notesLike) {
+            $query->where('notes', 'like', '%' . $f->notesLike . '%');
+        }
+
         if ($f->datePaidFrom) {
             $query->whereDate('date_is_paid', '>=', $f->datePaidFrom);
         }
@@ -121,6 +141,14 @@ class FilterBuilder
 
         if ($f->isCompleted !== null) {
             $query->where('is_completed', $f->isCompleted);
+        }
+
+        if ($f->dateCompletedFrom) {
+            $query->whereDate('date_is_completed', '>=', $f->dateCompletedFrom);
+        }
+
+        if ($f->dateCompletedTo) {
+            $query->whereDate('date_is_completed', '<=', $f->dateCompletedTo);
         }
 
         if ($f->dateFrom) {
@@ -143,12 +171,20 @@ class FilterBuilder
 
     public function applyToReceipts(Builder $query, ReceiptFilterDTO $f): Builder
     {
+        $query->select('receipts.*');
+        $joinedCounterparties = false;
+        $joinedContractCounterparties = false;
+
         if ($f->tenantId !== null) {
             $query->where('tenant_id', $f->tenantId);
         }
 
         if ($f->companyId) {
             $query->where('company_id', $f->companyId);
+        }
+
+        if ($f->idLike) {
+            $query->where('id', 'like', '%' . $f->idLike . '%');
         }
 
         if ($f->cashBoxId) {
@@ -161,6 +197,23 @@ class FilterBuilder
 
         if ($f->counterpartyId) {
             $query->where('counterparty_id', $f->counterpartyId);
+        }
+
+        if ($f->counterpartySearch) {
+            if (!$joinedCounterparties) {
+                $query->leftJoin('counterparties as cp', 'cp.id', '=', 'receipts.counterparty_id');
+                $joinedCounterparties = true;
+            }
+            if (!$joinedContractCounterparties) {
+                $query->leftJoin('contracts as ct', 'ct.id', '=', 'receipts.contract_id');
+                $query->leftJoin('counterparties as cpc', 'cpc.id', '=', 'ct.counterparty_id');
+                $joinedContractCounterparties = true;
+            }
+            $term = $f->counterpartySearch;
+            $query->where(function (Builder $q) use ($term) {
+                $q->where('cp.name', 'like', '%' . $term . '%')
+                    ->orWhere('cpc.name', 'like', '%' . $term . '%');
+            });
         }
 
         if ($f->sumMin !== null) {

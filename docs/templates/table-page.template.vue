@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import TransactionsTable from '@/components/tables/transactions/TransactionsTable.vue'
+import __Entity__Table from '@/components/tables/__entity__/__Entity__Table.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
-import { useTransactionFilters } from '@/composables/useTransactionFilters'
-import { TRANSACTION_TABLE } from '@/config/tables/transactions'
+import { use__Entity__Filters } from '@/composables/use__Entity__Filters'
+import { __ENTITY___TABLE } from '@/config/tables/__entity__'
 import { useDictionariesStore } from '@/stores/dictionaries'
-import type { Transaction } from '@/types/finance'
+import type { __Entity__ } from '@/types/__domain__'
 
 const dictionaries = useDictionariesStore()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 
-const { filters, serverParams, resetFilters, handleSort } = useTransactionFilters({
+const { filters, serverParams, resetFilters, handleSort } = use__Entity__Filters({
   onChange: () => reloadRef.value(),
 })
 
@@ -22,11 +22,11 @@ const {
   loading,
   reset: resetData,
   virtualScrollerOptions,
-} = useTableInfinite<Transaction>({
-  endpoint: 'finance/transactions',
-  include: TRANSACTION_TABLE.include,
-  perPage: TRANSACTION_TABLE.perPage,
-  rowHeight: TRANSACTION_TABLE.rowHeight,
+} = useTableInfinite<__Entity__>({
+  endpoint: '__domain__/__entity__',
+  include: __ENTITY___TABLE.include,
+  perPage: __ENTITY___TABLE.perPage,
+  rowHeight: __ENTITY___TABLE.rowHeight,
   params: () => serverParams.value,
 })
 
@@ -48,6 +48,7 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
+  // TODO: load dictionaries only if needed
   await Promise.all([
     dictionaries.loadCashBoxes(true),
     dictionaries.loadTransactionTypes(),
@@ -65,7 +66,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <TransactionsTable
+  <__Entity__Table
     ref="tableRef"
     v-model:filters="filters"
     :rows="data"

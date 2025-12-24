@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import TransactionsTable from '@/components/tables/transactions/TransactionsTable.vue'
+import ReceiptsTable from '@/components/tables/receipts/ReceiptsTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
-import { useTransactionFilters } from '@/composables/useTransactionFilters'
-import { TRANSACTION_TABLE } from '@/config/tables/transactions'
+import { useReceiptFilters } from '@/composables/useReceiptFilters'
+import { RECEIPT_TABLE } from '@/config/tables/receipts'
 import { useDictionariesStore } from '@/stores/dictionaries'
-import type { Transaction } from '@/types/finance'
+import type { Receipt } from '@/types/finance'
 
 const dictionaries = useDictionariesStore()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 
-const { filters, serverParams, resetFilters, handleSort } = useTransactionFilters({
+const { filters, serverParams, resetFilters, handleSort } = useReceiptFilters({
   onChange: () => reloadRef.value(),
 })
 
@@ -22,11 +22,11 @@ const {
   loading,
   reset: resetData,
   virtualScrollerOptions,
-} = useTableInfinite<Transaction>({
-  endpoint: 'finance/transactions',
-  include: TRANSACTION_TABLE.include,
-  perPage: TRANSACTION_TABLE.perPage,
-  rowHeight: TRANSACTION_TABLE.rowHeight,
+} = useTableInfinite<Receipt>({
+  endpoint: 'finance/receipts',
+  include: RECEIPT_TABLE.include,
+  perPage: RECEIPT_TABLE.perPage,
+  rowHeight: RECEIPT_TABLE.rowHeight,
   params: () => serverParams.value,
 })
 
@@ -50,8 +50,7 @@ const handleResize = () => {
 onMounted(async () => {
   await Promise.all([
     dictionaries.loadCashBoxes(true),
-    dictionaries.loadTransactionTypes(),
-    dictionaries.loadPaymentMethods(),
+    dictionaries.loadCounterparties(),
   ])
   await resetData()
   await nextTick()
@@ -65,7 +64,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <TransactionsTable
+  <ReceiptsTable
     ref="tableRef"
     v-model:filters="filters"
     :rows="data"

@@ -29,7 +29,7 @@ class BaseFilterDTO
             search: $request->string('search')->toString() ?: null,
             sort: $request->string('sort')->toString() ?: null,
             direction: $request->string('direction')->toString() ?: null,
-            perPage: max(1, min(100, (int) $request->integer('per_page', 25))),
+            perPage: max(1, min(200, (int) $request->integer('per_page', 25))),
             page: max(1, (int) $request->integer('page', 1)),
         );
     }

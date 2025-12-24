@@ -1,0 +1,35 @@
+СТАНДАРТ ФИЛЬТРАЦИИ
+
+Принципы
+- Фильтрация и сортировка выполняются на сервере (lazy).
+- Фильтры собираются из объекта filters и отправляются как query-параметры.
+- При изменении фильтра/сортировки: сброс списка и загрузка page=1.
+- Infinite scroll: per_page фиксирован, пагинация скрыта.
+- Формат дат: YYYY-MM-DD.
+
+Общие правила параметров
+- Равенство: field=value.
+- Поиск по строке: field_like=value.
+- Поиск по справочнику: field_id=value, field_search=value.
+- Булевы: is_*=0|1.
+- Диапазон дат: date_*_from, date_*_to.
+- Диапазон сумм: sum_min, sum_max.
+- Сортировка: sort, direction (asc|desc).
+- Пагинация: page, per_page (до 200).
+- Инклюды: include=rel1,rel2.
+
+Стандарт фильтров для transactions
+- id_like
+- cashbox_id, cashbox_search
+- transaction_type_id, transaction_type_search
+- payment_method_id, payment_method_search
+- counterparty_id, counterparty_search
+- contract_id, contract_like
+- contract_or_counterparty
+- related_id, related_like
+- sum_min, sum_max
+- is_paid, date_paid_from, date_paid_to
+- is_completed, date_completed_from, date_completed_to
+- notes_like
+- search (по notes, если нужен общий поиск)
+- sort, direction, page, per_page, include

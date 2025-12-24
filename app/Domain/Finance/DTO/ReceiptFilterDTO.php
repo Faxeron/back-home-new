@@ -9,9 +9,11 @@ class ReceiptFilterDTO extends BaseFilterDTO
     public function __construct(
         ?int $tenantId,
         ?int $companyId = null,
+        public ?string $idLike = null,
         public ?int $cashBoxId = null,
         public ?int $contractId = null,
         public ?int $counterpartyId = null,
+        public ?string $counterpartySearch = null,
         public ?float $sumMin = null,
         public ?float $sumMax = null,
         public ?string $paymentDateFrom = null,
@@ -34,9 +36,11 @@ class ReceiptFilterDTO extends BaseFilterDTO
         return new static(
             tenantId: $base->tenantId,
             companyId: $base->companyId,
+            idLike: $request->string('id_like')->toString() ?: null,
             cashBoxId: $request->integer('cashbox_id') ?: null,
             contractId: $request->integer('contract_id') ?: null,
             counterpartyId: $request->integer('counterparty_id') ?: null,
+            counterpartySearch: $request->string('counterparty_search')->toString() ?: null,
             sumMin: $request->has('sum_min') ? (float) $request->input('sum_min') : null,
             sumMax: $request->has('sum_max') ? (float) $request->input('sum_max') : null,
             paymentDateFrom: $request->date('payment_date_from')?->toDateString(),

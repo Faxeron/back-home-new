@@ -19,6 +19,9 @@
 6) Пагинация, сортировка, filter-to-API, debounce/reset/reload - в `useTableLazy.ts`.
 7) Иконки выбора matchMode (воронки) скрыты; matchMode задается в коде через объект filters.
 8) Используем `Select` и `Popover` (PrimeVue v4); `Dropdown` и `OverlayPanel` не применять.
+9) Включаем `stripedRows` для всех таблиц.
+10) Фильтрация и сортировка только на сервере; правила и параметры фиксируются в `docs/filterRules.txt`.
+11) Высота строки фильтров компактная: задается глобально в `resources/ts/@layouts/styles/_global.scss` (без локальных overrides).
 
 Как добавлять новую таблицу
 - Создать или расширить конфиг в `resources/ts/config/tables/`.
