@@ -11,7 +11,7 @@ PROMPT_CODER (RU)
 
 Совместимость и naming
 - Каноника: `cashboxes` / `cashbox_id`.
-- Legacy: `cash_boxes` / `cash_box_id` поддерживаем до миграции клиентов.
+- Legacy: не используется.
 - В API/DTO/Resources отдавай оба поля, если нужна совместимость.
 
 Фронтенд (DataTable)

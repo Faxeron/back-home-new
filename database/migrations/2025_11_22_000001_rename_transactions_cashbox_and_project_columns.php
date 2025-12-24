@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::connection('legacy_new')->table('transactions', function (Blueprint $table): void {
             if (Schema::connection('legacy_new')->hasColumn('transactions', 'id_cash_box')) {
-                $table->renameColumn('id_cash_box', 'cash_box_id');
+                $table->renameColumn('id_cash_box', 'cashbox_id');
             }
 
             if (Schema::connection('legacy_new')->hasColumn('transactions', 'id_project')) {
@@ -24,8 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::connection('legacy_new')->table('transactions', function (Blueprint $table): void {
-            if (Schema::connection('legacy_new')->hasColumn('transactions', 'cash_box_id')) {
-                $table->renameColumn('cash_box_id', 'id_cash_box');
+            if (Schema::connection('legacy_new')->hasColumn('transactions', 'cashbox_id')) {
+                $table->renameColumn('cashbox_id', 'id_cash_box');
             }
 
             if (Schema::connection('legacy_new')->hasColumn('transactions', 'company_id')) {

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->decimal('balance_after', 14, 2);
             $table->timestamps();
 
-            $table->foreign('cashbox_id')->references('id')->on('cash_boxes')->cascadeOnDelete();
+            $table->foreign('cashbox_id')->references('id')->on('cashboxes')->cascadeOnDelete();
             $table->foreign('transaction_id')->references('id')->on('transactions')->nullOnDelete();
             $table->index(['cashbox_id', 'created_at']);
         });

@@ -19,8 +19,7 @@ class SpendingResource extends JsonResource
         return [
             'id' => $this->id,
             'company_id' => $this->company_id,
-            'cashbox_id' => $this->cashbox_id ?? $this->cash_box_id,
-            'cash_box_id' => $this->cash_box_id ?? $this->cashbox_id,
+            'cashbox_id' => $this->cashbox_id,
             'transaction_id' => $this->transaction_id,
             'fond_id' => $this->fond_id,
             'spending_item_id' => $this->spending_item_id,
@@ -38,10 +37,6 @@ class SpendingResource extends JsonResource
             'cashbox' => $this->whenLoaded('cashbox', fn () => [
                 'id' => $this->cashbox->id,
                 'name' => $this->cashbox->name,
-            ]),
-            'cash_box' => $this->whenLoaded('cashBox', fn () => [
-                'id' => $this->cashBox->id,
-                'name' => $this->cashBox->name,
             ]),
             'fund' => $this->whenLoaded('fund', fn () => [
                 'id' => $this->fund->id,

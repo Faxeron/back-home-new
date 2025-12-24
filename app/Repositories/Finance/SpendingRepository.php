@@ -25,7 +25,7 @@ class SpendingRepository
             $query->whereDate('payment_date', '<=', $filters['date_to']);
         }
 
-        foreach (['fond_id', 'spending_item_id', 'cash_box_id', 'company_id', 'contract_id', 'counterparty_id', 'spent_to_user_id'] as $field) {
+        foreach (['fond_id', 'spending_item_id', 'cashbox_id', 'company_id', 'contract_id', 'counterparty_id', 'spent_to_user_id'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, (int) $filters[$field]);
             }

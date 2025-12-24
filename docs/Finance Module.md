@@ -1,13 +1,13 @@
 # Finance Module (current)
 
 Комментарий для разработчика (RU)
-- Здесь описана текущая схема и API. Если правишь миграции по `cash_boxes` -> `cashboxes`, обнови также FormRequest и ресурсы.
-- В API пока живут legacy-алиасы `/api/finances/*` и поля `cash_box_id`. Убрать можно после миграции клиентов.
+- Здесь описана текущая схема и API. Канон — `cashboxes`/`cashbox_id`; при изменениях legacy-алиасов синхронизируй FormRequest и ресурсы.
+- В API живут legacy-алиасы `/api/finances/*`; фронт/бэк используют `cashbox_id`.
 - Типы транзакций берутся из `transaction_types.sign`, поэтому enum в коде — только вспомогательный.
 - Сервис `FinanceService` отвечает за бизнес-логику и балансы; сервисы `*Service` — за списки/CRUD.
 
 - Core tables: `transactions`, `receipts`, `spendings`, `cash_transfers`, `cashbox_history`, `cashboxes`, `cashbox_company`, `cashbox_balance_snapshots`, `payment_methods`, `transaction_types`.
-- Naming: canonical is `cashbox_id` + `cashboxes`; API accepts legacy `cash_box_id` and responses include both `cashbox_id` and `cash_box_id` for compatibility.
+- Naming: canonical is `cashbox_id` + `cashboxes`.
 - Transaction types: `INCOME` +1, `OUTCOME` -1, `TRANSFER_IN` +1, `TRANSFER_OUT` -1, `ADVANCE` +1, `REFUND` +1, `DIRECTOR_LOAN` +1, `DIRECTOR_WITHDRAWAL` -1 (sign is read from `transaction_types.sign`).
 - Services:
   - `App\Services\Finance\FinanceService` handles contract receipts, director loan receipts, spendings, director withdrawals, and cash transfers; it runs inside `DB::connection('legacy_new')->transaction()`, writes `cashbox_history`, and prevents negative balances for negative-sign transactions.
@@ -27,14 +27,14 @@ API (prefix `/api/finance`)
 
 Filtering/includes (lists)
 - Common params: `page`, `per_page`, `sort`, `direction`, `date_from`, `date_to`, `search`.
-- Cashbox filter accepts `cashbox_id` or `cash_box_id`.
+- Cashbox filter accepts `cashbox_id`.
 - `include` allows related data:
-  - transactions: `cashbox`, `cashBox`, `company`, `counterparty`, `contract`, `transactionType`, `paymentMethod`
-  - receipts: `cashbox`, `cashBox`, `company`, `counterparty`, `contract`, `transaction`
-  - spendings: `cashbox`, `cashBox`, `company`, `counterparty`, `contract`, `item`, `fund`, `transaction`, `spentToUser`
+  - transactions: `cashbox`, `company`, `counterparty`, `contract`, `transactionType`, `paymentMethod`
+  - receipts: `cashbox`, `company`, `counterparty`, `contract`, `transaction`
+  - spendings: `cashbox`, `company`, `counterparty`, `contract`, `item`, `fund`, `transaction`, `spentToUser`
 
 Requests/validation
-- FormRequests under `App\Http\Requests\Finance\*` enforce `sum > 0`, cashbox existence, `from != to`, and date formats. Legacy rules still point to `legacy_new.cash_boxes`.
+- FormRequests under `App\Http\Requests\Finance\*` enforce `sum > 0`, cashbox existence, `from != to`, and date formats. Table is `legacy_new.cashboxes`.
 
 Sequence (simplified)
 1) Controller validates FormRequest and injects tenant/company/user ids.

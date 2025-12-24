@@ -25,7 +25,7 @@ class ReceiptRepository
             $query->whereDate('payment_date', '<=', $filters['date_to']);
         }
 
-        foreach (['cash_box_id', 'company_id', 'contract_id', 'counterparty_id'] as $field) {
+        foreach (['cashbox_id', 'company_id', 'contract_id', 'counterparty_id'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, (int) $filters[$field]);
             }

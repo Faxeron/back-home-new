@@ -11,9 +11,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1) cash_boxes: drop balance
-        Schema::connection('legacy_new')->table('cash_boxes', function (Blueprint $table): void {
-            if (Schema::connection('legacy_new')->hasColumn('cash_boxes', 'balance')) {
+        // 1) cashboxes: drop balance
+        Schema::connection('legacy_new')->table('cashboxes', function (Blueprint $table): void {
+            if (Schema::connection('legacy_new')->hasColumn('cashboxes', 'balance')) {
                 $table->dropColumn('balance');
             }
         });
@@ -64,8 +64,8 @@ return new class extends Migration
             Schema::connection('legacy_new')->create('cash_transfers', function (Blueprint $table): void {
                 $table->id();
                 $table->unsignedBigInteger('tenant_id')->default(1);
-                $table->unsignedBigInteger('from_cash_box_id');
-                $table->unsignedBigInteger('to_cash_box_id');
+                $table->unsignedBigInteger('from_cashbox_id');
+                $table->unsignedBigInteger('to_cashbox_id');
                 $table->decimal('sum', 14, 2);
                 $table->text('description')->nullable();
                 $table->unsignedBigInteger('transaction_out_id')->nullable();
@@ -82,7 +82,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('tenant_id')->default(1);
                 $table->unsignedBigInteger('user_id');
                 $table->unsignedBigInteger('company_id');
-                $table->unsignedBigInteger('cash_box_id');
+                $table->unsignedBigInteger('cashbox_id');
                 $table->unsignedBigInteger('transaction_id')->nullable();
                 $table->decimal('amount', 14, 2)->default(0);
                 $table->decimal('balance', 14, 2)->default(0);
@@ -130,9 +130,9 @@ return new class extends Migration
             }
         });
 
-        // add balance back to cash_boxes
-        Schema::connection('legacy_new')->table('cash_boxes', function (Blueprint $table): void {
-            if (!Schema::connection('legacy_new')->hasColumn('cash_boxes', 'balance')) {
+        // add balance back to cashboxes
+        Schema::connection('legacy_new')->table('cashboxes', function (Blueprint $table): void {
+            if (!Schema::connection('legacy_new')->hasColumn('cashboxes', 'balance')) {
                 $table->decimal('balance', 14, 2)->default(0);
             }
         });

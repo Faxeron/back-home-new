@@ -37,8 +37,8 @@ class Transaction extends Model
     protected $casts = [
         'is_paid' => 'boolean',
         'is_completed' => 'boolean',
-        'date_is_paid' => 'datetime',
-        'date_is_completed' => 'datetime',
+        'date_is_paid' => 'date',
+        'date_is_completed' => 'date',
         'sum' => MoneyCast::class,
     ];
 

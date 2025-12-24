@@ -29,7 +29,7 @@ class TransactionDTO
             tenantId: $transaction->tenant_id,
             companyId: $transaction->company_id,
             sum: (float) $transaction->sum,
-            cashBoxId: $transaction->cash_box_id,
+            cashBoxId: $transaction->cashbox_id,
             transactionTypeId: (int) $transaction->transaction_type_id,
             paymentMethodId: $transaction->payment_method_id,
             counterpartyId: $transaction->counterparty_id,

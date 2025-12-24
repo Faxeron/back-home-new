@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::connection('legacy_new')->create('transactions', function (Blueprint $table) {
             $table->id();
             $table->boolean('is_paid')->default(false);
-            $table->timestamp('date_is_paid')->nullable();
+            $table->date('date_is_paid')->nullable();
             $table->boolean('is_completed')->default(false);
-            $table->timestamp('date_is_completed')->nullable();
+            $table->date('date_is_completed')->nullable();
             $table->decimal('sum', 15, 2)->default(0);
             $table->unsignedBigInteger('id_spending_item')->nullable();
             $table->unsignedBigInteger('id_cash_box')->nullable();

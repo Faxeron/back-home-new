@@ -37,7 +37,7 @@ class SpendingFilterDTO extends BaseFilterDTO
         return new static(
             tenantId: $base->tenantId,
             companyId: $base->companyId,
-            cashBoxId: $request->integer('cashbox_id') ?: $request->integer('cash_box_id') ?: null,
+            cashBoxId: $request->integer('cashbox_id') ?: null,
             fondId: $request->integer('fond_id') ?: null,
             spendingItemId: $request->integer('spending_item_id') ?: null,
             contractId: $request->integer('contract_id') ?: null,

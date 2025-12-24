@@ -38,17 +38,17 @@ return new class extends Migration
         ['table' => 'spending_items', 'column' => 'fond_id', 'ref' => 'spending_funds'],
         ['table' => 'spending_items', 'column' => 'created_by', 'ref' => 'users'],
         ['table' => 'spending_items', 'column' => 'updated_by', 'ref' => 'users'],
-        // cash_boxes
-        ['table' => 'cash_boxes', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'cash_boxes', 'column' => 'created_by', 'ref' => 'users'],
-        ['table' => 'cash_boxes', 'column' => 'updated_by', 'ref' => 'users'],
-        // cash_box_company
-        ['table' => 'cash_box_company', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'cash_box_company', 'column' => 'cash_box_id', 'ref' => 'cash_boxes'],
+        // cashboxes
+        ['table' => 'cashboxes', 'column' => 'company_id', 'ref' => 'companies'],
+        ['table' => 'cashboxes', 'column' => 'created_by', 'ref' => 'users'],
+        ['table' => 'cashboxes', 'column' => 'updated_by', 'ref' => 'users'],
+        // cashbox_company
+        ['table' => 'cashbox_company', 'column' => 'company_id', 'ref' => 'companies'],
+        ['table' => 'cashbox_company', 'column' => 'cashbox_id', 'ref' => 'cashboxes'],
         // cash_transfers
         ['table' => 'cash_transfers', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'cash_transfers', 'column' => 'from_cash_box_id', 'ref' => 'cash_boxes'],
-        ['table' => 'cash_transfers', 'column' => 'to_cash_box_id', 'ref' => 'cash_boxes'],
+        ['table' => 'cash_transfers', 'column' => 'from_cashbox_id', 'ref' => 'cashboxes'],
+        ['table' => 'cash_transfers', 'column' => 'to_cashbox_id', 'ref' => 'cashboxes'],
         ['table' => 'cash_transfers', 'column' => 'transaction_out_id', 'ref' => 'transactions'],
         ['table' => 'cash_transfers', 'column' => 'transaction_in_id', 'ref' => 'transactions'],
         ['table' => 'cash_transfers', 'column' => 'created_by', 'ref' => 'users'],
@@ -65,7 +65,7 @@ return new class extends Migration
         ['table' => 'contracts', 'column' => 'updated_by', 'ref' => 'users'],
         // transactions
         ['table' => 'transactions', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'transactions', 'column' => 'cash_box_id', 'ref' => 'cash_boxes'],
+        ['table' => 'transactions', 'column' => 'cashbox_id', 'ref' => 'cashboxes'],
         ['table' => 'transactions', 'column' => 'transaction_type_id', 'ref' => 'transaction_types'],
         ['table' => 'transactions', 'column' => 'payment_method_id', 'ref' => 'payment_methods'],
         ['table' => 'transactions', 'column' => 'contract_id', 'ref' => 'contracts'],
@@ -75,7 +75,7 @@ return new class extends Migration
         ['table' => 'transactions', 'column' => 'updated_by', 'ref' => 'users'],
         // receipts
         ['table' => 'receipts', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'receipts', 'column' => 'cash_box_id', 'ref' => 'cash_boxes'],
+        ['table' => 'receipts', 'column' => 'cashbox_id', 'ref' => 'cashboxes'],
         ['table' => 'receipts', 'column' => 'transaction_id', 'ref' => 'transactions'],
         ['table' => 'receipts', 'column' => 'contract_id', 'ref' => 'contracts'],
         ['table' => 'receipts', 'column' => 'counterparty_id', 'ref' => 'counterparties'],
@@ -83,7 +83,7 @@ return new class extends Migration
         ['table' => 'receipts', 'column' => 'updated_by', 'ref' => 'users'],
         // spendings
         ['table' => 'spendings', 'column' => 'company_id', 'ref' => 'companies'],
-        ['table' => 'spendings', 'column' => 'cash_box_id', 'ref' => 'cash_boxes'],
+        ['table' => 'spendings', 'column' => 'cashbox_id', 'ref' => 'cashboxes'],
         ['table' => 'spendings', 'column' => 'transaction_id', 'ref' => 'transactions'],
         ['table' => 'spendings', 'column' => 'spending_item_id', 'ref' => 'spending_items'],
         ['table' => 'spendings', 'column' => 'fond_id', 'ref' => 'spending_funds'],

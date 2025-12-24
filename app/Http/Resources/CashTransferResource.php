@@ -14,10 +14,8 @@ class CashTransferResource extends JsonResource
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
             'company_id' => $this->company_id,
-            'from_cashbox_id' => $this->from_cashbox_id ?? $this->from_cash_box_id,
-            'to_cashbox_id' => $this->to_cashbox_id ?? $this->to_cash_box_id,
-            'from_cash_box_id' => $this->from_cash_box_id ?? $this->from_cashbox_id,
-            'to_cash_box_id' => $this->to_cash_box_id ?? $this->to_cashbox_id,
+            'from_cashbox_id' => $this->from_cashbox_id,
+            'to_cashbox_id' => $this->to_cashbox_id,
             'transaction_out_id' => $this->transaction_out_id,
             'transaction_in_id' => $this->transaction_in_id,
             'sum' => $this->sum,
@@ -28,14 +26,6 @@ class CashTransferResource extends JsonResource
                 'name' => $this->fromCashBox?->name,
             ]),
             'to_cashbox' => $this->whenLoaded('toCashBox', fn () => [
-                'id' => $this->toCashBox?->id,
-                'name' => $this->toCashBox?->name,
-            ]),
-            'from_cash_box' => $this->whenLoaded('fromCashBox', fn () => [
-                'id' => $this->fromCashBox?->id,
-                'name' => $this->fromCashBox?->name,
-            ]),
-            'to_cash_box' => $this->whenLoaded('toCashBox', fn () => [
                 'id' => $this->toCashBox?->id,
                 'name' => $this->toCashBox?->name,
             ]),

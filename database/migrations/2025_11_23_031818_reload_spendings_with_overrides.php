@@ -73,7 +73,7 @@ return new class extends Migration
                 $batch = [];
 
                 foreach ($rows as $row) {
-                    $oldCashBoxId = $row->cash_box_id ?? null;
+                    $oldCashBoxId = $row->cashbox_id ?? null;
                     $newCashBoxId = $this->cashBoxMap[$oldCashBoxId] ?? null;
 
                     $originalItemId = $row->spending_item_id ?? null;
@@ -100,7 +100,7 @@ return new class extends Migration
                         'id' => $row->id,
                         'old_id' => $row->id,
                         'company_id' => 1,
-                        'cash_box_id' => $newCashBoxId,
+                        'cashbox_id' => $newCashBoxId,
                         'transaction_id' => $row->transaction_id ?? null,
                         'spending_item_id' => $itemId,
                         'fond_id' => $fundId,

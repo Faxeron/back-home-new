@@ -16,13 +16,13 @@ return new class extends Migration
             ['name' => 'Копилка', 'is_active' => true, 'balance' => 0, 'created_at' => $now, 'updated_at' => $now],
         ];
 
-        DB::connection('legacy_new')->table('cash_boxes')->insert($rows);
+        DB::connection('legacy_new')->table('cashboxes')->insert($rows);
     }
 
     public function down(): void
     {
         DB::connection('legacy_new')
-            ->table('cash_boxes')
+            ->table('cashboxes')
             ->whereIn('name', ['Стройдвор', 'Касса Тюмень', 'Копилка'])
             ->delete();
     }

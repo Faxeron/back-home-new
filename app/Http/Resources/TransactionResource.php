@@ -19,12 +19,11 @@ class TransactionResource extends JsonResource
         return [
             'id' => $this->id,
             'is_paid' => $this->is_paid,
-            'date_is_paid' => $this->date_is_paid?->toISOString(),
+            'date_is_paid' => $this->date_is_paid?->toDateString(),
             'is_completed' => $this->is_completed,
-            'date_is_completed' => $this->date_is_completed?->toISOString(),
+            'date_is_completed' => $this->date_is_completed?->toDateString(),
             'sum' => $this->money($this->sum),
-            'cashbox_id' => $this->cashbox_id ?? $this->cash_box_id,
-            'cash_box_id' => $this->cash_box_id ?? $this->cashbox_id,
+            'cashbox_id' => $this->cashbox_id,
             'transaction_type_id' => $this->transaction_type_id,
             'payment_method_id' => $this->payment_method_id,
             'company_id' => $this->company_id,
@@ -43,10 +42,6 @@ class TransactionResource extends JsonResource
             'cashbox' => $this->whenLoaded('cashbox', fn () => [
                 'id' => $this->cashbox->id,
                 'name' => $this->cashbox->name,
-            ]),
-            'cash_box' => $this->whenLoaded('cashBox', fn () => [
-                'id' => $this->cashBox->id,
-                'name' => $this->cashBox->name,
             ]),
             'counterparty' => $this->whenLoaded('counterparty', fn () => [
                 'id' => $this->counterparty->id,

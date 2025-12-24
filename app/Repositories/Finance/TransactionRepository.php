@@ -24,7 +24,7 @@ class TransactionRepository
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
-        foreach (['transaction_type_id', 'company_id', 'cash_box_id', 'contract_id', 'counterparty_id', 'payment_method_id'] as $field) {
+        foreach (['transaction_type_id', 'company_id', 'cashbox_id', 'contract_id', 'counterparty_id', 'payment_method_id'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, (int) $filters[$field]);
             }

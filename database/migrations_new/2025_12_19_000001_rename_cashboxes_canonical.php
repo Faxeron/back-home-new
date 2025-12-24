@@ -12,40 +12,28 @@ return new class extends Migration
 
     public function up(): void
     {
-        // drop old FKs (cash_box_id and duplicates)
-        $this->dropForeignIfExists('cash_transfers', 'cash_transfers_from_cash_box_id_fk');
-        $this->dropForeignIfExists('cash_transfers', 'cash_transfers_to_cash_box_id_fk');
-        $this->dropForeignIfExists('transactions', 'transactions_cash_box_id_fk');
-        $this->dropForeignIfExists('receipts', 'receipts_cash_box_id_foreign');
+        // drop existing FKs (cashbox_id and duplicates)
+        $this->dropForeignIfExists('cash_transfers', 'cash_transfers_from_cashbox_id_fk');
+        $this->dropForeignIfExists('cash_transfers', 'cash_transfers_to_cashbox_id_fk');
+        $this->dropForeignIfExists('transactions', 'transactions_cashbox_id_fk');
+        $this->dropForeignIfExists('receipts', 'receipts_cashbox_id_foreign');
         $this->dropForeignIfExists('receipts', 'receipts_transaction_id_foreign'); // duplicate on transaction_id
-        $this->dropForeignIfExists('spendings', 'spendings_cash_box_id_foreign');
-        $this->dropForeignIfExists('cash_box_company', 'cash_box_company_cash_box_id_foreign');
-        $this->dropForeignIfExists('cash_box_company', 'cash_box_company_company_id_foreign');
+        $this->dropForeignIfExists('spendings', 'spendings_cashbox_id_foreign');
+        $this->dropForeignIfExists('cashbox_company', 'cashbox_company_cashbox_id_foreign');
+        $this->dropForeignIfExists('cashbox_company', 'cashbox_company_company_id_foreign');
         $this->dropForeignIfExists('cashbox_history', 'cashbox_history_cashbox_id_foreign');
         $this->dropForeignIfExists('cashbox_balance_snapshots', 'cashbox_balance_snapshots_cashbox_id_fk');
-
-        // rename columns to cashbox_id naming
-        DB::connection($this->connection)->statement('ALTER TABLE advances CHANGE `cash_box_id` `cashbox_id` BIGINT(20) UNSIGNED NOT NULL');
-        DB::connection($this->connection)->statement('ALTER TABLE receipts CHANGE `cash_box_id` `cashbox_id` BIGINT(20) UNSIGNED NOT NULL');
-        DB::connection($this->connection)->statement('ALTER TABLE spendings CHANGE `cash_box_id` `cashbox_id` BIGINT(20) UNSIGNED NOT NULL');
-        DB::connection($this->connection)->statement('ALTER TABLE transactions CHANGE `cash_box_id` `cashbox_id` BIGINT(20) UNSIGNED NULL');
-        DB::connection($this->connection)->statement('ALTER TABLE cash_transfers CHANGE `from_cash_box_id` `from_cashbox_id` BIGINT(20) UNSIGNED NOT NULL, CHANGE `to_cash_box_id` `to_cashbox_id` BIGINT(20) UNSIGNED NOT NULL');
-        DB::connection($this->connection)->statement('ALTER TABLE cash_box_company CHANGE `cash_box_id` `cashbox_id` BIGINT(20) UNSIGNED NOT NULL');
 
         // drop unused column
         if (Schema::connection($this->connection)->hasColumn('cash_transfers', 'created_by_user_id')) {
             DB::connection($this->connection)->statement('ALTER TABLE cash_transfers DROP COLUMN created_by_user_id');
         }
 
-        // rename pivot table to cashbox_company and cash_boxes -> cashboxes
-        DB::connection($this->connection)->statement('RENAME TABLE `cash_boxes` TO `cashboxes`');
-        DB::connection($this->connection)->statement('RENAME TABLE `cash_box_company` TO `cashbox_company`');
-
         // rebuild unique index on pivot
-        DB::connection($this->connection)->statement('ALTER TABLE cashbox_company DROP INDEX cash_box_company_cash_box_id_company_id_unique');
+        DB::connection($this->connection)->statement('ALTER TABLE cashbox_company DROP INDEX cashbox_company_cashbox_id_company_id_unique');
         DB::connection($this->connection)->statement('ALTER TABLE cashbox_company ADD UNIQUE KEY cashbox_company_cashbox_id_company_id_unique (cashbox_id, company_id)');
 
-        // add FK back to cash_boxes
+        // add FK back to cashboxes
         DB::connection($this->connection)->statement('ALTER TABLE transactions ADD CONSTRAINT transactions_cashbox_id_fk FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id) ON DELETE SET NULL ON UPDATE CASCADE');
         DB::connection($this->connection)->statement('ALTER TABLE receipts ADD CONSTRAINT receipts_cashbox_id_fk FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id)');
         DB::connection($this->connection)->statement('ALTER TABLE spendings ADD CONSTRAINT spendings_cashbox_id_fk FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id)');

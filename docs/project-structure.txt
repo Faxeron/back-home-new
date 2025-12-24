@@ -25,6 +25,7 @@ Root
   - ai/               // curated knowledge
   - finance/          // finance guardrails
   - Finance Module.md
+  - CRM_TABLE_STANDARD.md // CRM table UI/config/behavior standard
   - project-structure.txt
   - schema.txt
   - PrimeVueFilter.txt, PROMPT_*.txt, dataTableWork.txt

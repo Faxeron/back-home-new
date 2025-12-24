@@ -31,7 +31,7 @@ return new class extends Migration
             ->chunkById(500, function (Collection $rows): void {
                 $batch = [];
                 foreach ($rows as $row) {
-                    $oldCashBoxId = $row->cash_box_id ?? null;
+                    $oldCashBoxId = $row->cashbox_id ?? null;
                     $newCashBoxId = $this->cashBoxMap[$oldCashBoxId] ?? null;
                     $isIncome = ($row->summ ?? 0) >= 0;
 

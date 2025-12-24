@@ -21,7 +21,6 @@ class SpendingIndexRequest extends FormRequest
             'fond_id' => 'sometimes|integer',
             'spending_item_id' => 'sometimes|integer',
             'cashbox_id' => 'sometimes|integer',
-            'cash_box_id' => 'sometimes|integer',
             'company_id' => 'sometimes|integer',
             'contract_id' => 'sometimes|integer',
             'counterparty_id' => 'sometimes|integer',

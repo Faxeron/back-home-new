@@ -30,17 +30,17 @@ export const useDictionariesStore = defineStore('dictionaries', {
     },
   }),
   actions: {
-    async loadCashBoxes() {
-      if (this.loaded.cashBoxes) return
+    async loadCashBoxes(force = false) {
+      if (!force && this.loaded.cashBoxes) return
       try {
-        const res: any = await $api('/api/finance/cashboxes')
+        const res: any = await $api('finance/cashboxes')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.cashBoxes = list
           .map((item: any) => ({
             id: item?.id ?? item?.value,
-            name: item?.name ?? item?.label,
+            name: item?.name ?? item?.cashbox_name ?? item?.title ?? item?.label ?? item?.code,
           }))
-          .filter((item: any) => item.id && item.name)
+          .filter((item: any) => item.id != null && item.name)
         this.loaded.cashBoxes = true
       } catch (e) {
         console.error('Failed to load cashBoxes', e)
@@ -51,7 +51,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadCompanies() {
       if (this.loaded.companies) return
       try {
-        const res: any = await $api('/api/common/companies')
+        const res: any = await $api('common/companies')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.companies = list
           .map((item: any) => ({
@@ -69,7 +69,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadSpendingFunds() {
       if (this.loaded.spendingFunds) return
       try {
-        const res: any = await $api('/api/finance/funds')
+        const res: any = await $api('finance/funds')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.spendingFunds = list
           .map((item: any) => ({
@@ -87,7 +87,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadSpendingItems() {
       if (this.loaded.spendingItems) return
       try {
-        const res: any = await $api('/api/finance/spending-items')
+        const res: any = await $api('finance/spending-items')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.spendingItems = list
           .map((item: any) => ({
@@ -105,7 +105,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadSaleTypes() {
       if (this.loaded.saleTypes) return
       try {
-        const res: any = await $api('/api/crm/sale-types')
+        const res: any = await $api('settings/sale-types')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.saleTypes = list
           .map((item: any) => ({
@@ -123,7 +123,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadPaymentMethods() {
       if (this.loaded.paymentMethods) return
       try {
-        const res: any = await $api('/api/finance/payment-methods')
+        const res: any = await $api('finance/payment-methods')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.paymentMethods = list
           .map((item: any) => ({
@@ -145,7 +145,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
         // Add enum-based items here if API is unavailable
       ]
       try {
-        const res: any = await $api('/api/finance/transaction-types')
+        const res: any = await $api('finance/transaction-types')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         const mapped = list
           .map((item: any) => ({
@@ -166,7 +166,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     async loadCounterparties() {
       if (this.loaded.counterparties) return
       try {
-        const res: any = await $api('/api/finance/counterparties')
+        const res: any = await $api('finance/counterparties')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
         this.counterparties = list
           .map((item: any) => ({

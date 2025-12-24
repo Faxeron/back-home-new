@@ -11,8 +11,8 @@ class CreateCashTransferRequest extends FormRequest
         return [
             'tenant_id' => ['nullable', 'integer'],
             'company_id' => ['nullable', 'integer'],
-            'from_cash_box_id' => ['required', 'integer', 'different:to_cash_box_id', 'exists:legacy_new.cash_boxes,id'],
-            'to_cash_box_id' => ['required', 'integer', 'different:from_cash_box_id', 'exists:legacy_new.cash_boxes,id'],
+            'from_cashbox_id' => ['required', 'integer', 'different:to_cashbox_id', 'exists:legacy_new.cashboxes,id'],
+            'to_cashbox_id' => ['required', 'integer', 'different:from_cashbox_id', 'exists:legacy_new.cashboxes,id'],
             'sum' => ['required', 'numeric', 'min:0.01'],
             'date' => ['required', 'date'],
             'description' => ['nullable', 'string'],

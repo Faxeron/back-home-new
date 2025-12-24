@@ -48,10 +48,8 @@ class TransactionFilterDTO extends BaseFilterDTO
             companyId: $base->companyId,
             id: $request->integer('id') ?: null,
             idLike: $request->string('id_like')->toString() ?: null,
-            cashBoxId: $request->integer('cashbox_id') ?: $request->integer('cash_box_id') ?: null,
-            cashBoxSearch: $request->string('cashbox_search')->toString()
-                ?: $request->string('cash_box_search')->toString()
-                ?: null,
+            cashBoxId: $request->integer('cashbox_id') ?: null,
+            cashBoxSearch: $request->string('cashbox_search')->toString() ?: null,
             transactionTypeId: $request->integer('transaction_type_id') ?: null,
             transactionTypeSearch: $request->string('transaction_type_search')->toString() ?: null,
             paymentMethodId: $request->integer('payment_method_id') ?: null,

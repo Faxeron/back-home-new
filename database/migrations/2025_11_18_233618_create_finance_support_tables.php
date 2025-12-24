@@ -36,7 +36,7 @@ return new class extends Migration
             $table->foreign('fond_id')->references('id')->on('spending_funds')->cascadeOnDelete();
         });
 
-        $schema->create('cash_boxes', function (Blueprint $table) {
+        $schema->create('cashboxes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->decimal('balance', 14, 2)->default(0);
@@ -60,15 +60,15 @@ return new class extends Migration
             $table->unsignedBigInteger('updated_by')->nullable();
         });
 
-        $schema->create('cash_box_company', function (Blueprint $table) {
+        $schema->create('cashbox_company', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('cash_box_id');
+            $table->unsignedBigInteger('cashbox_id');
             $table->unsignedBigInteger('company_id');
             $table->timestamps();
 
-            $table->foreign('cash_box_id')->references('id')->on('cash_boxes')->cascadeOnDelete();
+            $table->foreign('cashbox_id')->references('id')->on('cashboxes')->cascadeOnDelete();
             $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-            $table->unique(['cash_box_id', 'company_id']);
+            $table->unique(['cashbox_id', 'company_id']);
         });
 
         $schema->create('counterparties', function (Blueprint $table) {
@@ -169,9 +169,9 @@ return new class extends Migration
         $schema->dropIfExists('counterparty_companies');
         $schema->dropIfExists('counterparty_individuals');
         $schema->dropIfExists('counterparties');
-        $schema->dropIfExists('cash_box_company');
+        $schema->dropIfExists('cashbox_company');
         $schema->dropIfExists('companies');
-        $schema->dropIfExists('cash_boxes');
+        $schema->dropIfExists('cashboxes');
         $schema->dropIfExists('spending_items');
         $schema->dropIfExists('spending_funds');
     }

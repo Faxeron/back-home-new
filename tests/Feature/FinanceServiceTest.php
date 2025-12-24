@@ -38,8 +38,8 @@ class FinanceServiceTest extends TestCase
         $transfer = $this->service->transferBetweenCashBoxes([
             'tenant_id' => 1,
             'company_id' => 1,
-            'from_cash_box_id' => 1,
-            'to_cash_box_id' => 2,
+            'from_cashbox_id' => 1,
+            'to_cashbox_id' => 2,
             'sum' => 100,
             'payment_method_id' => 1,
             'description' => 'test transfer',
@@ -49,8 +49,8 @@ class FinanceServiceTest extends TestCase
         $this->assertDatabaseCount('transactions', 2, 'legacy_new');
         $this->assertDatabaseHas('cash_transfers', [
             'id' => $transfer->id,
-            'from_cash_box_id' => 1,
-            'to_cash_box_id' => 2,
+            'from_cashbox_id' => 1,
+            'to_cashbox_id' => 2,
         ], 'legacy_new');
 
         $this->assertEquals(400, $this->service->getCashBoxBalance(1));
@@ -64,8 +64,8 @@ class FinanceServiceTest extends TestCase
         $this->service->transferBetweenCashBoxes([
             'tenant_id' => 1,
             'company_id' => 1,
-            'from_cash_box_id' => 1,
-            'to_cash_box_id' => 1,
+            'from_cashbox_id' => 1,
+            'to_cashbox_id' => 1,
             'sum' => 50,
         ]);
     }
@@ -78,7 +78,7 @@ class FinanceServiceTest extends TestCase
         $this->service->createSpending([
             'tenant_id' => 1,
             'company_id' => 1,
-            'cash_box_id' => 1,
+            'cashbox_id' => 1,
             'sum' => 10,
             'payment_method_id' => 1,
             'payment_date' => now()->toDateString(),
@@ -93,7 +93,7 @@ class FinanceServiceTest extends TestCase
         $loan = $this->service->createDirectorLoanReceipt([
             'tenant_id' => 1,
             'company_id' => 1,
-            'cash_box_id' => 1,
+            'cashbox_id' => 1,
             'sum' => 200,
             'payment_method_id' => 1,
             'payment_date' => now()->toDateString(),
@@ -104,7 +104,7 @@ class FinanceServiceTest extends TestCase
         $withdrawal = $this->service->createDirectorWithdrawal([
             'tenant_id' => 1,
             'company_id' => 1,
-            'cash_box_id' => 1,
+            'cashbox_id' => 1,
             'sum' => 50,
             'payment_method_id' => 1,
             'payment_date' => now()->toDateString(),
@@ -124,7 +124,7 @@ class FinanceServiceTest extends TestCase
             $table->tinyInteger('sign')->default(1);
         });
 
-        Schema::connection('legacy_new')->create('cash_boxes', function ($table) {
+        Schema::connection('legacy_new')->create('cashboxes', function ($table) {
             $table->increments('id');
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->unsignedBigInteger('company_id')->nullable();
@@ -136,11 +136,11 @@ class FinanceServiceTest extends TestCase
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->unsignedBigInteger('company_id')->nullable();
             $table->boolean('is_paid')->default(0);
-            $table->timestamp('date_is_paid')->nullable();
+            $table->date('date_is_paid')->nullable();
             $table->boolean('is_completed')->default(0);
-            $table->timestamp('date_is_completed')->nullable();
+            $table->date('date_is_completed')->nullable();
             $table->decimal('sum', 15, 2);
-            $table->unsignedBigInteger('cash_box_id')->nullable();
+            $table->unsignedBigInteger('cashbox_id')->nullable();
             $table->unsignedInteger('transaction_type_id');
             $table->unsignedBigInteger('payment_method_id')->nullable();
             $table->text('notes')->nullable();
@@ -157,7 +157,7 @@ class FinanceServiceTest extends TestCase
             $table->increments('id');
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->unsignedBigInteger('company_id')->nullable();
-            $table->unsignedBigInteger('cash_box_id')->nullable();
+            $table->unsignedBigInteger('cashbox_id')->nullable();
             $table->unsignedBigInteger('transaction_id')->nullable();
             $table->decimal('sum', 14, 2);
             $table->unsignedBigInteger('contract_id')->nullable();
@@ -174,7 +174,7 @@ class FinanceServiceTest extends TestCase
             $table->increments('id');
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->unsignedBigInteger('company_id')->nullable();
-            $table->unsignedBigInteger('cash_box_id')->nullable();
+            $table->unsignedBigInteger('cashbox_id')->nullable();
             $table->unsignedBigInteger('transaction_id')->nullable();
             $table->unsignedBigInteger('spending_item_id')->nullable();
             $table->unsignedBigInteger('fond_id')->nullable();
@@ -194,8 +194,8 @@ class FinanceServiceTest extends TestCase
             $table->increments('id');
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->unsignedBigInteger('company_id')->nullable();
-            $table->unsignedBigInteger('from_cash_box_id');
-            $table->unsignedBigInteger('to_cash_box_id');
+            $table->unsignedBigInteger('from_cashbox_id');
+            $table->unsignedBigInteger('to_cashbox_id');
             $table->decimal('sum', 14, 2);
             $table->text('description')->nullable();
             $table->unsignedBigInteger('transaction_out_id')->nullable();
@@ -239,7 +239,7 @@ class FinanceServiceTest extends TestCase
 
     private function seedCashBoxes(): void
     {
-        DB::connection('legacy_new')->table('cash_boxes')->insert([
+        DB::connection('legacy_new')->table('cashboxes')->insert([
             ['id' => 1, 'tenant_id' => 1, 'company_id' => 1, 'name' => 'Main'],
             ['id' => 2, 'tenant_id' => 1, 'company_id' => 1, 'name' => 'Reserve'],
         ]);
@@ -250,7 +250,7 @@ class FinanceServiceTest extends TestCase
         $this->service->createDirectorLoanReceipt([
             'tenant_id' => 1,
             'company_id' => 1,
-            'cash_box_id' => $cashBoxId,
+            'cashbox_id' => $cashBoxId,
             'sum' => $amount,
             'payment_method_id' => 1,
             'payment_date' => now()->toDateString(),

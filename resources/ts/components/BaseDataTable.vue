@@ -4,7 +4,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import Calendar from 'primevue/calendar'
 import ColumnBuilder from './table/ColumnBuilder.vue'
 
@@ -78,7 +78,7 @@ const genFilter = (col: ConfigColumn) => {
       return InputNumber
     case 'boolean':
     case 'select':
-      return Dropdown
+      return Select
     case 'dateRange':
       return Calendar
     default:

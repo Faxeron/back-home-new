@@ -30,13 +30,13 @@ return new class extends Migration
                 $batch = [];
 
                 foreach ($rows as $row) {
-                    $oldCashBoxId = $row->cash_box_id ?? null;
+                    $oldCashBoxId = $row->cashbox_id ?? null;
                     $newCashBoxId = $this->cashBoxMap[$oldCashBoxId] ?? null;
 
                     $batch[] = [
                         'id' => $row->id,
                         'company_id' => 1,
-                        'cash_box_id' => $newCashBoxId,
+                        'cashbox_id' => $newCashBoxId,
                         'transaction_id' => $row->transaction_id ?? null,
                         'contract_id' => $row->lead_id ?? null,
                         'summ' => $row->summ ?? 0,

@@ -26,7 +26,7 @@ class ReceiptDTO
             id: $receipt->id,
             tenantId: $receipt->tenant_id,
             companyId: $receipt->company_id,
-            cashBoxId: $receipt->cash_box_id,
+            cashBoxId: $receipt->cashbox_id,
             transactionId: $receipt->transaction_id,
             sum: (float) $receipt->sum,
             contractId: $receipt->contract_id,

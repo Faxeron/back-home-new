@@ -49,7 +49,7 @@ return new class extends Migration
         $schema->create('spendings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('company_id');
-            $table->unsignedBigInteger('cash_box_id');
+            $table->unsignedBigInteger('cashbox_id');
             $table->unsignedBigInteger('transaction_id')->nullable();
             $table->unsignedBigInteger('spending_item_id');
             $table->unsignedBigInteger('fond_id');
@@ -61,7 +61,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('company_id')->references('id')->on('companies');
-            $table->foreign('cash_box_id')->references('id')->on('cash_boxes');
+            $table->foreign('cashbox_id')->references('id')->on('cashboxes');
             $table->foreign('transaction_id')->references('id')->on('transactions')->nullOnDelete();
             $table->foreign('spending_item_id')->references('id')->on('spending_items');
             $table->foreign('fond_id')->references('id')->on('spending_funds');
@@ -71,7 +71,7 @@ return new class extends Migration
         $schema->create('receipts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('company_id');
-            $table->unsignedBigInteger('cash_box_id');
+            $table->unsignedBigInteger('cashbox_id');
             $table->unsignedBigInteger('transaction_id')->nullable();
             $table->unsignedBigInteger('contract_id')->nullable();
             $table->decimal('summ', 14, 2);
@@ -81,7 +81,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('company_id')->references('id')->on('companies');
-            $table->foreign('cash_box_id')->references('id')->on('cash_boxes');
+            $table->foreign('cashbox_id')->references('id')->on('cashboxes');
             $table->foreign('transaction_id')->references('id')->on('transactions')->nullOnDelete();
             $table->foreign('contract_id')->references('id')->on('contracts')->nullOnDelete();
         });

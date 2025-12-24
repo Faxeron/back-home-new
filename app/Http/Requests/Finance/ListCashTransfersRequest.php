@@ -12,8 +12,6 @@ class ListCashTransfersRequest extends FormRequest
             'company_id' => ['nullable', 'integer'],
             'from_cashbox_id' => ['nullable', 'integer'],
             'to_cashbox_id' => ['nullable', 'integer'],
-            'from_cash_box_id' => ['nullable', 'integer'],
-            'to_cash_box_id' => ['nullable', 'integer'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

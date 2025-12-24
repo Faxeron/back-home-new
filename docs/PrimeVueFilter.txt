@@ -10,7 +10,7 @@ PrimeVue DataTable: фильтры (заметки по проекту)
 Практика
 - Для range-фильтра используем Calendar с `selectionMode="range"` (value = [from, to]).
 - Для select/boolean фильтров передаем options из Pinia dictionaries.
-- Prefer field names с `cashbox_id`. Бэкенд принимает `cash_box_id`, но это legacy.
+- Prefer field names ?? `cashbox_id`.
 
 Важно
 - Если используешь `matchMode="custom"`, обязательно задай `filterFunction` в Column.

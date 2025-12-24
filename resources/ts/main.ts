@@ -9,7 +9,7 @@ import 'primeflex/primeflex.css'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 
 // Styles
@@ -29,7 +29,7 @@ app.use(PrimeVue, {
 app.component('DataTable', DataTable)
 app.component('Column', Column)
 app.component('InputText', InputText)
-app.component('Dropdown', Dropdown)
+app.component('Select', Select)
 app.component('MultiSelect', MultiSelect)
 
 // Mount vue app

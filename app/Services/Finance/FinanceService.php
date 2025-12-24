@@ -23,15 +23,16 @@ class FinanceService
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
         $this->assertHasContract($data['contract_id'] ?? null);
-        $this->assertCashBox($data['cash_box_id'] ?? null);
-        return $this->transaction(function () use ($data) {
+        $cashboxId = $data['cashbox_id'] ?? null;
+        $this->assertCashBox($cashboxId);
+        return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('INCOME');
-            $this->lockCashBoxes([$data['cash_box_id'] ?? null]);
+            $this->lockCashBoxes([$cashboxId]);
 
             $receipt = Receipt::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
-                'cash_box_id' => $data['cash_box_id'] ?? null,
+                'cashbox_id' => $cashboxId,
                 'contract_id' => $data['contract_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
                 'payment_date' => $data['payment_date'] ?? now()->toDateString(),
@@ -45,7 +46,7 @@ class FinanceService
                 'tenant_id' => $receipt->tenant_id,
                 'company_id' => $receipt->company_id,
                 'sum' => $receipt->sum,
-                'cash_box_id' => $receipt->cash_box_id,
+                'cashbox_id' => $receipt->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
@@ -71,15 +72,16 @@ class FinanceService
     public function createDirectorLoanReceipt(array $data): ReceiptDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
-        $this->assertCashBox($data['cash_box_id'] ?? null);
-        return $this->transaction(function () use ($data) {
+        $cashboxId = $data['cashbox_id'] ?? null;
+        $this->assertCashBox($cashboxId);
+        return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_LOAN');
-            $this->lockCashBoxes([$data['cash_box_id'] ?? null]);
+            $this->lockCashBoxes([$cashboxId]);
 
             $receipt = Receipt::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
-                'cash_box_id' => $data['cash_box_id'] ?? null,
+                'cashbox_id' => $cashboxId,
                 'contract_id' => null,
                 'sum' => $data['sum'] ?? 0,
                 'payment_date' => $data['payment_date'] ?? now()->toDateString(),
@@ -93,7 +95,7 @@ class FinanceService
                 'tenant_id' => $receipt->tenant_id,
                 'company_id' => $receipt->company_id,
                 'sum' => $receipt->sum,
-                'cash_box_id' => $receipt->cash_box_id,
+                'cashbox_id' => $receipt->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
@@ -119,15 +121,16 @@ class FinanceService
     public function createSpending(array $data): SpendingDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
-        $this->assertCashBox($data['cash_box_id'] ?? null);
-        return $this->transaction(function () use ($data) {
+        $cashboxId = $data['cashbox_id'] ?? null;
+        $this->assertCashBox($cashboxId);
+        return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('OUTCOME');
-            $this->lockCashBoxes([$data['cash_box_id'] ?? null]);
+            $this->lockCashBoxes([$cashboxId]);
 
             $spending = Spending::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
-                'cash_box_id' => $data['cash_box_id'] ?? null,
+                'cashbox_id' => $cashboxId,
                 'contract_id' => $data['contract_id'] ?? null,
                 'fond_id' => $data['fond_id'] ?? null,
                 'spending_item_id' => $data['spending_item_id'] ?? null,
@@ -144,7 +147,7 @@ class FinanceService
                 'tenant_id' => $spending->tenant_id,
                 'company_id' => $spending->company_id,
                 'sum' => $spending->sum,
-                'cash_box_id' => $spending->cash_box_id,
+                'cashbox_id' => $spending->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'counterparty_id' => $spending->counterparty_id,
@@ -170,15 +173,16 @@ class FinanceService
     public function createDirectorWithdrawal(array $data): SpendingDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
-        $this->assertCashBox($data['cash_box_id'] ?? null);
-        return $this->transaction(function () use ($data) {
+        $cashboxId = $data['cashbox_id'] ?? null;
+        $this->assertCashBox($cashboxId);
+        return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_WITHDRAWAL');
-            $this->lockCashBoxes([$data['cash_box_id'] ?? null]);
+            $this->lockCashBoxes([$cashboxId]);
 
             $spending = Spending::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
-                'cash_box_id' => $data['cash_box_id'] ?? null,
+                'cashbox_id' => $cashboxId,
                 'contract_id' => null,
                 'fond_id' => 1,
                 'spending_item_id' => 1,
@@ -195,7 +199,7 @@ class FinanceService
                 'tenant_id' => $spending->tenant_id,
                 'company_id' => $spending->company_id,
                 'sum' => $spending->sum,
-                'cash_box_id' => $spending->cash_box_id,
+                'cashbox_id' => $spending->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'counterparty_id' => null,
@@ -221,19 +225,21 @@ class FinanceService
     public function transferBetweenCashBoxes(array $data): CashTransferDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
-        $this->assertTransferBoxes($data['from_cash_box_id'] ?? null, $data['to_cash_box_id'] ?? null);
-        return $this->transaction(function () use ($data) {
+        $fromCashboxId = $data['from_cashbox_id'] ?? null;
+        $toCashboxId = $data['to_cashbox_id'] ?? null;
+        $this->assertTransferBoxes($fromCashboxId, $toCashboxId);
+        return $this->transaction(function () use ($data, $fromCashboxId, $toCashboxId) {
             $typeOut = $this->getTransactionType('TRANSFER_OUT');
             $typeIn = $this->getTransactionType('TRANSFER_IN');
 
-            $this->assertSameContext($data['from_cash_box_id'] ?? null, $data['to_cash_box_id'] ?? null);
-            $this->lockCashBoxes([$data['from_cash_box_id'] ?? null, $data['to_cash_box_id'] ?? null]);
+            $this->assertSameContext($fromCashboxId, $toCashboxId);
+            $this->lockCashBoxes([$fromCashboxId, $toCashboxId]);
 
             $txOut = Transaction::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
-                'cash_box_id' => $data['from_cash_box_id'] ?? null,
+                'cashbox_id' => $fromCashboxId,
                 'transaction_type_id' => $typeOut->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'related_id' => null,
@@ -249,7 +255,7 @@ class FinanceService
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
-                'cash_box_id' => $data['to_cash_box_id'] ?? null,
+                'cashbox_id' => $toCashboxId,
                 'transaction_type_id' => $typeIn->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
                 'related_id' => null,
@@ -264,8 +270,8 @@ class FinanceService
             $transfer = CashTransfer::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
-                'from_cash_box_id' => $data['from_cash_box_id'] ?? null,
-                'to_cash_box_id' => $data['to_cash_box_id'] ?? null,
+                'from_cashbox_id' => $fromCashboxId,
+                'to_cashbox_id' => $toCashboxId,
                 'sum' => $data['sum'] ?? 0,
                 'description' => $data['description'] ?? null,
                 'transaction_out_id' => $txOut->id,
@@ -286,11 +292,12 @@ class FinanceService
             throw new RuntimeException('Transaction already completed');
         }
 
-        $this->lockCashBoxes([$transaction->cash_box_id]);
+        $cashboxId = $transaction->cashbox_id;
+        $this->lockCashBoxes([$cashboxId]);
 
         $type = $this->getTransactionTypeById((int) $transaction->transaction_type_id);
 
-        $currentBalance = $this->getCashBoxBalance((int) $transaction->cash_box_id);
+        $currentBalance = $this->getCashBoxBalance((int) $cashboxId);
         $amount = $this->toFloat($transaction->sum);
         $newBalance = $currentBalance + ($amount * (int) $type->sign);
 
@@ -307,7 +314,7 @@ class FinanceService
         CashboxHistory::create([
             'tenant_id' => $transaction->tenant_id,
             'company_id' => $transaction->company_id,
-            'cashbox_id' => $transaction->cash_box_id,
+            'cashbox_id' => $cashboxId,
             'transaction_id' => $transaction->id,
             'balance_after' => $newBalance,
             'created_at' => now(),
@@ -322,7 +329,7 @@ class FinanceService
         return (float) DB::connection('legacy_new')
             ->table('transactions as t')
             ->join('transaction_types as tt', 'tt.id', '=', 't.transaction_type_id')
-            ->where('t.cash_box_id', $cashBoxId)
+            ->where('t.cashbox_id', $cashBoxId)
             ->where('t.is_completed', 1)
             ->selectRaw('COALESCE(SUM(t.sum * tt.sign), 0) as balance')
             ->value('balance');
@@ -436,7 +443,7 @@ class FinanceService
         }
 
         DB::connection('legacy_new')
-            ->table('cash_boxes')
+            ->table('cashboxes')
             ->whereIn('id', $ids->all())
             ->lockForUpdate()
             ->get();

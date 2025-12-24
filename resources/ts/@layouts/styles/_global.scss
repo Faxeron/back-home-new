@@ -8,3 +8,14 @@
 html {
   box-sizing: border-box;
 }
+
+// Hide filter match-mode menu buttons in DataTable headers (matchMode set in code)
+.p-datatable .p-column-filter-menu-button {
+  display: none;
+}
+
+// Hide DataTable filter buttons (funnel icons)
+.p-datatable .p-datatable-filter-button,
+.p-datatable .p-datatable-column-filter-button {
+  display: none;
+}

@@ -29,7 +29,7 @@ class SpendingDTO
             id: $spending->id,
             tenantId: $spending->tenant_id,
             companyId: $spending->company_id,
-            cashBoxId: $spending->cash_box_id,
+            cashBoxId: $spending->cashbox_id,
             transactionId: $spending->transaction_id,
             sum: (float) $spending->sum,
             contractId: $spending->contract_id,

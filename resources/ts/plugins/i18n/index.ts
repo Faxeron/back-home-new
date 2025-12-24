@@ -16,7 +16,9 @@ export const getI18n = () => {
     _i18n = createI18n({
       legacy: false,
       locale: cookieRef('language', themeConfig.app.i18n.defaultLocale).value,
-      fallbackLocale: 'en',
+      fallbackLocale: 'ru',
+      missingWarn: false,
+      fallbackWarn: false,
       messages,
     })
   }
