@@ -51,6 +51,7 @@ export default [
       { title: 'Фонды расходов', to: { path: '/settings/spending-funds' } },
       { title: 'Статьи расходов', to: { path: '/settings/spending-items' } },
       { title: 'Статусы договоров', to: { path: '/settings/contract-statuses' } },
+      { title: 'Типы транзакций', to: { path: '/settings/transaction-types' } },
       { title: 'Типы продаж', to: { path: '/settings/sale-types' } },
       { title: 'Города', to: { path: '/settings/cities' } },
       { title: 'Районы', to: { path: '/settings/districts' } },

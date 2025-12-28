@@ -252,12 +252,19 @@ class FilterBuilder
 
     public function applyToSpendings(Builder $query, SpendingFilterDTO $f): Builder
     {
+        $query->select('spendings.*');
+        $joinedCounterparties = false;
+
         if ($f->tenantId !== null) {
             $query->where('tenant_id', $f->tenantId);
         }
 
         if ($f->companyId) {
             $query->where('company_id', $f->companyId);
+        }
+
+        if ($f->idLike) {
+            $query->where('id', 'like', '%' . $f->idLike . '%');
         }
 
         if ($f->cashBoxId) {
@@ -278,6 +285,14 @@ class FilterBuilder
 
         if ($f->counterpartyId) {
             $query->where('counterparty_id', $f->counterpartyId);
+        }
+
+        if ($f->counterpartySearch) {
+            if (!$joinedCounterparties) {
+                $query->leftJoin('counterparties as cp', 'cp.id', '=', 'spendings.counterparty_id');
+                $joinedCounterparties = true;
+            }
+            $query->where('cp.name', 'like', '%' . $f->counterpartySearch . '%');
         }
 
         if ($f->spentToUserId) {

@@ -1,45 +1,79 @@
 <script setup lang="ts">
-import { spendingItemsEndpoint } from '@/api/settings'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import SpendingItemsTable from '@/components/tables/settings/SpendingItemsTable.vue'
+import { useTableInfinite } from '@/composables/useTableLazy'
+import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
+import { SPENDING_ITEM_TABLE } from '@/config/tables/spending-items'
+import { useDictionariesStore } from '@/stores/dictionaries'
 import type { SpendingItem } from '@/types/finance'
 
-const page = ref(1)
-const itemsPerPage = ref(25)
+const dictionaries = useDictionariesStore()
+const tableRef = ref<any>(null)
+const scrollHeight = ref('700px')
+const reloadRef = ref<() => void>(() => {})
 
-const headers = [
-  { title: 'ID', key: 'id', width: 70 },
-  { title: 'Название', key: 'name' },
-  { title: 'Фонд', key: 'fond_id' },
+const filterDefs: DictionaryFilterDef[] = [
+  { key: 'name', kind: 'text', queryKey: 'q', debounce: true },
+  { key: 'fond_id', kind: 'select', queryKey: 'fund_id' },
 ]
 
-const endpoint = spendingItemsEndpoint({ page, per_page: itemsPerPage })
-const { data: response, execute: fetchItems, isFetching } = await useApi<{ data: SpendingItem[]; meta: any }>(endpoint)
+const { filters, serverParams, resetFilters, handleSort } = useDictionaryFilters(filterDefs, {
+  onChange: () => reloadRef.value(),
+})
 
-const rows = computed(() => response.value?.data ?? [])
-const pagination = computed(() => response.value?.meta ?? { total: 0, per_page: itemsPerPage.value })
+const {
+  data,
+  total: totalRecords,
+  loading,
+  reset: resetData,
+  virtualScrollerOptions,
+} = useTableInfinite<SpendingItem>({
+  endpoint: 'settings/spending-items',
+  perPage: SPENDING_ITEM_TABLE.perPage,
+  rowHeight: SPENDING_ITEM_TABLE.rowHeight,
+  params: () => serverParams.value,
+})
 
-watch([page, itemsPerPage], () => fetchItems())
+reloadRef.value = () => {
+  resetData()
+}
+
+const updateScrollHeight = () => {
+  const tableEl = tableRef.value?.$el as HTMLElement | undefined
+  if (!tableEl) return
+  const rect = tableEl.getBoundingClientRect()
+  const padding = 24
+  const nextHeight = Math.max(320, window.innerHeight - rect.top - padding)
+  scrollHeight.value = `${Math.floor(nextHeight)}px`
+}
+
+const handleResize = () => {
+  updateScrollHeight()
+}
+
+onMounted(async () => {
+  await dictionaries.loadSpendingFunds()
+  await resetData()
+  await nextTick()
+  updateScrollHeight()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <VCardTitle>Статьи расходов</VCardTitle>
-        <VDivider />
-        <VCardText>
-          <VDataTableServer
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            :headers="headers"
-            :items="rows"
-            :items-length="pagination.total ?? 0"
-            :loading="isFetching"
-            :items-per-page-options="[10, 25, 50, 100]"
-            item-value="id"
-            class="text-no-wrap"
-          />
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <SpendingItemsTable
+    ref="tableRef"
+    v-model:filters="filters"
+    :rows="data"
+    :loading="loading"
+    :totalRecords="totalRecords"
+    :scrollHeight="scrollHeight"
+    :virtualScrollerOptions="virtualScrollerOptions"
+    @sort="handleSort"
+    @reset-filters="resetFilters"
+  />
 </template>

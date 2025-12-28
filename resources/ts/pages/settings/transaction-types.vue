@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import ContractStatusesTable from '@/components/tables/settings/ContractStatusesTable.vue'
+import TransactionTypesTable from '@/components/tables/settings/TransactionTypesTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
-import { CONTRACT_STATUS_TABLE } from '@/config/tables/contract-statuses'
-import type { ContractStatus } from '@/types/finance'
+import { TRANSACTION_TYPE_TABLE } from '@/config/tables/transaction-types'
+import type { TransactionType } from '@/types/finance'
 
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
@@ -24,10 +24,10 @@ const {
   loading,
   reset: resetData,
   virtualScrollerOptions,
-} = useTableInfinite<ContractStatus>({
-  endpoint: 'settings/contract-statuses',
-  perPage: CONTRACT_STATUS_TABLE.perPage,
-  rowHeight: CONTRACT_STATUS_TABLE.rowHeight,
+} = useTableInfinite<TransactionType>({
+  endpoint: 'finance/transaction-types',
+  perPage: TRANSACTION_TYPE_TABLE.perPage,
+  rowHeight: TRANSACTION_TYPE_TABLE.rowHeight,
   params: () => serverParams.value,
 })
 
@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ContractStatusesTable
+  <TransactionTypesTable
     ref="tableRef"
     v-model:filters="filters"
     :rows="data"

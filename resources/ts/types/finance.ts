@@ -67,6 +67,7 @@ export type Contract = {
   title?: string
   total_amount?: number
   paid_amount?: number
+  debt?: number
   system_status_code?: string
   contract_status_id?: number
   counterparty_id?: number
@@ -75,13 +76,66 @@ export type Contract = {
   contract_date?: string
   completion_date?: string
   is_completed?: boolean
+  work_start_date?: string
+  work_end_date?: string
+  sale_type_id?: number
+  manager_id?: number
+  measurer_id?: number
+  counterparty?: { id: number; name?: string; phone?: string }
+  status?: { id: number; name: string; color?: string }
+  sale_type?: { id: number; name: string }
+  manager?: { id: number; name: string }
+  measurer?: { id: number; name: string }
 }
 
-export type CashBox = { id: number; name: string; balance?: number }
-export type Company = { id: number; name: string; code?: string }
-export type SpendingFund = { id: number; name: string; description?: string }
-export type SpendingItem = { id: number; name: string; fond_id?: number }
-export type ContractStatus = { id: number; name: string; color?: string }
-export type SaleType = { id: number; name: string }
-export type City = { id: number; name: string }
-export type District = { id: number; name: string; city_id?: number }
+export type CashBox = {
+  id: number
+  name: string
+  balance?: number
+  company_id?: number
+  description?: string
+  is_active?: boolean
+  company?: { id: number; name: string }
+}
+export type Company = {
+  id: number
+  name: string
+  code?: string
+  phone?: string
+  email?: string
+  address?: string
+  is_active?: boolean
+}
+export type SpendingFund = {
+  id: number
+  name: string
+  description?: string
+  is_active?: boolean
+  items_count?: number
+}
+export type SpendingItem = {
+  id: number
+  name: string
+  fond_id?: number
+  description?: string
+  is_active?: boolean
+}
+export type ContractStatus = {
+  id: number
+  name: string
+  code?: string
+  color?: string
+  sort_order?: number
+  is_active?: boolean
+}
+export type SaleType = { id: number; name: string; is_active?: boolean }
+export type City = { id: number; name: string; is_active?: boolean }
+export type District = { id: number; name: string; city_id?: number; is_active?: boolean }
+export type TransactionType = {
+  id: number
+  code?: string
+  name?: string
+  sign?: number
+  is_active?: boolean
+  sort_order?: number
+}

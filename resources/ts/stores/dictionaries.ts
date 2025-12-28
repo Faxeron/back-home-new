@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
+import type { ContractStatus } from '@/types/finance'
 import { $api } from '@/utils/api'
 
 interface NamedItem {
   id: number | string
   name: string
   code?: string
+  color?: string
   sign?: number | string | null
 }
 
@@ -18,6 +20,8 @@ export const useDictionariesStore = defineStore('dictionaries', {
     transactionTypes: [] as NamedItem[],
     paymentMethods: [] as NamedItem[],
     counterparties: [] as NamedItem[],
+    cities: [] as NamedItem[],
+    contractStatuses: [] as ContractStatus[],
     loaded: {
       cashBoxes: false,
       companies: false,
@@ -27,6 +31,8 @@ export const useDictionariesStore = defineStore('dictionaries', {
       transactionTypes: false,
       paymentMethods: false,
       counterparties: false,
+      cities: false,
+      contractStatuses: false,
     },
   }),
   actions: {
@@ -181,6 +187,43 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loaded.counterparties = true
       }
     },
+    async loadCities(force = false) {
+      if (!force && this.loaded.cities) return
+      try {
+        const res: any = await $api('settings/cities', { params: { per_page: 200 } })
+        const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
+        this.cities = list
+          .map((item: any) => ({
+            id: item?.id ?? item?.value,
+            name: item?.name ?? item?.label,
+          }))
+          .filter((item: any) => item.id != null && item.name)
+        this.loaded.cities = true
+      } catch (e) {
+        console.error('Failed to load cities', e)
+        this.cities = []
+        this.loaded.cities = true
+      }
+    },
+    async loadContractStatuses(force = false) {
+      if (!force && this.loaded.contractStatuses) return
+      try {
+        const res: any = await $api('settings/contract-statuses', { params: { per_page: 200 } })
+        const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
+        this.contractStatuses = list
+          .map((item: any) => ({
+            id: Number(item?.id ?? item?.value),
+            name: item?.name ?? item?.label,
+            color: item?.color ?? undefined,
+          }))
+          .filter((item: any) => Number.isFinite(item.id) && item.name)
+        this.loaded.contractStatuses = true
+      } catch (e) {
+        console.error('Failed to load contract statuses', e)
+        this.contractStatuses = []
+        this.loaded.contractStatuses = true
+      }
+    },
     async loadAll() {
       await Promise.all([
         this.loadCashBoxes(),
@@ -191,6 +234,8 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loadPaymentMethods(),
         this.loadTransactionTypes(),
         this.loadCounterparties(),
+        this.loadCities(),
+        this.loadContractStatuses(),
       ])
     },
   },

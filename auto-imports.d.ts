@@ -42,6 +42,7 @@ declare global {
   const debouncedRef: typeof import('@vueuse/core')['debouncedRef']
   const debouncedWatch: typeof import('@vueuse/core')['debouncedWatch']
   const defaultReceiptFilters: typeof import('./resources/ts/composables/useReceiptFilters')['defaultReceiptFilters']
+  const defaultSpendingFilters: typeof import('./resources/ts/composables/useSpendingFilters')['defaultSpendingFilters']
   const defaultTransactionFilters: typeof import('./resources/ts/composables/useTransactionFilters')['defaultTransactionFilters']
   const defineAsyncComponent: typeof import('vue')['defineAsyncComponent']
   const defineComponent: typeof import('vue')['defineComponent']
@@ -194,6 +195,7 @@ declare global {
   const useCloned: typeof import('@vueuse/core')['useCloned']
   const useColorMode: typeof import('@vueuse/core')['useColorMode']
   const useConfirmDialog: typeof import('@vueuse/core')['useConfirmDialog']
+  const useContractsQuery: typeof import('./resources/ts/composables/useContractsQuery')['useContractsQuery']
   const useCookie: typeof import('./resources/ts/@core/composable/useCookie')['useCookie']
   const useCounter: typeof import('@vueuse/core')['useCounter']
   const useCssModule: typeof import('vue')['useCssModule']
@@ -210,6 +212,7 @@ declare global {
   const useDeviceOrientation: typeof import('@vueuse/core')['useDeviceOrientation']
   const useDevicePixelRatio: typeof import('@vueuse/core')['useDevicePixelRatio']
   const useDevicesList: typeof import('@vueuse/core')['useDevicesList']
+  const useDictionaryFilters: typeof import('./resources/ts/composables/useDictionaryFilters')['useDictionaryFilters']
   const useDisplayMedia: typeof import('@vueuse/core')['useDisplayMedia']
   const useDocumentVisibility: typeof import('@vueuse/core')['useDocumentVisibility']
   const useDraggable: typeof import('@vueuse/core')['useDraggable']
@@ -303,6 +306,7 @@ declare global {
   const useSorted: typeof import('@vueuse/core')['useSorted']
   const useSpeechRecognition: typeof import('@vueuse/core')['useSpeechRecognition']
   const useSpeechSynthesis: typeof import('@vueuse/core')['useSpeechSynthesis']
+  const useSpendingFilters: typeof import('./resources/ts/composables/useSpendingFilters')['useSpendingFilters']
   const useStepper: typeof import('@vueuse/core')['useStepper']
   const useStorageAsync: typeof import('@vueuse/core')['useStorageAsync']
   const useStyleTag: typeof import('@vueuse/core')['useStyleTag']
@@ -409,6 +413,7 @@ declare module 'vue' {
     readonly debouncedRef: UnwrapRef<typeof import('@vueuse/core')['debouncedRef']>
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
     readonly defaultReceiptFilters: UnwrapRef<typeof import('./resources/ts/composables/useReceiptFilters')['defaultReceiptFilters']>
+    readonly defaultSpendingFilters: UnwrapRef<typeof import('./resources/ts/composables/useSpendingFilters')['defaultSpendingFilters']>
     readonly defaultTransactionFilters: UnwrapRef<typeof import('./resources/ts/composables/useTransactionFilters')['defaultTransactionFilters']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
@@ -561,6 +566,7 @@ declare module 'vue' {
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
+    readonly useContractsQuery: UnwrapRef<typeof import('./resources/ts/composables/useContractsQuery')['useContractsQuery']>
     readonly useCookie: UnwrapRef<typeof import('./resources/ts/@core/composable/useCookie')['useCookie']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
@@ -577,6 +583,7 @@ declare module 'vue' {
     readonly useDeviceOrientation: UnwrapRef<typeof import('@vueuse/core')['useDeviceOrientation']>
     readonly useDevicePixelRatio: UnwrapRef<typeof import('@vueuse/core')['useDevicePixelRatio']>
     readonly useDevicesList: UnwrapRef<typeof import('@vueuse/core')['useDevicesList']>
+    readonly useDictionaryFilters: UnwrapRef<typeof import('./resources/ts/composables/useDictionaryFilters')['useDictionaryFilters']>
     readonly useDisplayMedia: UnwrapRef<typeof import('@vueuse/core')['useDisplayMedia']>
     readonly useDocumentVisibility: UnwrapRef<typeof import('@vueuse/core')['useDocumentVisibility']>
     readonly useDraggable: UnwrapRef<typeof import('@vueuse/core')['useDraggable']>
@@ -670,6 +677,7 @@ declare module 'vue' {
     readonly useSorted: UnwrapRef<typeof import('@vueuse/core')['useSorted']>
     readonly useSpeechRecognition: UnwrapRef<typeof import('@vueuse/core')['useSpeechRecognition']>
     readonly useSpeechSynthesis: UnwrapRef<typeof import('@vueuse/core')['useSpeechSynthesis']>
+    readonly useSpendingFilters: UnwrapRef<typeof import('./resources/ts/composables/useSpendingFilters')['useSpendingFilters']>
     readonly useStepper: UnwrapRef<typeof import('@vueuse/core')['useStepper']>
     readonly useStorageAsync: UnwrapRef<typeof import('@vueuse/core')['useStorageAsync']>
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>

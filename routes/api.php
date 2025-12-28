@@ -94,3 +94,4 @@ Route::prefix('products')->group(function (): void {
 });
 
 Route::get('contracts', [ContractController::class, 'index']);
+Route::patch('contracts/{contract}/status', [ContractController::class, 'updateStatus']);

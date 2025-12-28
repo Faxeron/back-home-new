@@ -1,51 +1,75 @@
 <script setup lang="ts">
-import { cashBoxesEndpoint } from '@/api/settings'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import CashBoxesTable from '@/components/tables/settings/CashBoxesTable.vue'
+import { useTableInfinite } from '@/composables/useTableLazy'
+import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
+import { CASH_BOX_TABLE } from '@/config/tables/cash-boxes'
 import type { CashBox } from '@/types/finance'
 
-const page = ref(1)
-const itemsPerPage = ref(25)
+const tableRef = ref<any>(null)
+const scrollHeight = ref('700px')
+const reloadRef = ref<() => void>(() => {})
 
-const headers = [
-  { title: 'ID', key: 'id', width: 70 },
-  { title: 'Название', key: 'name' },
-  { title: 'Баланс', key: 'balance' },
+const filterDefs: DictionaryFilterDef[] = [
+  { key: 'name', kind: 'text', queryKey: 'q', debounce: true },
 ]
 
-const endpoint = cashBoxesEndpoint({ page, per_page: itemsPerPage })
-const { data: response, execute: fetchItems, isFetching } = await useApi<{ data: CashBox[]; meta: any }>(endpoint)
+const { filters, serverParams, resetFilters, handleSort } = useDictionaryFilters(filterDefs, {
+  onChange: () => reloadRef.value(),
+})
 
-const rows = computed(() => response.value?.data ?? [])
-const pagination = computed(() => response.value?.meta ?? { total: 0, per_page: itemsPerPage.value })
+const {
+  data,
+  total: totalRecords,
+  loading,
+  reset: resetData,
+  virtualScrollerOptions,
+} = useTableInfinite<CashBox>({
+  endpoint: 'settings/cash-boxes',
+  perPage: CASH_BOX_TABLE.perPage,
+  rowHeight: CASH_BOX_TABLE.rowHeight,
+  params: () => serverParams.value,
+})
 
-watch([page, itemsPerPage], () => fetchItems())
+reloadRef.value = () => {
+  resetData()
+}
 
-const formatMoney = (value?: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 }).format(Number(value ?? 0))
+const updateScrollHeight = () => {
+  const tableEl = tableRef.value?.$el as HTMLElement | undefined
+  if (!tableEl) return
+  const rect = tableEl.getBoundingClientRect()
+  const padding = 24
+  const nextHeight = Math.max(320, window.innerHeight - rect.top - padding)
+  scrollHeight.value = `${Math.floor(nextHeight)}px`
+}
+
+const handleResize = () => {
+  updateScrollHeight()
+}
+
+onMounted(async () => {
+  await resetData()
+  await nextTick()
+  updateScrollHeight()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <VCardTitle>Кассы</VCardTitle>
-        <VDivider />
-        <VCardText>
-          <VDataTableServer
-            v-model:page="page"
-            v-model:items-per-page="itemsPerPage"
-            :headers="headers"
-            :items="rows"
-            :items-length="pagination.total ?? 0"
-            :loading="isFetching"
-            :items-per-page-options="[10, 25, 50, 100]"
-            item-value="id"
-            class="text-no-wrap"
-          >
-            <template #item.balance="{ item }">
-              {{ formatMoney(item.balance) }}
-            </template>
-          </VDataTableServer>
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <CashBoxesTable
+    ref="tableRef"
+    v-model:filters="filters"
+    :rows="data"
+    :loading="loading"
+    :totalRecords="totalRecords"
+    :scrollHeight="scrollHeight"
+    :virtualScrollerOptions="virtualScrollerOptions"
+    @sort="handleSort"
+    @reset-filters="resetFilters"
+  />
 </template>

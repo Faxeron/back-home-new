@@ -58,4 +58,13 @@ export default [
       },
     ],
   },
+  {
+    title: 'Производство',
+    icon: { icon: 'tabler-briefcase' },
+    children: [
+      { title: 'Договоры', to: { path: '/operations/contracts' } },
+      { title: 'Замеры', to: { path: '/operations/measurements' } },
+      { title: 'Монтажи', to: { path: '/operations/installations' } },
+    ],
+  },
 ]

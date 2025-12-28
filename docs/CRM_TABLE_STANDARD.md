@@ -11,7 +11,7 @@
 - Справочники: `resources/ts/stores/dictionaries.ts`
 
 Правила
-1) Новые таблицы делаем только через `BaseDataTable.vue`. PrimeVue DataTable напрямую в страницах не используем.
+1) Новые таблицы делаем через `BaseDataTable.vue` или `components/tables/settings/DictionaryTable.vue`. PrimeVue DataTable напрямую в страницах не используем.
 2) Фильтры только с `filterDisplay="row"` и только в `#filter` слоте колонок.
 3) Фильтры меняют реактивный `filters`, DataTable фильтрует сам (без ручных submit/watch).
 4) Справочники берутся только из Pinia `dictionaries.ts`. Не собираем значения из строк таблицы.

@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import ContractStatusesTable from '@/components/tables/settings/ContractStatusesTable.vue'
+import SpendingsTable from '@/components/tables/spendings/SpendingsTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
-import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
-import { CONTRACT_STATUS_TABLE } from '@/config/tables/contract-statuses'
-import type { ContractStatus } from '@/types/finance'
+import { useSpendingFilters } from '@/composables/useSpendingFilters'
+import { SPENDING_TABLE } from '@/config/tables/spendings'
+import { useDictionariesStore } from '@/stores/dictionaries'
+import type { Spending } from '@/types/finance'
 
+const dictionaries = useDictionariesStore()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 
-const filterDefs: DictionaryFilterDef[] = [
-  { key: 'name', kind: 'text', queryKey: 'q', debounce: true },
-]
-
-const { filters, serverParams, resetFilters, handleSort } = useDictionaryFilters(filterDefs, {
+const { filters, serverParams, resetFilters, handleSort } = useSpendingFilters({
   onChange: () => reloadRef.value(),
 })
 
@@ -24,10 +22,11 @@ const {
   loading,
   reset: resetData,
   virtualScrollerOptions,
-} = useTableInfinite<ContractStatus>({
-  endpoint: 'settings/contract-statuses',
-  perPage: CONTRACT_STATUS_TABLE.perPage,
-  rowHeight: CONTRACT_STATUS_TABLE.rowHeight,
+} = useTableInfinite<Spending>({
+  endpoint: 'finance/spendings',
+  include: SPENDING_TABLE.include,
+  perPage: SPENDING_TABLE.perPage,
+  rowHeight: SPENDING_TABLE.rowHeight,
   params: () => serverParams.value,
 })
 
@@ -49,6 +48,12 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
+  await Promise.all([
+    dictionaries.loadCashBoxes(true),
+    dictionaries.loadSpendingFunds(),
+    dictionaries.loadSpendingItems(),
+    dictionaries.loadCounterparties(),
+  ])
   await resetData()
   await nextTick()
   updateScrollHeight()
@@ -61,7 +66,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ContractStatusesTable
+  <SpendingsTable
     ref="tableRef"
     v-model:filters="filters"
     :rows="data"

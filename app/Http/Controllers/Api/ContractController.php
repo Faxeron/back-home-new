@@ -13,17 +13,22 @@ class ContractController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = (int) $request->integer('per_page', 25);
-        $perPage = $perPage <= 0 ? 10 : min($perPage, 100);
+        $perPage = $perPage <= 0 ? 10 : min($perPage, 200);
         $page = (int) $request->integer('page', 1);
 
         $query = Contract::query()
-            ->with(['counterparty', 'status'])
+            ->with(['counterparty', 'status', 'saleType', 'manager', 'measurer'])
+            ->withSum('receipts as receipts_total', 'sum')
             ->orderByDesc('contract_date');
 
         if ($search = $request->string('q')->toString()) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
+                    ->orWhere('address', 'like', "%{$search}%")
+                    ->orWhere('id', 'like', "%{$search}%")
+                    ->orWhereHas('counterparty', function ($counterpartyQuery) use ($search) {
+                        $counterpartyQuery->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -49,5 +54,21 @@ class ContractController extends Controller
                 'last_page' => $contracts->lastPage(),
             ],
         ]);
+    }
+
+    public function updateStatus(Request $request, Contract $contract): JsonResponse
+    {
+        $validated = $request->validate([
+            'contract_status_id' => ['required', 'integer', 'exists:legacy_new.contract_statuses,id'],
+        ]);
+
+        $contract->update([
+            'contract_status_id' => $validated['contract_status_id'],
+        ]);
+
+        $contract->load(['counterparty', 'status', 'saleType', 'manager', 'measurer']);
+        $contract->loadSum('receipts as receipts_total', 'sum');
+
+        return response()->json((new ContractResource($contract))->toArray($request));
     }
 }

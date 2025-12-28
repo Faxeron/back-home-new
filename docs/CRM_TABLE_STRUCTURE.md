@@ -22,8 +22,13 @@
 - `resources/ts/utils/formatters/finance.ts`
 - `resources/ts/stores/dictionaries.ts`
 
+Справочники (settings)
+- UI: `resources/ts/components/tables/settings/DictionaryTable.vue` + обертки по сущностям.
+- Фильтры: `resources/ts/composables/useDictionaryFilters.ts` (маппинг на `q` и select‑поля).
+- Конфиги: `resources/ts/config/tables/*.ts` для каждой сущности.
+
 Инварианты
-- Таблицы только через `BaseDataTable.vue`. PrimeVue DataTable напрямую в страницах не использовать.
+- Таблицы через `BaseDataTable.vue` или `components/tables/settings/DictionaryTable.vue`. PrimeVue DataTable напрямую в страницах не использовать.
 - Фильтрация и сортировка только на сервере; правила и параметры описаны в `docs/filterRules.txt`.
 - Infinite scroll: `per_page` фиксирован (стандарт 200), пагинация скрыта.
 - `filterDisplay="row"`, matchMode задается только через объект filters (иконки выбора скрыты).

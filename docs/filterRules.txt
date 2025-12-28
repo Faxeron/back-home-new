@@ -33,3 +33,15 @@
 - notes_like
 - search (по notes, если нужен общий поиск)
 - sort, direction, page, per_page, include
+
+Стандарт фильтров для spendings
+- id_like
+- cashbox_id
+- fond_id
+- spending_item_id
+- contract_id
+- counterparty_id, counterparty_search
+- sum_min, sum_max
+- payment_date_from, payment_date_to
+- search (по description, если нужен общий поиск)
+- sort, direction, page, per_page, include

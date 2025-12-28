@@ -15,7 +15,6 @@ PROMPT_ARCHITECT (RU)
 
 Совместимость
 - Канонический API: `/api/finance/*`, но legacy `/api/finances/*` живет.
-- Каноника: `cashbox_id`.
 
 Документы для ориентира
 - `docs/finance/FINANCE_GUARDRAILS.md`
