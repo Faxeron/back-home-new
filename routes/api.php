@@ -24,6 +24,7 @@ use App\Http\Controllers\API\Finance\CounterpartyLookupController;
 use App\Http\Controllers\Api\Catalog\ProductBrandController;
 use App\Http\Controllers\Api\Catalog\ProductCategoryController;
 use App\Http\Controllers\Api\Catalog\ProductController;
+use App\Http\Controllers\Api\Catalog\ProductKindController;
 use App\Http\Controllers\Api\Catalog\ProductSubcategoryController;
 use App\Http\Controllers\API\Finance\ReceiptController;
 use App\Http\Controllers\API\Finance\SpendingController;
@@ -91,6 +92,9 @@ Route::prefix('products')->group(function (): void {
     Route::get('categories', [ProductCategoryController::class, 'index']);
     Route::get('subcategories', [ProductSubcategoryController::class, 'index']);
     Route::get('brands', [ProductBrandController::class, 'index']);
+    Route::get('kinds', [ProductKindController::class, 'index']);
+    Route::get('{product}', [ProductController::class, 'show']);
+    Route::patch('{product}', [ProductController::class, 'update']);
 });
 
 Route::get('contracts', [ContractController::class, 'index']);

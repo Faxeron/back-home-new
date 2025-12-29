@@ -53,9 +53,16 @@ Finance (legacy_new)
 - spending_items: id PK; tenant_id; company_id; old_id UNIQUE; name; description; fond_id FK->spending_funds; is_active; created_at/updated_at; created_by/updated_by.
 
 Catalog / estimates (legacy_new)
-- products: id PK; tenant_id; company_id; name; product_type_id; spending_item_id FK->spending_items; scu; category_id; sub_category_id; brand_id; prices; created_at/updated_at; created_by/updated_by.
+- products: id PK; tenant_id; company_id; name; product_type_id; product_kind_id; unit_id; spending_item_id FK->spending_items; scu; sort_order; category_id; sub_category_id; brand_id; is_visible/is_top/is_new; price, price_sale, price_vendor, price_vendor_min, price_zakup, price_delivery, montaj, montaj_sebest; created_at/updated_at; created_by/updated_by.
 - product_categories, product_subcategories, product_brands: cloned + meta columns.
 - product_types: id PK; code UNIQUE; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- product_kinds: id PK; tenant_id; company_id; name; created_at/updated_at; created_by/updated_by.
+- product_units: id PK; code UNIQUE; name; created_at/updated_at.
+- product_descriptions: id PK; tenant_id; company_id; product_id UNIQUE FK->products; description_short; description_long; dignities; constructive; avito1; avito2; created_at/updated_at; created_by/updated_by.
+- product_attribute_definitions: id PK; tenant_id; company_id; name; value_type; product_type_id FK->product_types nullable; product_kind_id FK->product_kinds nullable; created_at/updated_at; created_by/updated_by.
+- product_attribute_values: id PK; tenant_id; company_id; product_id FK->products; attribute_id FK->product_attribute_definitions; value_string/value_number; created_at/updated_at; created_by/updated_by.
+- product_media: id PK; tenant_id; company_id; product_id FK->products; type; url; sort_order; created_at/updated_at; created_by/updated_by.
+- product_relations: id PK; tenant_id; company_id; product_id FK->products; related_product_id FK->products; relation_type; created_at/updated_at; created_by/updated_by.
 - estimates: id PK; tenant_id; company_id; data; link; random_id; lead_id; amo_lead_id; link_montaj; client_id; sms_sent; created_at/updated_at; created_by/updated_by.
 - estimate_groups: id PK; tenant_id; company_id; name; ids; created_at/updated_at; created_by/updated_by.
 - estimate_template_materials: id PK; tenant_id; company_id; title; data; created_at/updated_at; created_by/updated_by.

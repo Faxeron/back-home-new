@@ -9,6 +9,8 @@ use App\Domain\Common\Traits\HasUpdater;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
@@ -25,13 +27,18 @@ class Product extends Model
     protected $guarded = [];
 
     protected $casts = [
+        'sort_order' => 'int',
         'price' => 'float',
         'price_sale' => 'float',
         'price_vendor' => 'float',
+        'price_vendor_min' => 'float',
         'price_zakup' => 'float',
-        'delivery_price' => 'float',
+        'price_delivery' => 'float',
         'montaj' => 'float',
         'montaj_sebest' => 'float',
+        'is_visible' => 'bool',
+        'is_top' => 'bool',
+        'is_new' => 'bool',
     ];
 
     public function category(): BelongsTo
@@ -47,5 +54,30 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(ProductBrand::class, 'brand_id');
+    }
+
+    public function kind(): BelongsTo
+    {
+        return $this->belongsTo(ProductKind::class, 'product_kind_id');
+    }
+
+    public function description(): HasOne
+    {
+        return $this->hasOne(ProductDescription::class, 'product_id');
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ProductMedia::class, 'product_id')->orderBy('sort_order');
+    }
+
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(ProductAttributeValue::class, 'product_id');
+    }
+
+    public function relations(): HasMany
+    {
+        return $this->hasMany(ProductRelation::class, 'product_id');
     }
 }

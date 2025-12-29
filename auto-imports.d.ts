@@ -285,6 +285,8 @@ declare global {
   const usePreferredLanguages: typeof import('@vueuse/core')['usePreferredLanguages']
   const usePreferredReducedMotion: typeof import('@vueuse/core')['usePreferredReducedMotion']
   const usePrevious: typeof import('@vueuse/core')['usePrevious']
+  const useProductFilters: typeof import('./resources/ts/composables/useProductFilters')['useProductFilters']
+  const useProductLookups: typeof import('./resources/ts/composables/useProductLookups')['useProductLookups']
   const useProjection: typeof import('@vueuse/math')['useProjection']
   const useRafFn: typeof import('@vueuse/core')['useRafFn']
   const useReceiptFilters: typeof import('./resources/ts/composables/useReceiptFilters')['useReceiptFilters']
@@ -656,6 +658,8 @@ declare module 'vue' {
     readonly usePreferredLanguages: UnwrapRef<typeof import('@vueuse/core')['usePreferredLanguages']>
     readonly usePreferredReducedMotion: UnwrapRef<typeof import('@vueuse/core')['usePreferredReducedMotion']>
     readonly usePrevious: UnwrapRef<typeof import('@vueuse/core')['usePrevious']>
+    readonly useProductFilters: UnwrapRef<typeof import('./resources/ts/composables/useProductFilters')['useProductFilters']>
+    readonly useProductLookups: UnwrapRef<typeof import('./resources/ts/composables/useProductLookups')['useProductLookups']>
     readonly useProjection: UnwrapRef<typeof import('@vueuse/math')['useProjection']>
     readonly useRafFn: UnwrapRef<typeof import('@vueuse/core')['useRafFn']>
     readonly useReceiptFilters: UnwrapRef<typeof import('./resources/ts/composables/useReceiptFilters')['useReceiptFilters']>

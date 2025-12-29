@@ -32,4 +32,9 @@ class CatalogService
     {
         return $this->catalogRepository->paginateBrands($filter);
     }
+
+    public function paginateKinds(BaseFilterDTO $filter): LengthAwarePaginator
+    {
+        return $this->catalogRepository->paginateKinds($filter);
+    }
 }

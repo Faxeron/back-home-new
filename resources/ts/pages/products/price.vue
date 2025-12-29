@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import ProductsTable from '@/components/tables/products/ProductsTable.vue'
+import ProductsPriceTable from '@/components/tables/products/ProductsPriceTable.vue'
 import { useProductFilters } from '@/composables/useProductFilters'
 import { useProductLookups } from '@/composables/useProductLookups'
 import { useTableInfinite } from '@/composables/useTableLazy'
+import { $api } from '@/utils/api'
 import type { Product } from '@/types/products'
 
 const router = useRouter()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
-const viewMode = ref<'table' | 'cards'>('cards')
 const reloadRef = ref<() => void>(() => {})
+const errorMessage = ref('')
+const saving = reactive<Record<number, boolean>>({})
 
 const {
   search,
@@ -39,8 +41,6 @@ const {
   total: totalRecords,
   loading,
   reset: resetData,
-  hasMore,
-  loadMore,
   virtualScrollerOptions,
 } = useTableInfinite<Product>({
   endpoint: 'products',
@@ -75,6 +75,54 @@ const openProduct = (row: Product) => {
   router.push({ path: `/products/${row.id}` })
 }
 
+const normalizeNumber = (value: any) => {
+  if (value === '' || value === null || value === undefined) return null
+  const numberValue = Number(String(value).replace(',', '.'))
+  return Number.isNaN(numberValue) ? null : numberValue
+}
+
+const updateProduct = async (row: Product, payload: Record<string, any>) => {
+  if (saving[row.id]) return
+  saving[row.id] = true
+  errorMessage.value = ''
+
+  try {
+    await $api(`products/${row.id}`, {
+      method: 'PATCH',
+      body: payload,
+    })
+  } catch (error) {
+    console.error(error)
+    errorMessage.value = 'Не удалось сохранить изменения'
+  } finally {
+    saving[row.id] = false
+  }
+}
+
+const numericFields = new Set([
+  'price',
+  'price_sale',
+  'price_vendor',
+  'price_vendor_min',
+  'price_zakup',
+  'price_delivery',
+  'montaj',
+  'montaj_sebest',
+])
+
+const handleUpdateField = (payload: { row: Product; field: keyof Product; value: any }) => {
+  const { row, field, value } = payload
+  const nextValue = numericFields.has(String(field)) ? normalizeNumber(value) : value
+  row[field] = nextValue as any
+  updateProduct(row, { [field]: nextValue })
+}
+
+const handleUpdateFlag = (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {
+  const { row, field, value } = payload
+  row[field] = value
+  updateProduct(row, { [field]: value })
+}
+
 onMounted(async () => {
   await Promise.all([loadCategories(), loadBrands(), loadSubcategories(categoryId.value)])
   await resetData()
@@ -89,13 +137,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ProductsTable
+  <ProductsPriceTable
     ref="tableRef"
     v-model:search="search"
     v-model:categoryId="categoryId"
     v-model:subCategoryId="subCategoryId"
     v-model:brandId="brandId"
-    v-model:viewMode="viewMode"
     :rows="data"
     :loading="loading"
     :totalRecords="totalRecords"
@@ -104,10 +151,11 @@ onBeforeUnmount(() => {
     :categories="categories"
     :subcategories="subcategories"
     :brands="brands"
-    :hasMore="hasMore"
-    :loadMore="loadMore"
+    :errorMessage="errorMessage"
     @sort="handleSort"
     @reset="resetFilters"
     @open="openProduct"
+    @update-field="handleUpdateField"
+    @update-flag="handleUpdateFlag"
   />
 </template>

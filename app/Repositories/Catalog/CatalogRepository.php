@@ -7,6 +7,7 @@ use App\Domain\Catalog\DTO\ProductFilterDTO;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductBrand;
 use App\Domain\Catalog\Models\ProductCategory;
+use App\Domain\Catalog\Models\ProductKind;
 use App\Domain\Catalog\Models\ProductSubcategory;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -15,7 +16,7 @@ class CatalogRepository
     public function paginateProducts(ProductFilterDTO $filter): LengthAwarePaginator
     {
         $query = Product::query()
-            ->with(['category', 'subCategory', 'brand']);
+            ->with(['category', 'subCategory', 'brand', 'kind']);
 
         if ($filter->tenantId) {
             $query->where('tenant_id', $filter->tenantId);
@@ -48,7 +49,8 @@ class CatalogRepository
         }
 
         return $query
-            ->orderBy('name')
+            ->orderBy('sort_order')
+            ->orderBy('scu')
             ->paginate($filter->perPage, ['*'], 'page', $filter->page);
     }
 
@@ -109,6 +111,29 @@ class CatalogRepository
     {
         $query = ProductBrand::query()
             ->withCount(['products'])
+            ->orderBy('name');
+
+        if ($filter->tenantId) {
+            $query->where('tenant_id', $filter->tenantId);
+        }
+
+        if ($filter->companyId) {
+            $query->where(function ($builder) use ($filter) {
+                $builder->whereNull('company_id')
+                    ->orWhere('company_id', $filter->companyId);
+            });
+        }
+
+        if ($filter->search) {
+            $query->where('name', 'like', "%{$filter->search}%");
+        }
+
+        return $query->paginate($filter->perPage, ['*'], 'page', $filter->page);
+    }
+
+    public function paginateKinds(BaseFilterDTO $filter): LengthAwarePaginator
+    {
+        $query = ProductKind::query()
             ->orderBy('name');
 
         if ($filter->tenantId) {

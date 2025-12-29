@@ -383,6 +383,8 @@ declare module 'vue' {
     PaymentProvidersDialog: typeof import('./resources/ts/components/dialogs/PaymentProvidersDialog.vue')['default']
     PricingPlanDialog: typeof import('./resources/ts/components/dialogs/PricingPlanDialog.vue')['default']
     ProductDescriptionEditor: typeof import('./resources/ts/@core/components/ProductDescriptionEditor.vue')['default']
+    ProductsPriceTable: typeof import('./resources/ts/components/tables/products/ProductsPriceTable.vue')['default']
+    ProductsTable: typeof import('./resources/ts/components/tables/products/ProductsTable.vue')['default']
     ReceiptsTable: typeof import('./resources/ts/components/tables/receipts/ReceiptsTable.vue')['default']
     ReferAndEarnDialog: typeof import('./resources/ts/components/dialogs/ReferAndEarnDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

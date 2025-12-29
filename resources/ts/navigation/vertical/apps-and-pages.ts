@@ -19,28 +19,16 @@ export default [
     icon: { icon: 'tabler-clipboard-list' },
     to: { path: '/dev-control' },
   },
+  { heading: 'товары' },
   {
     title: 'Товары',
     icon: { icon: 'tabler-box' },
-    children: [
-      {
-        title: 'Товары',
-        children: [
-          { title: 'Товары', to: { path: '/products' } },
-          { title: 'Бренды', to: { path: '/products/brands' } },
-          { title: 'Категории', to: { path: '/products/categories' } },
-          { title: 'Подкатегории', to: { path: '/products/subcategories' } },
-        ],
-      },
-      {
-        title: 'Сметы',
-        to: { path: '/products/estimates' },
-      },
-      {
-        title: 'Шаблоны',
-        to: { path: '/products/templates' },
-      },
-    ],
+    to: { path: '/products' },
+  },
+  {
+    title: 'Прайс',
+    icon: { icon: 'tabler-currency-rubel' },
+    to: { path: '/products/price' },
   },
   {
     title: 'Справочники',
