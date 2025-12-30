@@ -50,6 +50,10 @@ Products
 - GET /api/products/subcategories — список подкатегорий.
 - GET /api/products/brands — список брендов.
 
+Estimates
+- POST /api/estimates/{estimate}/apply-template
+- PATCH /api/estimates/{estimate}/items/{item}
+
 Contracts
 - GET /api/contracts — список договоров.
 

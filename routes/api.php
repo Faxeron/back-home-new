@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\Catalog\ProductCategoryController;
 use App\Http\Controllers\Api\Catalog\ProductController;
 use App\Http\Controllers\Api\Catalog\ProductKindController;
 use App\Http\Controllers\Api\Catalog\ProductSubcategoryController;
+use App\Http\Controllers\Api\Estimates\EstimateItemController;
+use App\Http\Controllers\Api\Estimates\EstimateTemplateController;
 use App\Http\Controllers\API\Finance\ReceiptController;
 use App\Http\Controllers\API\Finance\SpendingController;
 use App\Http\Controllers\API\Finance\TransactionController;
@@ -95,6 +97,11 @@ Route::prefix('products')->group(function (): void {
     Route::get('kinds', [ProductKindController::class, 'index']);
     Route::get('{product}', [ProductController::class, 'show']);
     Route::patch('{product}', [ProductController::class, 'update']);
+});
+
+Route::prefix('estimates')->group(function (): void {
+    Route::post('{estimate}/apply-template', [EstimateTemplateController::class, 'applyTemplate']);
+    Route::patch('{estimate}/items/{item}', [EstimateItemController::class, 'update']);
 });
 
 Route::get('contracts', [ContractController::class, 'index']);

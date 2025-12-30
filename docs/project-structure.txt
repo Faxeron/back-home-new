@@ -27,6 +27,7 @@ Root
   - Finance Module.md
   - CRM_TABLE_STANDARD.md // CRM table UI/config/behavior standard
   - PRODUCT_CATALOG.md    // product catalog pages + data tables
+  - ESTIMATES.md          // estimate rules + structure
   - project-structure.txt
   - schema.txt
   - PrimeVueFilter.txt, PROMPT_*.txt, dataTableWork.txt
