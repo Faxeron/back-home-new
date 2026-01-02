@@ -61,6 +61,11 @@ class Product extends Model
         return $this->belongsTo(ProductKind::class, 'product_kind_id');
     }
 
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(ProductUnit::class, 'unit_id');
+    }
+
     public function description(): HasOne
     {
         return $this->hasOne(ProductDescription::class, 'product_id');

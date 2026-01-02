@@ -6,19 +6,23 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** @mixin \App\Domain\Estimates\Models\EstimateItem */
-class EstimateItemResource extends JsonResource
+class EstimatePublicItemResource extends JsonResource
 {
+    private bool $hidePrices;
+
+    public function __construct($resource, bool $hidePrices = false)
+    {
+        parent::__construct($resource);
+        $this->hidePrices = $hidePrices;
+    }
+
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'estimate_id' => $this->estimate_id,
             'product_id' => $this->product_id,
             'qty' => $this->qty,
-            'qty_auto' => $this->qty_auto,
-            'qty_manual' => $this->qty_manual,
-            'price' => $this->price,
-            'total' => $this->total,
             'group_id' => $this->group_id,
             'sort_order' => $this->sort_order,
             'group' => $this->whenLoaded('group', fn () => [
@@ -37,5 +41,12 @@ class EstimateItemResource extends JsonResource
                 ] : null,
             ]),
         ];
+
+        if (!$this->hidePrices) {
+            $data['price'] = $this->price;
+            $data['total'] = $this->total;
+        }
+
+        return $data;
     }
 }

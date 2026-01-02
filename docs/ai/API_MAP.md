@@ -51,8 +51,24 @@ Products
 - GET /api/products/brands — список брендов.
 
 Estimates
+- GET /api/estimates
+- POST /api/estimates
+- POST /api/estimates resolves or creates counterparty by phone and stores it in client_id (snapshot in client_* fields).
+- GET /api/estimates/{estimate}
+- PATCH /api/estimates/{estimate}
 - POST /api/estimates/{estimate}/apply-template
+- POST /api/estimates/{estimate}/items
 - PATCH /api/estimates/{estimate}/items/{item}
+
+Estimate templates
+- GET /api/estimate-templates/materials
+- POST /api/estimate-templates/materials
+- GET /api/estimate-templates/materials/{template}
+- PATCH /api/estimate-templates/materials/{template}
+- GET /api/estimate-templates/septiks
+- POST /api/estimate-templates/septiks
+- GET /api/estimate-templates/septiks/{template}
+- PATCH /api/estimate-templates/septiks/{template}
 
 Contracts
 - GET /api/contracts — список договоров.

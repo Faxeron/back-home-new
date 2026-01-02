@@ -30,6 +30,20 @@ export default [
     icon: { icon: 'tabler-currency-rubel' },
     to: { path: '/products/price' },
   },
+  { heading: 'Сметы' },
+  {
+    title: 'Сметы',
+    icon: { icon: 'tabler-file-invoice' },
+    to: { path: '/estimates' },
+  },
+  {
+    title: 'Шаблоны смет',
+    icon: { icon: 'tabler-template' },
+    children: [
+      { title: 'Материалы', to: { path: '/estimate-templates/materials' } },
+      { title: 'Септики', to: { path: '/estimate-templates/septiks' } },
+    ],
+  },
   {
     title: 'Справочники',
     icon: { icon: 'tabler-database' },

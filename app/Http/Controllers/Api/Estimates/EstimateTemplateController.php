@@ -29,7 +29,7 @@ class EstimateTemplateController extends Controller
         );
 
         $items = EstimateItem::query()
-            ->with('product')
+            ->with(['product', 'group'])
             ->where('estimate_id', $model->id)
             ->orderBy('group_id')
             ->orderBy('sort_order')

@@ -41,23 +41,43 @@ class EstimateTemplateService
             return;
         }
 
-        $templateId = $this->parseTemplateId($septikTemplate->pattern_ids ?? null);
-        if (!$templateId) {
+        $templateIds = $this->parseTemplateIds($septikTemplate->pattern_ids ?? null);
+        if ($templateIds === []) {
             return;
         }
 
-        $materialTemplate = EstimateTemplateMaterial::query()->find($templateId);
-        if (!$materialTemplate) {
+        $materialTemplates = EstimateTemplateMaterial::query()
+            ->whereIn('id', $templateIds)
+            ->get()
+            ->keyBy('id');
+
+        if ($materialTemplates->isEmpty()) {
             return;
         }
 
-        $templateItems = $this->normalizeTemplateItems($materialTemplate->data ?? []);
-        if ($templateItems === []) {
+        $templatesMap = [];
+        $allItems = [];
+        foreach ($templateIds as $templateId) {
+            $materialTemplate = $materialTemplates->get($templateId);
+            if (!$materialTemplate) {
+                continue;
+            }
+            $templateItems = $this->normalizeTemplateItems($materialTemplate->data ?? []);
+            if ($templateItems === []) {
+                continue;
+            }
+            $templatesMap[$templateId] = $templateItems;
+            foreach ($templateItems as $scu => $qty) {
+                $allItems[$scu] = true;
+            }
+        }
+
+        if ($templatesMap === []) {
             return;
         }
 
         $products = Product::query()
-            ->whereIn('scu', array_keys($templateItems))
+            ->whereIn('scu', array_keys($allItems))
             ->when($estimate->tenant_id, fn($query) => $query->where('tenant_id', $estimate->tenant_id))
             ->when($estimate->company_id, fn($query) => $query->where('company_id', $estimate->company_id))
             ->get()
@@ -67,37 +87,38 @@ class EstimateTemplateService
             $estimate,
             $rootProduct,
             $rootQty,
-            $templateId,
-            $templateItems,
+            $templatesMap,
             $products
         ): void {
             $affectedProductIds = [];
 
-            foreach ($templateItems as $scu => $qtyPerUnit) {
-                $product = $products->get($scu);
-                if (!$product) {
-                    continue;
+            foreach ($templatesMap as $templateId => $templateItems) {
+                foreach ($templateItems as $scu => $qtyPerUnit) {
+                    $product = $products->get($scu);
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $qtyTotal = $qtyPerUnit * $rootQty;
+
+                    EstimateItemSource::query()->updateOrCreate(
+                        [
+                            'estimate_id' => $estimate->id,
+                            'product_id' => $product->id,
+                            'origin_product_id' => $rootProduct->id,
+                            'template_id' => $templateId,
+                        ],
+                        [
+                            'tenant_id' => $estimate->tenant_id,
+                            'company_id' => $estimate->company_id,
+                            'qty_per_unit' => $qtyPerUnit,
+                            'root_qty' => $rootQty,
+                            'qty_total' => $qtyTotal,
+                        ]
+                    );
+
+                    $affectedProductIds[] = $product->id;
                 }
-
-                $qtyTotal = $qtyPerUnit * $rootQty;
-
-                EstimateItemSource::query()->updateOrCreate(
-                    [
-                        'estimate_id' => $estimate->id,
-                        'product_id' => $product->id,
-                        'origin_product_id' => $rootProduct->id,
-                        'template_id' => $templateId,
-                    ],
-                    [
-                        'tenant_id' => $estimate->tenant_id,
-                        'company_id' => $estimate->company_id,
-                        'qty_per_unit' => $qtyPerUnit,
-                        'root_qty' => $rootQty,
-                        'qty_total' => $qtyTotal,
-                    ]
-                );
-
-                $affectedProductIds[] = $product->id;
             }
 
             $this->refreshEstimateItems($estimate, array_unique($affectedProductIds), $products);
@@ -110,6 +131,42 @@ class EstimateTemplateService
         $item->qty_manual = $newQty - $qtyAuto;
         $item->qty = $newQty;
         $item->total = $item->qty * (float) ($item->price ?? 0);
+        $item->save();
+
+        return $item;
+    }
+
+    public function createManualItem(Estimate $estimate, Product $product, float $qty, ?float $price = null): EstimateItem
+    {
+        $item = EstimateItem::query()
+            ->where('estimate_id', $estimate->id)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if (!$item) {
+            $item = new EstimateItem([
+                'estimate_id' => $estimate->id,
+                'product_id' => $product->id,
+            ]);
+            $item->tenant_id = $estimate->tenant_id;
+            $item->company_id = $estimate->company_id;
+            $item->qty_auto = 0;
+            $item->qty_manual = 0;
+        }
+
+        $item->qty_manual = (float) ($item->qty_manual ?? 0) + $qty;
+        $item->qty_auto = (float) ($item->qty_auto ?? 0);
+        $item->qty = $item->qty_manual + $item->qty_auto;
+
+        if ($price !== null) {
+            $item->price = $price;
+        } elseif ($item->price === null) {
+            $item->price = $this->resolvePrice($product);
+        }
+
+        $item->total = $item->qty * (float) ($item->price ?? 0);
+        $item->group_id = $this->resolveGroupId($product->product_type_id, $estimate);
+        $item->sort_order = $product->sort_order ?? 100;
         $item->save();
 
         return $item;
@@ -267,22 +324,26 @@ class EstimateTemplateService
         return $items;
     }
 
-    private function parseTemplateId(?string $patternIds): ?int
+    private function parseTemplateIds(?string $patternIds): array
     {
         if (!$patternIds) {
-            return null;
+            return [];
         }
 
-        foreach (preg_split('/[,\s]+/', $patternIds) as $chunk) {
-            if ($chunk === '') {
-                continue;
-            }
-
-            if (ctype_digit($chunk)) {
-                return (int) $chunk;
-            }
+        if (is_numeric($patternIds)) {
+            return [(int) $patternIds];
         }
 
-        return null;
+        $decoded = json_decode($patternIds, true);
+        if (is_array($decoded)) {
+            return array_values(array_unique(array_map('intval', $decoded)));
+        }
+
+        preg_match_all('/\d+/', $patternIds, $matches);
+        if (!empty($matches[0])) {
+            return array_values(array_unique(array_map('intval', $matches[0])));
+        }
+
+        return [];
     }
 }

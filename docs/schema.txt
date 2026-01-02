@@ -63,7 +63,7 @@ Catalog / estimates (legacy_new)
 - product_attribute_values: id PK; tenant_id; company_id; product_id FK->products; attribute_id FK->product_attribute_definitions; value_string/value_number; created_at/updated_at; created_by/updated_by.
 - product_media: id PK; tenant_id; company_id; product_id FK->products; type; url; sort_order; created_at/updated_at; created_by/updated_by.
 - product_relations: id PK; tenant_id; company_id; product_id FK->products; related_product_id FK->products; relation_type; created_at/updated_at; created_by/updated_by.
-- estimates: id PK; tenant_id; company_id; data; link; random_id; lead_id; amo_lead_id; link_montaj; client_id; sms_sent; created_at/updated_at; created_by/updated_by.
+- estimates: id PK; tenant_id; company_id; client_name; client_phone; site_address; data; link; random_id; lead_id; amo_lead_id; link_montaj; client_id; sms_sent; created_at/updated_at; created_by/updated_by.
 - estimate_groups: id PK; tenant_id; company_id; product_type_id nullable; sort_order; name; ids; created_at/updated_at; created_by/updated_by.
 - estimate_template_materials: id PK; tenant_id; company_id; title; data; created_at/updated_at; created_by/updated_by.
 - estimate_template_septiks: id PK; tenant_id; company_id; title; data; pattern_ids; created_at/updated_at; created_by/updated_by.

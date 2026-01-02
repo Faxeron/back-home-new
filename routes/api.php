@@ -26,7 +26,11 @@ use App\Http\Controllers\Api\Catalog\ProductCategoryController;
 use App\Http\Controllers\Api\Catalog\ProductController;
 use App\Http\Controllers\Api\Catalog\ProductKindController;
 use App\Http\Controllers\Api\Catalog\ProductSubcategoryController;
+use App\Http\Controllers\Api\Estimates\EstimateController;
 use App\Http\Controllers\Api\Estimates\EstimateItemController;
+use App\Http\Controllers\Api\Estimates\EstimatePublicController;
+use App\Http\Controllers\Api\Estimates\EstimateTemplateMaterialController;
+use App\Http\Controllers\Api\Estimates\EstimateTemplateSeptikController;
 use App\Http\Controllers\Api\Estimates\EstimateTemplateController;
 use App\Http\Controllers\API\Finance\ReceiptController;
 use App\Http\Controllers\API\Finance\SpendingController;
@@ -34,6 +38,9 @@ use App\Http\Controllers\API\Finance\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
+
+Route::get('estimate/{randomId}', [EstimatePublicController::class, 'show']);
+Route::get('estimate/{randomId}/montaj', [EstimatePublicController::class, 'montaj']);
 
 Route::prefix('finance')->group(function (): void {
     Route::get('transactions', [TransactionController::class, 'index']);
@@ -100,8 +107,25 @@ Route::prefix('products')->group(function (): void {
 });
 
 Route::prefix('estimates')->group(function (): void {
+    Route::get('/', [EstimateController::class, 'index']);
+    Route::post('/', [EstimateController::class, 'store']);
+    Route::get('{estimate}', [EstimateController::class, 'show']);
+    Route::patch('{estimate}', [EstimateController::class, 'update']);
     Route::post('{estimate}/apply-template', [EstimateTemplateController::class, 'applyTemplate']);
+    Route::post('{estimate}/items', [EstimateItemController::class, 'store']);
     Route::patch('{estimate}/items/{item}', [EstimateItemController::class, 'update']);
+});
+
+Route::prefix('estimate-templates')->group(function (): void {
+    Route::get('materials', [EstimateTemplateMaterialController::class, 'index']);
+    Route::post('materials', [EstimateTemplateMaterialController::class, 'store']);
+    Route::get('materials/{template}', [EstimateTemplateMaterialController::class, 'show']);
+    Route::patch('materials/{template}', [EstimateTemplateMaterialController::class, 'update']);
+
+    Route::get('septiks', [EstimateTemplateSeptikController::class, 'index']);
+    Route::post('septiks', [EstimateTemplateSeptikController::class, 'store']);
+    Route::get('septiks/{template}', [EstimateTemplateSeptikController::class, 'show']);
+    Route::patch('septiks/{template}', [EstimateTemplateSeptikController::class, 'update']);
 });
 
 Route::get('contracts', [ContractController::class, 'index']);

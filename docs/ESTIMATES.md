@@ -4,6 +4,12 @@ Source of truth
 - `estimate_items` is the authoritative list of estimate rows.
 - `estimates.data` is legacy/cache only (temporary during migration).
 
+Estimate header fields
+- client_name (required in UI), client_phone, site_address.
+- client_id stores the linked counterparty id (lookup by phone on create; create if missing).
+- New counterparties are created as type `individual`; legal entity is only set during contract flow.
+- These fields are a snapshot: editing an estimate does not update the counterparty record.
+
 Grouping
 - Grouping is automatic by product type.
 - `estimate_groups.product_type_id` maps product types to estimate groups.
