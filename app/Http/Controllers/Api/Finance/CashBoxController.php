@@ -6,6 +6,7 @@ use App\Domain\Finance\Models\CashBox;
 use App\Http\Controllers\Controller;
 use App\Services\Finance\FinanceService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CashBoxController extends Controller
 {
@@ -13,9 +14,26 @@ class CashBoxController extends Controller
     {
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $cashboxes = CashBox::query()->orderBy('name')->get();
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        $cashboxes = CashBox::query()
+            ->select('cashboxes.*')
+            ->distinct()
+            ->join('cashbox_company as cc', 'cc.cashbox_id', '=', 'cashboxes.id')
+            ->where('cc.company_id', $companyId)
+            ->where(function ($builder) use ($tenantId) {
+                $builder->whereNull('cashboxes.tenant_id')
+                    ->orWhere('cashboxes.tenant_id', $tenantId);
+            })
+            ->orderBy('cashboxes.name')
+            ->get();
 
         $data = $cashboxes->map(function (CashBox $cashBox) {
             return [
@@ -28,9 +46,31 @@ class CashBoxController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    public function balance(int $cashBoxId): JsonResponse
+    public function balance(Request $request, int $cashBoxId): JsonResponse
     {
-        $balance = $this->financeService->getCashBoxBalance($cashBoxId);
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        $cashBox = CashBox::query()
+            ->select('cashboxes.*')
+            ->join('cashbox_company as cc', 'cc.cashbox_id', '=', 'cashboxes.id')
+            ->where('cashboxes.id', $cashBoxId)
+            ->where('cc.company_id', $companyId)
+            ->where(function ($builder) use ($tenantId) {
+                $builder->whereNull('cashboxes.tenant_id')
+                    ->orWhere('cashboxes.tenant_id', $tenantId);
+            })
+            ->first();
+
+        if (!$cashBox) {
+            return response()->json(['message' => 'Cash box not found.'], 404);
+        }
+
+        $balance = $this->financeService->getCashBoxBalance($cashBox->id);
 
         return response()->json(['balance' => $balance]);
     }

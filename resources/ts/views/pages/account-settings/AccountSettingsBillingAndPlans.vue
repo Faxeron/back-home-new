@@ -421,12 +421,10 @@ const resetPaymentForm = () => {
                 cols="12"
                 md="6"
               >
-                <AppTextField
+                <AppPhoneField
                   dirty
                   label="Phone Number"
-                  type="number"
-                  prefix="US (+1)"
-                  placeholder="+1 123 456 7890"
+                  placeholder="+7 000 000 00 00"
                 />
               </VCol>
 

@@ -12,7 +12,7 @@ class EstimateTemplateMaterialRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.scu' => ['required', 'string', 'max:255'],
-            'items.*.count' => ['required', 'numeric'],
+            'items.*.count' => ['required', 'numeric', 'min:1'],
         ];
     }
 }

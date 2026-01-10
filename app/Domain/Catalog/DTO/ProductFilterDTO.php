@@ -13,6 +13,7 @@ class ProductFilterDTO extends BaseFilterDTO
         public ?int $categoryId = null,
         public ?int $subCategoryId = null,
         public ?int $brandId = null,
+        public bool $includeGlobal = true,
         int $perPage = 25,
         int $page = 1,
     ) {
@@ -22,6 +23,10 @@ class ProductFilterDTO extends BaseFilterDTO
     public static function fromRequest(Request $request, ?int $tenantId = null, ?int $companyId = null): static
     {
         $base = parent::fromRequest($request, $tenantId, $companyId);
+        $includeGlobal = true;
+        if ($request->has('include_global')) {
+            $includeGlobal = filter_var($request->get('include_global'), FILTER_VALIDATE_BOOLEAN);
+        }
 
         return new static(
             tenantId: $base->tenantId,
@@ -30,6 +35,7 @@ class ProductFilterDTO extends BaseFilterDTO
             categoryId: $request->integer('category_id') ?: null,
             subCategoryId: $request->integer('sub_category_id') ?: null,
             brandId: $request->integer('brand_id') ?: null,
+            includeGlobal: $includeGlobal,
             perPage: $base->perPage,
             page: $base->page,
         );

@@ -18,12 +18,18 @@ class EstimateResource extends JsonResource
             'client_name' => $this->client_name,
             'client_phone' => $this->client_phone,
             'site_address' => $this->site_address,
+            'created_by' => $this->created_by,
             'counterparty' => $this->whenLoaded('counterparty', fn () => $this->counterparty ? [
                 'id' => $this->counterparty->id,
                 'type' => $this->counterparty->type,
                 'name' => $this->counterparty->name,
                 'phone' => $this->counterparty->phone,
                 'email' => $this->counterparty->email,
+            ] : null),
+            'creator' => $this->whenLoaded('creator', fn () => $this->creator ? [
+                'id' => $this->creator->id,
+                'name' => $this->creator->name,
+                'email' => $this->creator->email,
             ] : null),
             'link' => $this->link,
             'link_montaj' => $this->link_montaj,

@@ -29,13 +29,23 @@ class EstimateItemController extends Controller
             $product = Product::query()
                 ->where('id', $data['product_id'])
                 ->when($model->tenant_id, fn ($query) => $query->where('tenant_id', $model->tenant_id))
-                ->when($model->company_id, fn ($query) => $query->where('company_id', $model->company_id))
+                ->when($model->company_id, function ($query) use ($model) {
+                    $query->where(function ($builder) use ($model) {
+                        $builder->where('company_id', $model->company_id)
+                            ->orWhere('is_global', true);
+                    });
+                })
                 ->first();
         } elseif (!empty($data['scu'])) {
             $product = Product::query()
                 ->where('scu', $data['scu'])
                 ->when($model->tenant_id, fn ($query) => $query->where('tenant_id', $model->tenant_id))
-                ->when($model->company_id, fn ($query) => $query->where('company_id', $model->company_id))
+                ->when($model->company_id, function ($query) use ($model) {
+                    $query->where(function ($builder) use ($model) {
+                        $builder->where('company_id', $model->company_id)
+                            ->orWhere('is_global', true);
+                    });
+                })
                 ->first();
         }
 
@@ -90,8 +100,9 @@ class EstimateItemController extends Controller
 
     private function resolveEstimate(Request $request, int $estimateId): Estimate
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Estimate::query()->where('id', $estimateId);
 
@@ -100,10 +111,7 @@ class EstimateItemController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         return $query->firstOrFail();

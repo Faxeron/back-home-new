@@ -118,15 +118,8 @@ const handleStatusToggle = (nextId: number) => {
               @click="emit('update:search', '')"
             />
           </div>
-          <div class="text-sm text-muted">Всего: {{ totalLabel }}</div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <div
-            v-if="statuses?.length"
-            class="text-xs text-muted"
-          >
-            Статусы:
-          </div>
           <Button
             v-for="status in statuses"
             :key="status.id"
@@ -136,14 +129,29 @@ const handleStatusToggle = (nextId: number) => {
             :style="statusButtonStyle(status, statusId === Number(status.id))"
             @click="handleStatusToggle(Number(status.id))"
           />
-          <Button
-            label="Сброс фильтров"
-            size="small"
-            text
-            icon="pi pi-refresh"
-            :disabled="!hasFilters"
-            @click="emit('reset')"
-          />
+          <div class="flex items-center gap-3 ml-auto">
+            <Button
+              label="Сброс фильтров"
+              size="small"
+              text
+              icon="pi pi-refresh"
+              :disabled="!hasFilters"
+              @click="emit('reset')"
+            />
+            <TableTotalLabel label="Всего" :value="totalLabel" />
+            <RouterLink
+              to="/operations/contracts/history"
+              custom
+              v-slot="{ navigate }"
+            >
+              <Button
+                label="История"
+                size="small"
+                text
+                @click="navigate"
+              />
+            </RouterLink>
+          </div>
         </div>
       </div>
     </template>

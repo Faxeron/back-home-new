@@ -135,7 +135,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
               @click="emit('reset')"
             />
           </div>
-          <div class="text-sm text-muted">Всего: {{ totalLabel }}</div>
+          <TableTotalLabel label="Всего" :value="totalLabel" />
         </div>
         <div
           v-if="errorMessage"
@@ -248,6 +248,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price')"
         />
       </template>
@@ -264,6 +265,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_sale"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price_sale')"
         />
       </template>
@@ -280,6 +282,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_vendor"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price_vendor')"
         />
       </template>
@@ -296,6 +299,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_vendor_min"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price_vendor_min')"
         />
       </template>
@@ -312,6 +316,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_zakup"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price_zakup')"
         />
       </template>
@@ -328,6 +333,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_delivery"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'price_delivery')"
         />
       </template>
@@ -344,6 +350,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.montaj"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'montaj')"
         />
       </template>
@@ -360,6 +367,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.montaj_sebest"
           class="w-full price-input"
+          :disabled="data.is_global"
           @blur="updateNumberField(data, 'montaj_sebest')"
         />
       </template>

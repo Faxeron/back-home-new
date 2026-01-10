@@ -36,6 +36,7 @@ class Product extends Model
         'price_delivery' => 'float',
         'montaj' => 'float',
         'montaj_sebest' => 'float',
+        'is_global' => 'bool',
         'is_visible' => 'bool',
         'is_top' => 'bool',
         'is_new' => 'bool',

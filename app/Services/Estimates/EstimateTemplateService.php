@@ -11,47 +11,101 @@ use App\Domain\Estimates\Models\EstimateTemplateMaterial;
 use App\Domain\Estimates\Models\EstimateTemplateSeptik;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EstimateTemplateService
 {
-    public function applyTemplateBySku(Estimate $estimate, string $rootSku, float $rootQty): void
+    public function applyTemplateBySku(Estimate $estimate, string $rootSku, float $rootQty, ?int $templateId = null): void
     {
         $rootQty = max(0.0, $rootQty);
+        $rawRootSku = trim($rootSku);
+        $normalizedRootSku = $this->normalizeSku($rawRootSku);
+        Log::info('estimate_template.apply.start', [
+            'estimate_id' => $estimate->id,
+            'root_sku' => $rawRootSku,
+            'root_qty' => $rootQty,
+            'template_id' => $templateId,
+            'tenant_id' => $estimate->tenant_id,
+            'company_id' => $estimate->company_id,
+        ]);
 
         $rootProduct = Product::query()
-            ->where('scu', $rootSku)
+            ->where('scu', $rawRootSku)
             ->when($estimate->tenant_id, fn($query) => $query->where('tenant_id', $estimate->tenant_id))
-            ->when($estimate->company_id, fn($query) => $query->where('company_id', $estimate->company_id))
+            ->when($estimate->company_id, fn($query) => $query->where(function ($builder) use ($estimate) {
+                $builder->where('company_id', $estimate->company_id)
+                    ->orWhere('is_global', true);
+            }))
             ->first();
 
         if (!$rootProduct) {
+            Log::warning('estimate_template.apply.root_product_missing', [
+                'estimate_id' => $estimate->id,
+                'root_sku' => $rawRootSku,
+            ]);
             return;
         }
 
-        $septikTemplate = EstimateTemplateSeptik::query()
-            ->whereJsonContains('data', $rootSku)
+        $septikTemplateQuery = EstimateTemplateSeptik::query()
+            ->when($estimate->tenant_id, fn($query) => $query->where('tenant_id', $estimate->tenant_id))
+            ->when($estimate->company_id, fn($query) => $query->where('company_id', $estimate->company_id));
+
+        $septikTemplate = (clone $septikTemplateQuery)
+            ->whereJsonContains('data', $rawRootSku)
             ->first();
 
         if (!$septikTemplate) {
-            $septikTemplate = EstimateTemplateSeptik::all()
-                ->first(fn(EstimateTemplateSeptik $row) => in_array($rootSku, $row->data ?? [], true));
+            $septikTemplate = $septikTemplateQuery
+                ->get()
+                ->first(fn(EstimateTemplateSeptik $row) => $this->templateHasSku($row->data ?? [], $normalizedRootSku));
         }
 
         if (!$septikTemplate) {
+            Log::warning('estimate_template.apply.template_missing', [
+                'estimate_id' => $estimate->id,
+                'root_sku' => $rawRootSku,
+            ]);
             return;
         }
 
         $templateIds = $this->parseTemplateIds($septikTemplate->pattern_ids ?? null);
         if ($templateIds === []) {
+            Log::warning('estimate_template.apply.pattern_ids_empty', [
+                'estimate_id' => $estimate->id,
+                'root_sku' => $rawRootSku,
+                'template_id' => $septikTemplate->id,
+                'pattern_ids' => $septikTemplate->pattern_ids,
+            ]);
             return;
+        }
+
+        if ($templateId !== null) {
+            $templateId = (int) $templateId;
+            if (!in_array($templateId, $templateIds, true)) {
+                Log::warning('estimate_template.apply.template_id_not_allowed', [
+                    'estimate_id' => $estimate->id,
+                    'root_sku' => $rawRootSku,
+                    'template_id' => $templateId,
+                    'allowed_template_ids' => $templateIds,
+                ]);
+                return;
+            }
+            $templateIds = [$templateId];
         }
 
         $materialTemplates = EstimateTemplateMaterial::query()
             ->whereIn('id', $templateIds)
+            ->when($estimate->tenant_id, fn($query) => $query->where('tenant_id', $estimate->tenant_id))
+            ->when($estimate->company_id, fn($query) => $query->where('company_id', $estimate->company_id))
             ->get()
             ->keyBy('id');
 
         if ($materialTemplates->isEmpty()) {
+            Log::warning('estimate_template.apply.material_templates_missing', [
+                'estimate_id' => $estimate->id,
+                'root_sku' => $rawRootSku,
+                'template_ids' => $templateIds,
+            ]);
             return;
         }
 
@@ -73,24 +127,40 @@ class EstimateTemplateService
         }
 
         if ($templatesMap === []) {
+            Log::warning('estimate_template.apply.items_empty', [
+                'estimate_id' => $estimate->id,
+                'root_sku' => $rawRootSku,
+                'template_ids' => $templateIds,
+            ]);
             return;
         }
 
         $products = Product::query()
             ->whereIn('scu', array_keys($allItems))
             ->when($estimate->tenant_id, fn($query) => $query->where('tenant_id', $estimate->tenant_id))
-            ->when($estimate->company_id, fn($query) => $query->where('company_id', $estimate->company_id))
+            ->when($estimate->company_id, fn($query) => $query->where(function ($builder) use ($estimate) {
+                $builder->where('company_id', $estimate->company_id)
+                    ->orWhere('is_global', true);
+            }))
             ->get()
             ->keyBy('scu');
+        Log::info('estimate_template.apply.products_loaded', [
+            'estimate_id' => $estimate->id,
+            'root_sku' => $rawRootSku,
+            'template_ids' => $templateIds,
+            'items_sku_count' => count($allItems),
+            'products_found' => $products->count(),
+        ]);
 
+        $affectedProductIds = [];
         DB::connection('legacy_new')->transaction(function () use (
             $estimate,
             $rootProduct,
             $rootQty,
             $templatesMap,
-            $products
+            $products,
+            &$affectedProductIds
         ): void {
-            $affectedProductIds = [];
 
             foreach ($templatesMap as $templateId => $templateItems) {
                 foreach ($templateItems as $scu => $qtyPerUnit) {
@@ -123,6 +193,11 @@ class EstimateTemplateService
 
             $this->refreshEstimateItems($estimate, array_unique($affectedProductIds), $products);
         });
+        Log::info('estimate_template.apply.done', [
+            'estimate_id' => $estimate->id,
+            'root_sku' => $rawRootSku,
+            'affected_products' => array_values(array_unique($affectedProductIds)),
+        ]);
     }
 
     public function updateManualQty(EstimateItem $item, float $newQty): EstimateItem
@@ -222,7 +297,9 @@ class EstimateTemplateService
             $item->qty_auto = $qtyAuto;
             $item->qty_manual = (float) ($item->qty_manual ?? 0);
             $item->qty = $item->qty_auto + $item->qty_manual;
-            $item->price = $this->resolvePrice($product);
+            if ($item->price === null) {
+                $item->price = $this->resolvePrice($product);
+            }
             $item->total = $item->qty * $item->price;
             $item->group_id = $this->resolveGroupId($product->product_type_id, $estimate);
             $item->sort_order = $product->sort_order ?? 100;
@@ -345,5 +422,33 @@ class EstimateTemplateService
         }
 
         return [];
+    }
+
+    private function normalizeSku(?string $sku): string
+    {
+        $value = trim((string) $sku);
+        if ($value === '') {
+            return '';
+        }
+        if (function_exists('mb_strtolower')) {
+            return mb_strtolower($value, 'UTF-8');
+        }
+        return strtolower($value);
+    }
+
+    private function templateHasSku(array $data, string $normalizedSku): bool
+    {
+        if ($normalizedSku === '') {
+            return false;
+        }
+        foreach ($data as $sku) {
+            if (!is_string($sku)) {
+                continue;
+            }
+            if ($this->normalizeSku($sku) === $normalizedSku) {
+                return true;
+            }
+        }
+        return false;
     }
 }

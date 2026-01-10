@@ -10,6 +10,7 @@ use App\Http\Resources\EstimateItemResource;
 use App\Services\Estimates\EstimateTemplateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class EstimateTemplateController extends Controller
 {
@@ -22,10 +23,21 @@ class EstimateTemplateController extends Controller
         $model = $this->resolveEstimate($request, $estimate);
         $data = $request->validated();
 
+        Log::info('estimate_template.apply.request', [
+            'estimate_id' => $model->id,
+            'root_scu' => $data['root_scu'] ?? null,
+            'root_qty' => $data['root_qty'] ?? null,
+            'template_id' => $data['template_id'] ?? null,
+            'tenant_id' => $model->tenant_id,
+            'company_id' => $model->company_id,
+            'user_id' => $request->user()?->id,
+        ]);
+
         $this->estimateTemplateService->applyTemplateBySku(
             $model,
             $data['root_scu'],
-            (float) $data['root_qty']
+            (float) $data['root_qty'],
+            isset($data['template_id']) ? (int) $data['template_id'] : null,
         );
 
         $items = EstimateItem::query()
@@ -42,8 +54,9 @@ class EstimateTemplateController extends Controller
 
     private function resolveEstimate(Request $request, int $estimateId): Estimate
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Estimate::query()->where('id', $estimateId);
 
@@ -52,10 +65,7 @@ class EstimateTemplateController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         return $query->firstOrFail();

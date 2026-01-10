@@ -23,8 +23,16 @@ class ReceiptController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
         $filter = ReceiptFilterDTO::fromRequest($request, $tenantId);
+        $filter->tenantId = $tenantId;
+        $filter->companyId = $companyId;
         $includes = $request->string('include')->toString() ?: null;
 
         $receipts = $this->receiptService->paginate($filter, $includes);
@@ -44,8 +52,12 @@ class ReceiptController extends Controller
     {
         $payload = $request->validated();
         $payload['created_by_user_id'] = $request->user()?->id ?? null;
-        $payload['tenant_id'] = $request->user()?->tenant_id ?? ($payload['tenant_id'] ?? null);
-        $payload['company_id'] = $request->user()?->company_id ?? ($payload['company_id'] ?? null);
+        $payload['tenant_id'] = $request->user()?->tenant_id;
+        $payload['company_id'] = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$payload['tenant_id'] || !$payload['company_id']) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
 
         $receipt = $this->financeService->createContractReceipt($payload);
 
@@ -56,8 +68,12 @@ class ReceiptController extends Controller
     {
         $payload = $request->validated();
         $payload['created_by_user_id'] = $request->user()?->id ?? null;
-        $payload['tenant_id'] = $request->user()?->tenant_id ?? ($payload['tenant_id'] ?? null);
-        $payload['company_id'] = $request->user()?->company_id ?? ($payload['company_id'] ?? null);
+        $payload['tenant_id'] = $request->user()?->tenant_id;
+        $payload['company_id'] = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$payload['tenant_id'] || !$payload['company_id']) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
 
         $receipt = $this->financeService->createDirectorLoanReceipt($payload);
 

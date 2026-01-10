@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\CRM\Models\Contract;
+use App\Policies\ContractPolicy;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,5 +26,7 @@ class AppServiceProvider extends ServiceProvider
         if (class_exists(Sanctum::class)) {
             Sanctum::usePersonalAccessTokenModel(\App\Models\PersonalAccessToken::class);
         }
+
+        Gate::policy(Contract::class, ContractPolicy::class);
     }
 }

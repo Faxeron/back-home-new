@@ -4,12 +4,14 @@ namespace App\Providers;
 
 use App\Events\CashboxBalanceChanged;
 use App\Events\ContractRecalculated;
+use App\Events\FinancialActionLogged;
 use App\Events\PaymentAppliedToContract;
 use App\Events\ReceiptCreated;
 use App\Events\SpendingCreated;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Events\TransactionDeleted;
+use App\Listeners\LogFinancialActionListener;
 use App\Listeners\NotifyAccountingListener;
 use App\Listeners\RecalcCashboxHistoryListener;
 use App\Listeners\RecalcCashboxAfterTransactionChanged;
@@ -45,6 +47,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         CashboxBalanceChanged::class => [
             UpdateCashboxBalanceListener::class,
+        ],
+        FinancialActionLogged::class => [
+            LogFinancialActionListener::class,
         ],
     ];
 }

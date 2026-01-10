@@ -8,6 +8,7 @@ interface NamedItem {
   code?: string
   color?: string
   sign?: number | string | null
+  fond_id?: number | string | null
 }
 
 export const useDictionariesStore = defineStore('dictionaries', {
@@ -99,6 +100,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
           .map((item: any) => ({
             id: item?.id ?? item?.value,
             name: item?.name ?? item?.label,
+            fond_id: item?.fond_id ?? item?.fund_id ?? null,
           }))
           .filter((item: any) => item.id && item.name)
         this.loaded.spendingItems = true

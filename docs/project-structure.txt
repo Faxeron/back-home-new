@@ -26,9 +26,11 @@ Root
   - finance/          // finance guardrails
   - Finance Module.md
   - CRM_TABLE_STANDARD.md // CRM table UI/config/behavior standard
+  - UI_STANDARDS.md       // UI blocks/forms (Vuexy) + tables (PrimeVue) standard
   - PRODUCT_CATALOG.md    // product catalog pages + data tables
   - ESTIMATES.md          // estimate rules + structure
-  - project-structure.txt
+- project-structure.txt
+- ROUTING.md           // Vue auto-router rules
   - schema.txt
   - PrimeVueFilter.txt, PROMPT_*.txt, dataTableWork.txt
 - public/             // Vite build output
@@ -45,3 +47,6 @@ Root
 - node_modules/
 - auto-imports.d.ts, components.d.ts, typed-router.d.ts
 - package.json, package-lock.json, composer.json, vite.config.ts, themeConfig.ts, env.d.ts, README.md, etc.
+
+Routing notes (Vue auto-router)
+- See docs/ROUTING.md

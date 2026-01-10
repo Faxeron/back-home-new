@@ -33,14 +33,14 @@ class SpendingService
             $query->with($with);
         }
 
-        $this->sortBuilder->apply($query, $filters, ['payment_date', 'sum', 'created_at'], 'created_at');
+        $this->sortBuilder->apply($query, $filters, ['id', 'payment_date', 'sum', 'created_at'], 'id');
 
         return $query->paginate($filters->perPage, ['*'], 'page', $filters->page);
     }
 
     public function create(SpendingData|array $payload): Spending
     {
-        return DB::transaction(function () use ($payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($payload) {
             $spending = Spending::create($this->normalize($payload));
             event(new SpendingCreated($spending));
 
@@ -50,7 +50,7 @@ class SpendingService
 
     public function allocate(Spending $spending, SpendingData|array $payload): Spending
     {
-        return DB::transaction(function () use ($spending, $payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($spending, $payload) {
             $spending->update($this->normalize($payload));
 
             return $spending->refresh();
@@ -59,7 +59,7 @@ class SpendingService
 
     public function delete(Spending $spending): void
     {
-        DB::transaction(fn () => $spending->delete());
+        DB::connection('legacy_new')->transaction(fn () => $spending->delete());
     }
 
     public function attachTransaction(Spending $spending, int $transactionId): void

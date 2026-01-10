@@ -11,7 +11,22 @@ class TransactionTypeController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
         $query = TransactionType::query();
+        $query->where(function ($builder) use ($tenantId) {
+            $builder->whereNull('tenant_id')
+                ->orWhere('tenant_id', $tenantId);
+        });
+        $query->where(function ($builder) use ($companyId) {
+            $builder->where('company_id', $companyId)
+                ->orWhere('is_global', true);
+        });
 
         $search = trim((string) $request->get('q', ''));
         if ($search !== '') {

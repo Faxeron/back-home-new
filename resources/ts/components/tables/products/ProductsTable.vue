@@ -197,7 +197,7 @@ const formatDate = (value?: string) => {
               />
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-sm text-muted">Всего: {{ totalLabel }}</span>
+              <TableTotalLabel label="Всего" :value="totalLabel" />
               <div class="flex items-center gap-1">
                 <Button
                   icon="pi pi-list"
@@ -388,7 +388,7 @@ const formatDate = (value?: string) => {
           />
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-sm text-muted">Всего: {{ totalLabel }}</span>
+          <TableTotalLabel label="Всего" :value="totalLabel" />
           <div class="flex items-center gap-1">
             <Button
               icon="pi pi-list"

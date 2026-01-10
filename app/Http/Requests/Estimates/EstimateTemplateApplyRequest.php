@@ -10,7 +10,8 @@ class EstimateTemplateApplyRequest extends FormRequest
     {
         return [
             'root_scu' => ['required', 'string', 'max:255'],
-            'root_qty' => ['required', 'numeric'],
+            'root_qty' => ['required', 'numeric', 'min:1'],
+            'template_id' => ['nullable', 'integer'],
         ];
     }
 }

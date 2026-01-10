@@ -24,7 +24,7 @@ class FinanceService
         $this->assertPositiveSum($data['sum'] ?? 0);
         $this->assertHasContract($data['contract_id'] ?? null);
         $cashboxId = $data['cashbox_id'] ?? null;
-        $this->assertCashBox($cashboxId);
+        $this->assertCashBox($cashboxId, $data['tenant_id'] ?? null, $data['company_id'] ?? null);
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('INCOME');
             $this->lockCashBoxes([$cashboxId]);
@@ -63,7 +63,16 @@ class FinanceService
             $receipt->transaction_id = $transaction->id;
             $receipt->save();
 
-            event(new FinancialActionLogged('contract_receipt.created', ['receipt_id' => $receipt->id]));
+            event(new FinancialActionLogged('contract_receipt.created', [
+                'tenant_id' => $receipt->tenant_id,
+                'company_id' => $receipt->company_id,
+                'user_id' => $data['created_by_user_id'] ?? null,
+                'receipt_id' => $receipt->id,
+                'transaction_id' => $transaction->id,
+                'contract_id' => $receipt->contract_id,
+                'cashbox_id' => $receipt->cashbox_id,
+                'sum' => $data['sum'] ?? 0,
+            ]));
 
             return ReceiptDTO::fromModel($receipt);
         });
@@ -73,7 +82,7 @@ class FinanceService
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
         $cashboxId = $data['cashbox_id'] ?? null;
-        $this->assertCashBox($cashboxId);
+        $this->assertCashBox($cashboxId, $data['tenant_id'] ?? null, $data['company_id'] ?? null);
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_LOAN');
             $this->lockCashBoxes([$cashboxId]);
@@ -112,7 +121,15 @@ class FinanceService
             $receipt->transaction_id = $transaction->id;
             $receipt->save();
 
-            event(new FinancialActionLogged('director_loan.created', ['receipt_id' => $receipt->id]));
+            event(new FinancialActionLogged('director_loan.created', [
+                'tenant_id' => $receipt->tenant_id,
+                'company_id' => $receipt->company_id,
+                'user_id' => $data['created_by_user_id'] ?? null,
+                'receipt_id' => $receipt->id,
+                'transaction_id' => $transaction->id,
+                'cashbox_id' => $receipt->cashbox_id,
+                'sum' => $data['sum'] ?? 0,
+            ]));
 
             return ReceiptDTO::fromModel($receipt);
         });
@@ -122,7 +139,7 @@ class FinanceService
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
         $cashboxId = $data['cashbox_id'] ?? null;
-        $this->assertCashBox($cashboxId);
+        $this->assertCashBox($cashboxId, $data['tenant_id'] ?? null, $data['company_id'] ?? null);
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('OUTCOME');
             $this->lockCashBoxes([$cashboxId]);
@@ -164,7 +181,18 @@ class FinanceService
             $spending->transaction_id = $transaction->id;
             $spending->save();
 
-            event(new FinancialActionLogged('spending.created', ['spending_id' => $spending->id]));
+            event(new FinancialActionLogged('spending.created', [
+                'tenant_id' => $spending->tenant_id,
+                'company_id' => $spending->company_id,
+                'user_id' => $data['created_by_user_id'] ?? null,
+                'spending_id' => $spending->id,
+                'transaction_id' => $transaction->id,
+                'contract_id' => $spending->contract_id,
+                'cashbox_id' => $spending->cashbox_id,
+                'spending_item_id' => $spending->spending_item_id,
+                'fund_id' => $spending->fond_id,
+                'sum' => $data['sum'] ?? 0,
+            ]));
 
             return SpendingDTO::fromModel($spending);
         });
@@ -174,7 +202,7 @@ class FinanceService
     {
         $this->assertPositiveSum($data['sum'] ?? 0);
         $cashboxId = $data['cashbox_id'] ?? null;
-        $this->assertCashBox($cashboxId);
+        $this->assertCashBox($cashboxId, $data['tenant_id'] ?? null, $data['company_id'] ?? null);
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_WITHDRAWAL');
             $this->lockCashBoxes([$cashboxId]);
@@ -216,7 +244,15 @@ class FinanceService
             $spending->transaction_id = $transaction->id;
             $spending->save();
 
-            event(new FinancialActionLogged('director_withdrawal.created', ['spending_id' => $spending->id]));
+            event(new FinancialActionLogged('director_withdrawal.created', [
+                'tenant_id' => $spending->tenant_id,
+                'company_id' => $spending->company_id,
+                'user_id' => $data['created_by_user_id'] ?? null,
+                'spending_id' => $spending->id,
+                'transaction_id' => $transaction->id,
+                'cashbox_id' => $spending->cashbox_id,
+                'sum' => $data['sum'] ?? 0,
+            ]));
 
             return SpendingDTO::fromModel($spending);
         });
@@ -227,12 +263,16 @@ class FinanceService
         $this->assertPositiveSum($data['sum'] ?? 0);
         $fromCashboxId = $data['from_cashbox_id'] ?? null;
         $toCashboxId = $data['to_cashbox_id'] ?? null;
+        $tenantId = $data['tenant_id'] ?? null;
+        $companyId = $data['company_id'] ?? null;
         $this->assertTransferBoxes($fromCashboxId, $toCashboxId);
+        $this->assertCashBox($fromCashboxId, $tenantId, $companyId);
+        $this->assertCashBox($toCashboxId, $tenantId, $companyId);
         return $this->transaction(function () use ($data, $fromCashboxId, $toCashboxId) {
             $typeOut = $this->getTransactionType('TRANSFER_OUT');
             $typeIn = $this->getTransactionType('TRANSFER_IN');
 
-            $this->assertSameContext($fromCashboxId, $toCashboxId);
+            $this->assertSameContext($fromCashboxId, $toCashboxId, $data['tenant_id'] ?? null, $data['company_id'] ?? null);
             $this->lockCashBoxes([$fromCashboxId, $toCashboxId]);
 
             $txOut = Transaction::create([
@@ -280,7 +320,17 @@ class FinanceService
                 'created_at' => $data['date'] ?? now(),
             ]);
 
-            event(new FinancialActionLogged('cash_transfer.created', ['cash_transfer_id' => $transfer->id]));
+            event(new FinancialActionLogged('cash_transfer.created', [
+                'tenant_id' => $transfer->tenant_id,
+                'company_id' => $transfer->company_id,
+                'user_id' => $data['created_by_user_id'] ?? null,
+                'cash_transfer_id' => $transfer->id,
+                'transaction_out_id' => $txOut->id,
+                'transaction_in_id' => $txIn->id,
+                'from_cashbox_id' => $transfer->from_cashbox_id,
+                'to_cashbox_id' => $transfer->to_cashbox_id,
+                'sum' => $data['sum'] ?? 0,
+            ]));
 
             return CashTransferDTO::fromModel($transfer);
         });
@@ -382,9 +432,30 @@ class FinanceService
         }
     }
 
-    private function assertCashBox($cashBoxId): void
+    private function assertCashBox($cashBoxId, ?int $tenantId = null, ?int $companyId = null): void
     {
-        if (!$cashBoxId || !CashBox::query()->find($cashBoxId)) {
+        if (!$cashBoxId) {
+            throw new RuntimeException('Cash box not found');
+        }
+
+        if (!$companyId) {
+            throw new RuntimeException('Company context required for cash box');
+        }
+
+        $query = CashBox::query()
+            ->select('cashboxes.id')
+            ->join('cashbox_company as cc', 'cc.cashbox_id', '=', 'cashboxes.id')
+            ->where('cashboxes.id', $cashBoxId)
+            ->where('cc.company_id', $companyId);
+
+        if ($tenantId) {
+            $query->where(function ($builder) use ($tenantId) {
+                $builder->whereNull('cashboxes.tenant_id')
+                    ->orWhere('cashboxes.tenant_id', $tenantId);
+            });
+        }
+
+        if (!$query->exists()) {
             throw new RuntimeException('Cash box not found');
         }
     }
@@ -400,21 +471,35 @@ class FinanceService
         }
     }
 
-    private function assertSameContext($fromCashBoxId, $toCashBoxId): void
+    private function assertSameContext($fromCashBoxId, $toCashBoxId, ?int $tenantId = null, ?int $companyId = null): void
     {
-        $from = CashBox::query()->find($fromCashBoxId);
-        $to = CashBox::query()->find($toCashBoxId);
+        $query = CashBox::query()
+            ->select(['cashboxes.id', 'cashboxes.tenant_id'])
+            ->join('cashbox_company as cc', 'cc.cashbox_id', '=', 'cashboxes.id')
+            ->whereIn('cashboxes.id', [(int) $fromCashBoxId, (int) $toCashBoxId]);
+
+        if ($companyId) {
+            $query->where('cc.company_id', $companyId);
+        }
+
+        if ($tenantId) {
+            $query->where(function ($builder) use ($tenantId) {
+                $builder->whereNull('cashboxes.tenant_id')
+                    ->orWhere('cashboxes.tenant_id', $tenantId);
+            });
+        }
+
+        $cashboxes = $query->get()->keyBy('id');
+
+        $from = $cashboxes->get((int) $fromCashBoxId);
+        $to = $cashboxes->get((int) $toCashBoxId);
 
         if (!$from || !$to) {
             throw new RuntimeException('Cash boxes not found');
         }
 
-        if ($from->tenant_id !== $to->tenant_id) {
+        if ($from->tenant_id !== null && $to->tenant_id !== null && (int) $from->tenant_id !== (int) $to->tenant_id) {
             throw new RuntimeException('Cash boxes belong to different tenants');
-        }
-
-        if ($from->company_id !== null && $to->company_id !== null && $from->company_id !== $to->company_id) {
-            throw new RuntimeException('Cash boxes belong to different companies');
         }
     }
 

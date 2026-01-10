@@ -128,6 +128,15 @@ export type ContractStatus = {
   sort_order?: number
   is_active?: boolean
 }
+export type ContractStatusChange = {
+  id: number
+  contract_id: number
+  previous_status?: { id: number; name: string; color?: string } | null
+  new_status?: { id: number; name: string; color?: string } | null
+  changed_by?: { id: number; name?: string; email?: string } | null
+  changed_at?: string
+  created_at?: string
+}
 export type SaleType = { id: number; name: string; is_active?: boolean }
 export type City = { id: number; name: string; is_active?: boolean }
 export type District = { id: number; name: string; city_id?: number; is_active?: boolean }

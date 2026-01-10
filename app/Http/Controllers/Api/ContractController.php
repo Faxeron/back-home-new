@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ContractResource;
 use App\Domain\CRM\Models\Contract;
+use App\Domain\CRM\Models\ContractStatusChange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class ContractController extends Controller
 {
@@ -15,11 +18,21 @@ class ContractController extends Controller
         $perPage = (int) $request->integer('per_page', 25);
         $perPage = $perPage <= 0 ? 10 : min($perPage, 200);
         $page = (int) $request->integer('page', 1);
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Contract::query()
             ->with(['counterparty', 'status', 'saleType', 'manager', 'measurer'])
             ->withSum('receipts as receipts_total', 'sum')
             ->orderByDesc('contract_date');
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
 
         if ($search = $request->string('q')->toString()) {
             $query->where(function ($q) use ($search) {
@@ -38,9 +51,6 @@ class ContractController extends Controller
         if ($request->filled('counterparty_id'))
             $query->where('counterparty_id', $request->integer('counterparty_id'));
 
-        if ($request->filled('company_id'))
-            $query->where('company_id', $request->integer('company_id'));
-
         $contracts = $query->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
@@ -56,19 +66,77 @@ class ContractController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, Contract $contract): JsonResponse
+    public function show(Request $request, int $contract): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
+
+        $query = Contract::query()
+            ->with(['counterparty', 'status', 'saleType', 'manager', 'measurer'])
+            ->withSum('receipts as receipts_total', 'sum')
+            ->where('id', $contract);
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        $model = $query->firstOrFail();
+
+        return response()->json([
+            'data' => (new ContractResource($model))->toArray($request),
+        ]);
+    }
+
+    public function updateStatus(Request $request, int $contract): JsonResponse
     {
         $validated = $request->validate([
             'contract_status_id' => ['required', 'integer', 'exists:legacy_new.contract_statuses,id'],
         ]);
 
-        $contract->update([
-            'contract_status_id' => $validated['contract_status_id'],
-        ]);
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
-        $contract->load(['counterparty', 'status', 'saleType', 'manager', 'measurer']);
-        $contract->loadSum('receipts as receipts_total', 'sum');
+        $query = Contract::query()->where('id', $contract);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
 
-        return response()->json((new ContractResource($contract))->toArray($request));
+        $model = $query->firstOrFail();
+
+        Gate::authorize('update', $model);
+
+        $nextStatusId = (int) $validated['contract_status_id'];
+        $previousStatusId = $model->contract_status_id ? (int) $model->contract_status_id : null;
+
+        if ($previousStatusId !== $nextStatusId) {
+            DB::connection('legacy_new')->transaction(function () use ($model, $nextStatusId, $previousStatusId, $tenantId, $companyId, $user) {
+                $model->update([
+                    'contract_status_id' => $nextStatusId,
+                ]);
+
+                ContractStatusChange::create([
+                    'tenant_id' => $tenantId,
+                    'company_id' => $companyId,
+                    'contract_id' => $model->id,
+                    'previous_status_id' => $previousStatusId,
+                    'new_status_id' => $nextStatusId,
+                    'changed_by' => $user?->id,
+                    'changed_at' => now(),
+                ]);
+            });
+        }
+
+        $model->load(['counterparty', 'status', 'saleType', 'manager', 'measurer']);
+        $model->loadSum('receipts as receipts_total', 'sum');
+
+        return response()->json((new ContractResource($model))->toArray($request));
     }
 }

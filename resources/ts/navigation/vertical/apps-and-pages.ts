@@ -10,11 +10,6 @@ export default [
     ],
   },
   {
-    title: 'Contracts',
-    icon: { icon: 'tabler-file-text' },
-    to: { path: '/contracts' },
-  },
-  {
     title: 'Dev Control',
     icon: { icon: 'tabler-clipboard-list' },
     to: { path: '/dev-control' },

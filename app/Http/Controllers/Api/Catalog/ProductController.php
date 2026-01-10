@@ -19,8 +19,9 @@ class ProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $filters = ProductFilterDTO::fromRequest($request, $tenantId, $companyId);
 
@@ -39,8 +40,9 @@ class ProductController extends Controller
 
     public function show(Request $request, int $product): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Product::query()
             ->with([
@@ -61,8 +63,8 @@ class ProductController extends Controller
 
         if ($companyId) {
             $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
+                $builder->where('company_id', $companyId)
+                    ->orWhere('is_global', true);
             });
         }
 
@@ -75,8 +77,9 @@ class ProductController extends Controller
 
     public function update(ProductUpdateRequest $request, int $product): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Product::query()
             ->where('id', $product);
@@ -87,13 +90,31 @@ class ProductController extends Controller
 
         if ($companyId) {
             $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
+                $builder->where('company_id', $companyId)
+                    ->orWhere('is_global', true);
             });
         }
 
         $model = $query->firstOrFail();
         $data = $request->validated();
+
+        if (!empty($model->is_global)) {
+            $priceFields = [
+                'price',
+                'price_sale',
+                'price_vendor',
+                'price_vendor_min',
+                'price_zakup',
+                'price_delivery',
+                'montaj',
+                'montaj_sebest',
+            ];
+            if (array_intersect($priceFields, array_keys($data))) {
+                return response()->json([
+                    'message' => 'Prices for global products cannot be edited.',
+                ], 422);
+            }
+        }
 
         if ($request->user()) {
             $data['updated_by'] = $request->user()->id;

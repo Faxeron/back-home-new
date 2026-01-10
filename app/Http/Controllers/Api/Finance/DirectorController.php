@@ -19,8 +19,12 @@ class DirectorController extends Controller
     {
         $payload = $request->validated();
         $payload['created_by_user_id'] = $request->user()?->id ?? null;
-        $payload['tenant_id'] = $request->user()?->tenant_id ?? ($payload['tenant_id'] ?? null);
-        $payload['company_id'] = $request->user()?->company_id ?? ($payload['company_id'] ?? null);
+        $payload['tenant_id'] = $request->user()?->tenant_id;
+        $payload['company_id'] = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$payload['tenant_id'] || !$payload['company_id']) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
 
         $spending = $this->financeService->createDirectorWithdrawal($payload);
 

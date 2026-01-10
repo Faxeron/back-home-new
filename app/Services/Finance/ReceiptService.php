@@ -41,7 +41,7 @@ class ReceiptService
 
     public function create(ReceiptData|array $payload): Receipt
     {
-        return DB::transaction(function () use ($payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($payload) {
             $receipt = Receipt::create($this->normalize($payload));
             event(new ReceiptCreated($receipt));
 
@@ -55,7 +55,7 @@ class ReceiptService
 
     public function update(Receipt $receipt, ReceiptData|array $payload): Receipt
     {
-        return DB::transaction(function () use ($receipt, $payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($receipt, $payload) {
             $receipt->update($this->normalize($payload));
 
             return $receipt->refresh();
@@ -64,7 +64,7 @@ class ReceiptService
 
     public function delete(Receipt $receipt): void
     {
-        DB::transaction(fn () => $receipt->delete());
+        DB::connection('legacy_new')->transaction(fn () => $receipt->delete());
     }
 
     public function attachTransaction(Receipt $receipt, int $transactionId): void

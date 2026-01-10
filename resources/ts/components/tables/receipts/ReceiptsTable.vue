@@ -92,7 +92,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
   >
     <template #header>
       <div class="flex items-center justify-between gap-4">
-        <div class="text-sm text-muted">Всего: {{ totalLabel }}</div>
+        <TableTotalLabel label="Всего" :value="totalLabel" />
         <Button
           label="Сброс фильтров"
           text

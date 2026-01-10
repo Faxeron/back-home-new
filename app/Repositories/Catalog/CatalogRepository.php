@@ -24,8 +24,10 @@ class CatalogRepository
 
         if ($filter->companyId) {
             $query->where(function ($builder) use ($filter) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $filter->companyId);
+                $builder->where('company_id', $filter->companyId);
+                if ($filter->includeGlobal) {
+                    $builder->orWhere('is_global', true);
+                }
             });
         }
 
@@ -66,8 +68,8 @@ class CatalogRepository
 
         if ($filter->companyId) {
             $query->where(function ($builder) use ($filter) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $filter->companyId);
+                $builder->where('company_id', $filter->companyId)
+                    ->orWhere('is_global', true);
             });
         }
 
@@ -91,8 +93,8 @@ class CatalogRepository
 
         if ($filter->companyId) {
             $query->where(function ($builder) use ($filter) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $filter->companyId);
+                $builder->where('company_id', $filter->companyId)
+                    ->orWhere('is_global', true);
             });
         }
 
@@ -119,8 +121,8 @@ class CatalogRepository
 
         if ($filter->companyId) {
             $query->where(function ($builder) use ($filter) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $filter->companyId);
+                $builder->where('company_id', $filter->companyId)
+                    ->orWhere('is_global', true);
             });
         }
 
@@ -142,8 +144,8 @@ class CatalogRepository
 
         if ($filter->companyId) {
             $query->where(function ($builder) use ($filter) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $filter->companyId);
+                $builder->where('company_id', $filter->companyId)
+                    ->orWhere('is_global', true);
             });
         }
 

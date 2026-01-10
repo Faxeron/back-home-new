@@ -36,11 +36,17 @@ export interface Estimate {
   client_name?: string | null
   client_phone?: string | null
   site_address?: string | null
+  created_by?: number | null
   counterparty?: {
     id: number
     type?: string | null
     name?: string | null
     phone?: string | null
+    email?: string | null
+  } | null
+  creator?: {
+    id: number
+    name?: string | null
     email?: string | null
   } | null
   link?: string | null

@@ -9,6 +9,7 @@ import { $api } from '@/utils/api'
 import type { Contract } from '@/types/finance'
 
 const dictionaries = useDictionariesStore()
+const router = useRouter()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
@@ -45,6 +46,12 @@ const updateScrollHeight = () => {
 
 const handleResize = () => {
   updateScrollHeight()
+}
+
+const handleAction = (payload: { action: string; row: Contract }) => {
+  if (payload.action === 'contract' || payload.action === 'edit') {
+    router.push({ path: '/operations/contracts/' + payload.row.id })
+  }
 }
 
 const applyStatusUpdate = async ({ row, statusId: nextId }: { row: Contract; statusId: number | null }) => {
@@ -107,5 +114,7 @@ onBeforeUnmount(() => {
     :statuses="dictionaries.contractStatuses"
     @status-change="applyStatusUpdate"
     @reset="reset"
+    @action="handleAction"
   />
+
 </template>

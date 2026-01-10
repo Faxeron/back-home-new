@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Domain\CRM\Models\ContractStatusChange;
 
 class Contract extends Model
 {
@@ -68,5 +69,10 @@ class Contract extends Model
     public function spendings(): HasMany
     {
         return $this->hasMany(Spending::class, 'contract_id');
+    }
+
+    public function statusChanges(): HasMany
+    {
+        return $this->hasMany(ContractStatusChange::class, 'contract_id');
     }
 }

@@ -172,10 +172,10 @@ const dialogModelValueUpdate = (val: boolean) => {
               cols="12"
               md="6"
             >
-              <AppTextField
+              <AppPhoneField
                 v-model="userData.contact"
                 label="Phone Number"
-                placeholder="+1 9876543210"
+                placeholder="+7 000 000 00 00"
               />
             </VCol>
 

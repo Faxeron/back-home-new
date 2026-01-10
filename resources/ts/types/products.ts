@@ -19,6 +19,7 @@ export type Product = {
   price_delivery?: number
   montaj?: number
   montaj_sebest?: number
+  is_global?: boolean
   unit_id?: number
   is_visible?: boolean
   is_top?: boolean

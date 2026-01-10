@@ -20,7 +20,18 @@ class CashTransferController extends Controller
 
     public function index(ListCashTransfersRequest $request): JsonResponse
     {
-        $transfers = $this->cashTransferService->paginate($request->validated());
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        $filters = $request->validated();
+        $filters['tenant_id'] = $tenantId;
+        $filters['company_id'] = $companyId;
+
+        $transfers = $this->cashTransferService->paginate($filters);
 
         return response()->json([
             'data' => CashTransferResource::collection($transfers->items())->toArray($request),
@@ -37,8 +48,12 @@ class CashTransferController extends Controller
     {
         $payload = $request->validated();
         $payload['created_by_user_id'] = $request->user()?->id ?? null;
-        $payload['tenant_id'] = $request->user()?->tenant_id ?? ($payload['tenant_id'] ?? null);
-        $payload['company_id'] = $request->user()?->company_id ?? ($payload['company_id'] ?? null);
+        $payload['tenant_id'] = $request->user()?->tenant_id;
+        $payload['company_id'] = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$payload['tenant_id'] || !$payload['company_id']) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
 
         $transfer = $this->financeService->transferBetweenCashBoxes($payload);
 

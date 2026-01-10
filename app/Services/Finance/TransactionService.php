@@ -42,7 +42,7 @@ class TransactionService
 
     public function createIncome(TransactionData|array $payload): Transaction
     {
-        return DB::transaction(function () use ($payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($payload) {
             $transaction = Transaction::create($this->normalize($payload));
             event(new TransactionCreated($transaction));
 
@@ -52,7 +52,7 @@ class TransactionService
 
     public function createExpense(TransactionData|array $payload): Transaction
     {
-        return DB::transaction(function () use ($payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($payload) {
             $transaction = Transaction::create($this->normalize($payload));
             event(new TransactionCreated($transaction));
 
@@ -62,7 +62,7 @@ class TransactionService
 
     public function createTransfer(TransactionData|array $payload): Transaction
     {
-        return DB::transaction(function () use ($payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($payload) {
             $transaction = Transaction::create($this->normalize($payload));
             event(new TransactionCreated($transaction));
 
@@ -103,7 +103,7 @@ class TransactionService
 
     public function update(Transaction $transaction, TransactionData|array $payload): Transaction
     {
-        return DB::transaction(function () use ($transaction, $payload) {
+        return DB::connection('legacy_new')->transaction(function () use ($transaction, $payload) {
             $transaction->update($this->normalize($payload));
             event(new TransactionUpdated($transaction));
 
@@ -113,7 +113,7 @@ class TransactionService
 
     public function delete(Transaction $transaction): void
     {
-        DB::transaction(function () use ($transaction) {
+        DB::connection('legacy_new')->transaction(function () use ($transaction) {
             $transaction->delete();
             event(new TransactionDeleted($transaction));
         });

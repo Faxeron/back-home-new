@@ -46,7 +46,7 @@ const {
   endpoint: 'products',
   perPage: 200,
   rowHeight: 52,
-  params: () => serverParams.value,
+  params: () => ({ ...serverParams.value, include_global: false }),
 })
 
 reloadRef.value = () => {
@@ -91,9 +91,11 @@ const updateProduct = async (row: Product, payload: Record<string, any>) => {
       method: 'PATCH',
       body: payload,
     })
+    return true
   } catch (error) {
     console.error(error)
-    errorMessage.value = 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ'
+    errorMessage.value = 'Не удалось сохранить изменения'
+    return false
   } finally {
     saving[row.id] = false
   }
@@ -110,17 +112,31 @@ const numericFields = new Set([
   'montaj_sebest',
 ])
 
-const handleUpdateField = (payload: { row: Product; field: keyof Product; value: any }) => {
+const handleUpdateField = async (payload: { row: Product; field: keyof Product; value: any }) => {
   const { row, field, value } = payload
+  if (row.is_global && numericFields.has(String(field))) {
+    errorMessage.value = 'Глобальные товары нельзя редактировать в прайсе'
+    return
+  }
+  const previousValue = row[field]
   const nextValue = numericFields.has(String(field)) ? normalizeNumber(value) : value
   row[field] = nextValue as any
-  updateProduct(row, { [field]: nextValue })
+  const ok = await updateProduct(row, { [field]: nextValue })
+  if (!ok)
+    row[field] = previousValue as any
 }
 
-const handleUpdateFlag = (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {
+const handleUpdateFlag = async (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {
   const { row, field, value } = payload
+  if (row.is_global && numericFields.has(String(field))) {
+    errorMessage.value = 'Глобальные товары нельзя редактировать в прайсе'
+    return
+  }
+  const previousValue = row[field]
   row[field] = value
-  updateProduct(row, { [field]: value })
+  const ok = await updateProduct(row, { [field]: value })
+  if (!ok)
+    row[field] = previousValue
 }
 
 onMounted(async () => {
@@ -159,3 +175,7 @@ onBeforeUnmount(() => {
     @update-flag="handleUpdateFlag"
   />
 </template>
+
+
+
+

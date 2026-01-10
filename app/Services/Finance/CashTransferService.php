@@ -16,7 +16,7 @@ class CashTransferService
             ->with(['fromCashBox', 'toCashBox'])
             ->orderByDesc('created_at');
 
-        foreach (['company_id', 'from_cashbox_id', 'to_cashbox_id'] as $field) {
+        foreach (['tenant_id', 'company_id', 'from_cashbox_id', 'to_cashbox_id'] as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, (int) $filters[$field]);
             }

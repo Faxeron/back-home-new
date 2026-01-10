@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Estimates;
 
 use App\Domain\Estimates\Models\Estimate;
+use App\Domain\Estimates\Models\EstimateItem;
+use App\Domain\Estimates\Models\EstimateItemSource;
 use App\Domain\CRM\Models\Counterparty;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Estimates\EstimateStoreRequest;
@@ -10,6 +12,8 @@ use App\Http\Requests\Estimates\EstimateUpdateRequest;
 use App\Http\Resources\EstimateResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class EstimateController extends Controller
@@ -20,11 +24,12 @@ class EstimateController extends Controller
         $perPage = $perPage <= 0 ? 10 : min($perPage, 200);
         $page = (int) $request->integer('page', 1);
 
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Estimate::query()
-            ->with('counterparty')
+            ->with(['counterparty', 'creator'])
             ->withCount('items')
             ->withSum('items as total_sum', 'total')
             ->orderByDesc('id');
@@ -34,10 +39,7 @@ class EstimateController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         if ($search = $request->string('q')->toString()) {
@@ -73,10 +75,13 @@ class EstimateController extends Controller
 
     public function store(EstimateStoreRequest $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
-        $randomId = Str::random(12);
+        do {
+            $randomId = Str::random(12);
+        } while (Estimate::query()->where('random_id', $randomId)->exists());
         $data = $request->validated();
         $isDraft = $request->boolean('draft');
         $counterpartyId = $isDraft
@@ -93,10 +98,11 @@ class EstimateController extends Controller
             'data' => [],
             'random_id' => $randomId,
             'link' => "/estimate/{$randomId}",
-            'link_montaj' => "/estimate/{$randomId}/montaj",
+            'link_montaj' => "/estimate/{$randomId}/montaj-mnt",
+            'public_expires_at' => now()->addDays(30),
             'sms_sent' => 0,
-            'created_by' => $request->user()?->id,
-            'updated_by' => $request->user()?->id,
+            'created_by' => $user?->id,
+            'updated_by' => $user?->id,
         ]);
 
         $estimate->load('counterparty');
@@ -150,10 +156,40 @@ class EstimateController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, int $estimate): JsonResponse
+    {
+        $model = $this->resolveEstimate($request, $estimate);
+        $hasContracts = false;
+
+        if (Schema::connection('legacy_new')->hasColumn('contracts', 'estimate_id')) {
+            $hasContracts = DB::connection('legacy_new')
+                ->table('contracts')
+                ->where('estimate_id', $model->id)
+                ->exists();
+        }
+
+        if ($hasContracts) {
+            return response()->json([
+                'message' => 'Смета привязана к договору.',
+            ], 409);
+        }
+
+        DB::connection('legacy_new')->transaction(function () use ($model): void {
+            EstimateItemSource::query()->where('estimate_id', $model->id)->delete();
+            EstimateItem::query()->where('estimate_id', $model->id)->delete();
+            $model->delete();
+        });
+
+        return response()->json([
+            'status' => 'ok',
+        ]);
+    }
+
     private function resolveEstimate(Request $request, int $estimateId): Estimate
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Estimate::query()->where('id', $estimateId);
 
@@ -162,10 +198,7 @@ class EstimateController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         return $query->firstOrFail();
@@ -214,11 +247,8 @@ class EstimateController extends Controller
             $query->where('tenant_id', $tenantId);
         }
 
-        if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+        if ($companyId !== null) {
+            $query->where('company_id', $companyId);
         }
 
         return $query->first();
@@ -226,41 +256,32 @@ class EstimateController extends Controller
 
     private function findCounterpartyByPhone(string $phone, ?int $tenantId, ?int $companyId): ?Counterparty
     {
-        $normalized = $this->normalizePhone($phone);
-        if ($normalized === '') {
+        $normalized = Counterparty::normalizePhone($phone);
+        if (!$normalized) {
             return null;
         }
 
-        $search = strlen($normalized) > 10 ? substr($normalized, -10) : $normalized;
-
-        $query = Counterparty::query()->whereNotNull('phone');
+        $query = Counterparty::query()->where('phone_normalized', $normalized);
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
 
-        if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+        if ($companyId !== null) {
+            $query->where('company_id', $companyId);
         }
 
-        $candidates = $query->where('phone', 'like', "%{$search}%")
-            ->limit(25)
-            ->get();
-
-        foreach ($candidates as $candidate) {
-            if ($this->normalizePhone((string) $candidate->phone) === $normalized) {
-                return $candidate;
-            }
-        }
-
-        return null;
+        return $query->first();
     }
 
-    private function normalizePhone(string $phone): string
+    public function revokePublic(Request $request, int $estimate): JsonResponse
     {
-        return preg_replace('/\D+/', '', $phone) ?? '';
+        $model = $this->resolveEstimate($request, $estimate);
+        $model->public_revoked_at = now();
+        $model->save();
+
+        return response()->json([
+            'data' => (new EstimateResource($model))->toArray($request),
+        ]);
     }
 }

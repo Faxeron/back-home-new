@@ -7,7 +7,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -47,9 +46,7 @@ class AuthController extends Controller
             ],
         ];
 
-        $token = method_exists($user, 'createToken')
-            ? $user->createToken('api')->plainTextToken
-            : Str::random(64);
+        $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
             'accessToken' => $token,

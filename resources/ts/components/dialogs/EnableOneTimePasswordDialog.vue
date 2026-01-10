@@ -49,12 +49,11 @@ const dialogModelValueUpdate = (val: boolean) => {
         </p>
 
         <VForm @submit.prevent="() => {}">
-          <AppTextField
+          <AppPhoneField
             v-model="phoneNumber"
             name="mobile"
             label="Phone Number"
-            placeholder="+1 123 456 7890"
-            type="number"
+            placeholder="+7 000 000 00 00"
             class="mb-6"
           />
 

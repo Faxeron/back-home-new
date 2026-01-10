@@ -17,6 +17,8 @@ const props = withDefaults(defineProps<{
 })
 
 const route = useRoute()
+const MONTAG_SUFFIX = '/montaj-mnt'
+const useMontajV2 = computed(() => route.path.includes(MONTAG_SUFFIX))
 const hidePrices = computed(() => props.hidePrices || route.path.includes('/montaj'))
 
 interface PublicEstimateItem {
@@ -142,14 +144,18 @@ const loadEstimate = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const response = await $api(hidePrices.value ? `/estimate/${props.randomId}/montaj` : `/estimate/${props.randomId}`)
+    const montajEndpoint = useMontajV2.value
+      ? `/estimate/${props.randomId}/montaj-mnt`
+      : `/estimate/${props.randomId}/montaj`
+    const response = await $api(hidePrices.value ? montajEndpoint : `/estimate/${props.randomId}`)
     const data = response?.data as PublicEstimate | undefined
     if (data) {
       estimate.value = data
       items.value = decorateItems(data.items ?? [])
     }
   } catch (error: any) {
-    errorMessage.value = error?.response?.data?.message ?? 'Смета не найдена.'
+    const message = error?.response?.data?.message ?? error?.data?.message
+    errorMessage.value = message || 'Смета не найдена.'
     estimate.value = null
     items.value = []
   } finally {

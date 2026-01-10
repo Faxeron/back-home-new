@@ -9,8 +9,8 @@ class EstimateItemUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'qty' => ['sometimes', 'numeric'],
-            'price' => ['sometimes', 'numeric'],
+            'qty' => ['sometimes', 'numeric', 'min:1'],
+            'price' => ['sometimes', 'numeric', 'min:0'],
         ];
     }
 }

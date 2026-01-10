@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\API\Finance;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Finance\TransactionStoreRequest;
 use App\Http\Resources\TransactionResource;
 use App\Domain\Finance\DTO\TransactionFilterDTO;
 use App\Services\Finance\TransactionService;
@@ -18,8 +17,16 @@ class TransactionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
         $filter = TransactionFilterDTO::fromRequest($request, $tenantId);
+        $filter->tenantId = $tenantId;
+        $filter->companyId = $companyId;
         $includes = $request->string('include')->toString() ?: null;
 
         $transactions = $this->transactionService->paginate($filter, $includes);
@@ -33,12 +40,5 @@ class TransactionController extends Controller
                 'last_page' => $transactions->lastPage(),
             ],
         ]);
-    }
-
-    public function store(TransactionStoreRequest $request): JsonResponse
-    {
-        $transaction = $this->transactionService->createIncome($request->dto());
-
-        return response()->json(new TransactionResource($transaction), 201);
     }
 }

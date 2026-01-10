@@ -10,6 +10,8 @@ use App\Http\Requests\Estimates\EstimateTemplateSeptikRequest;
 use App\Http\Resources\EstimateTemplateSeptikResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class EstimateTemplateSeptikController extends Controller
 {
@@ -19,8 +21,9 @@ class EstimateTemplateSeptikController extends Controller
         $perPage = $perPage <= 0 ? 10 : min($perPage, 200);
         $page = (int) $request->integer('page', 1);
 
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = EstimateTemplateSeptik::query()
             ->orderByDesc('updated_at');
@@ -30,21 +33,35 @@ class EstimateTemplateSeptikController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         if ($search = $request->string('q')->toString()) {
             $query->where('title', 'like', "%{$search}%");
         }
 
-        if ($sku = $request->string('sku')->toString()) {
-            $query->whereJsonContains('data', $sku);
-        }
+        $sku = $request->string('sku')->toString();
+        $templates = $sku
+            ? (clone $query)->whereJsonContains('data', trim($sku))->paginate($perPage, ['*'], 'page', $page)
+            : $query->paginate($perPage, ['*'], 'page', $page);
 
-        $templates = $query->paginate($perPage, ['*'], 'page', $page);
+        if ($sku && $templates->total() === 0) {
+            $normalizedSku = $this->normalizeSku($sku);
+            $all = $query->get();
+            $filtered = $all->filter(fn (EstimateTemplateSeptik $row) => $this->templateHasSku($row->data ?? [], $normalizedSku))
+                ->values();
+            $total = $filtered->count();
+            $pageItems = $filtered->forPage($page, $perPage)->values();
+            $templates = new LengthAwarePaginator($pageItems, $total, $perPage, $page);
+        }
+        if (!empty($sku)) {
+            Log::info('estimate_template.septik.lookup', [
+                'sku' => $sku,
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
+                'found' => $templates->total(),
+            ]);
+        }
         $templateIds = collect($templates->items())
             ->flatMap(fn (EstimateTemplateSeptik $row) => $this->parseTemplateIds($row->pattern_ids))
             ->filter()
@@ -103,8 +120,9 @@ class EstimateTemplateSeptikController extends Controller
 
     public function store(EstimateTemplateSeptikRequest $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $data = $request->validated();
         $templateIds = $this->normalizeTemplateIds($data);
@@ -115,8 +133,8 @@ class EstimateTemplateSeptikController extends Controller
             'title' => $data['title'],
             'data' => $data['skus'],
             'pattern_ids' => json_encode($templateIds, JSON_THROW_ON_ERROR),
-            'created_by' => $request->user()?->id,
-            'updated_by' => $request->user()?->id,
+            'created_by' => $user?->id,
+            'updated_by' => $user?->id,
         ]);
 
         $template->setAttribute('template_ids', $templateIds);
@@ -159,10 +177,19 @@ class EstimateTemplateSeptikController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, int $template): JsonResponse
+    {
+        $model = $this->resolveTemplate($request, $template);
+        $model->delete();
+
+        return response()->json(['success' => true]);
+    }
+
     private function resolveTemplate(Request $request, int $templateId): EstimateTemplateSeptik
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = EstimateTemplateSeptik::query()->where('id', $templateId);
 
@@ -171,10 +198,7 @@ class EstimateTemplateSeptikController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         return $query->firstOrFail();
@@ -242,6 +266,34 @@ class EstimateTemplateSeptikController extends Controller
         return $titles[0] ?? null;
     }
 
+    private function normalizeSku(?string $sku): string
+    {
+        $value = trim((string) $sku);
+        if ($value === '') {
+            return '';
+        }
+        if (function_exists('mb_strtolower')) {
+            return mb_strtolower($value, 'UTF-8');
+        }
+        return strtolower($value);
+    }
+
+    private function templateHasSku(array $data, string $normalizedSku): bool
+    {
+        if ($normalizedSku === '') {
+            return false;
+        }
+        foreach ($data as $sku) {
+            if (!is_string($sku)) {
+                continue;
+            }
+            if ($this->normalizeSku($sku) === $normalizedSku) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private function hydrateSkus(Request $request, array $skus): array
     {
         if (!$skus) {
@@ -256,8 +308,9 @@ class EstimateTemplateSeptikController extends Controller
             return [];
         }
 
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Product::query()->select(['id', 'scu', 'name']);
 
@@ -267,8 +320,8 @@ class EstimateTemplateSeptikController extends Controller
 
         if ($companyId) {
             $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
+                $builder->where('company_id', $companyId)
+                    ->orWhere('is_global', true);
             });
         }
 

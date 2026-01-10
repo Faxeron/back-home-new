@@ -24,6 +24,7 @@ const emit = defineEmits<{
   (e: 'update:dateRange', value: (Date | null)[]): void
   (e: 'reset'): void
   (e: 'open', row: Estimate): void
+  (e: 'delete', row: Estimate): void
   (e: 'create'): void
 }>()
 
@@ -72,7 +73,7 @@ const formatDate = (value?: string | null) => {
             <InputText
               v-model="searchModel"
               class="w-64"
-              placeholder="Поиск по имени, телефону или адресу"
+              placeholder="Поиск по ID, клиенту, телефону, адресу"
             />
             <Calendar
               v-model="dateRangeModel"
@@ -83,7 +84,7 @@ const formatDate = (value?: string | null) => {
               placeholder="Период создания"
             />
             <Button
-              label="Сбросить фильтры"
+              label="Сброс фильтров"
               size="small"
               text
               icon="pi pi-refresh"
@@ -92,7 +93,7 @@ const formatDate = (value?: string | null) => {
             />
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-sm text-muted">Всего: {{ totalLabel }}</span>
+            <TableTotalLabel label="Всего" :value="totalLabel" />
             <Button
               label="Новая смета"
               icon="pi pi-plus"
@@ -126,9 +127,15 @@ const formatDate = (value?: string | null) => {
       </template>
     </Column>
 
+    <Column field="creator" header="Создал" style="inline-size: 18ch;">
+      <template #body="{ data }">
+        {{ data.creator?.name ?? data.creator?.email ?? EMPTY_TEXT }}
+      </template>
+    </Column>
+
     <Column
       field="items_count"
-      header="Позиции"
+      header="Позиций"
       style="inline-size: 10ch;"
     >
       <template #body="{ data }">
@@ -160,20 +167,29 @@ const formatDate = (value?: string | null) => {
     <Column
       field="actions"
       header=""
-      style="inline-size: 6ch;"
+      style="inline-size: 10ch;"
     >
       <template #body="{ data }">
-        <Button
-          icon="pi pi-external-link"
-          text
-          aria-label="Открыть смету"
-          @click="emit('open', data)"
-        />
+        <div class="flex items-center gap-1">
+          <Button
+            icon="pi pi-external-link"
+            text
+            aria-label="Открыть смету"
+            @click="emit('open', data)"
+          />
+          <Button
+            icon="pi pi-trash"
+            text
+            severity="danger"
+            aria-label="Удалить смету"
+            @click="emit('delete', data)"
+          />
+        </div>
       </template>
     </Column>
 
     <template #empty>
-      <div class="text-center py-6 text-muted">Нет смет.</div>
+      <div class="text-center py-6 text-muted">Нет данных.</div>
     </template>
 
     <template #loading>

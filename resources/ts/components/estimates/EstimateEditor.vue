@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
@@ -9,7 +9,6 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Divider from 'primevue/divider'
 import Tag from 'primevue/tag'
-import AutoComplete from 'primevue/autocomplete'
 import { $api } from '@/utils/api'
 import type { Estimate, EstimateItem } from '@/types/estimates'
 import type { Product } from '@/types/products'
@@ -37,12 +36,14 @@ const form = reactive({
 
 const addSku = ref('')
 const addQty = ref<number | null>(1)
-const productSearch = ref<Product | string | null>(null)
 const productSuggestions = ref<Product[]>([])
 const productLoading = ref(false)
 const selectedProduct = ref<Product | null>(null)
-const hasTemplate = ref(false)
+type TemplateOption = { id: number; title: string }
+const templateOptions = ref<TemplateOption[]>([])
 const templateCheckLoading = ref(false)
+const vuetifyProduct = ref<Product | null>(null)
+const vuetifySearch = ref('')
 
 const PRODUCT_TYPE_LABELS: Record<number, string> = {
   1: 'Материал',
@@ -116,6 +117,40 @@ const buildPublicLink = (path?: string | null) => {
 
 const clientLink = computed(() => buildPublicLink(estimate.value?.link ?? null))
 const montajLink = computed(() => buildPublicLink(estimate.value?.link_montaj ?? null))
+const copiedKey = ref<'client' | 'montaj' | null>(null)
+let copyTimer: number | null = null
+
+const copyToClipboard = async (value: string | null, key: 'client' | 'montaj') => {
+  if (!value) return
+  const text = value.trim()
+  if (!text) return
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else if (typeof document !== 'undefined') {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.setAttribute('readonly', 'true')
+      textarea.style.position = 'absolute'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    } else {
+      return
+    }
+    copiedKey.value = key
+    if (copyTimer) {
+      window.clearTimeout(copyTimer)
+    }
+    copyTimer = window.setTimeout(() => {
+      copiedKey.value = null
+    }, 2000)
+  } catch (error) {
+    copiedKey.value = null
+  }
+}
 
 const loadEstimate = async () => {
   if (!estimateId.value) return
@@ -137,7 +172,7 @@ const loadEstimate = async () => {
   }
 }
 
-const ensureEstimate = async (isDraft = true) => {
+const ensureEstimate = async (isDraft = true, options: { skipRouteReplace?: boolean } = {}) => {
   if (estimateId.value) return estimateId.value
   if (!isDraft && !form.client_name.trim()) {
     errorMessage.value = 'Имя клиента обязательно.'
@@ -160,7 +195,9 @@ const ensureEstimate = async (isDraft = true) => {
     if (data) {
       estimate.value = data
       estimateId.value = data.id
-      await router.replace({ path: `/estimates/${data.id}/edit` })
+      if (!options.skipRouteReplace) {
+        await router.replace({ path: `/estimates/${data.id}/edit` })
+      }
       return data.id
     }
   } catch (error: any) {
@@ -233,14 +270,10 @@ const fetchProductSuggestions = async (query: string) => {
   }
 }
 
-const handleProductSearch = async (event: { query: string }) => {
-  await fetchProductSuggestions(event.query)
-}
-
 const checkTemplateForSku = async (sku?: string | null) => {
   const normalized = sku?.trim() ?? ''
   if (!normalized) {
-    hasTemplate.value = false
+    templateOptions.value = []
     return
   }
 
@@ -249,38 +282,67 @@ const checkTemplateForSku = async (sku?: string | null) => {
     const response = await $api('/estimate-templates/septiks', {
       query: {
         sku: normalized,
-        per_page: 1,
+        per_page: 50,
       },
     })
-    const list = response?.data ?? []
-    hasTemplate.value = Array.isArray(list) && list.length > 0
+    const list = Array.isArray(response?.data) ? response.data : []
+    const map = new Map<number, string>()
+
+    for (const row of list as any[]) {
+      const ids = Array.isArray(row?.template_ids)
+        ? row.template_ids
+        : row?.template_id
+          ? [row.template_id]
+          : []
+      const titles = Array.isArray(row?.template_titles)
+        ? row.template_titles
+        : row?.template_title
+          ? [row.template_title]
+          : []
+
+      ids.forEach((id: any, index: number) => {
+        const parsedId = Number(id)
+        if (!Number.isFinite(parsedId)) return
+        const title = titles[index] ?? titles[0] ?? `#${parsedId}`
+        if (!map.has(parsedId)) map.set(parsedId, title || `#${parsedId}`)
+      })
+    }
+
+    templateOptions.value = Array.from(map.entries()).map(([id, title]) => ({
+      id,
+      title,
+    }))
   } catch (error) {
-    hasTemplate.value = false
+    templateOptions.value = []
   } finally {
     templateCheckLoading.value = false
   }
 }
 
-const handleProductSelect = async (event: { value: Product }) => {
-  selectedProduct.value = event.value
-  addSku.value = event.value?.scu ?? ''
-  await checkTemplateForSku(event.value?.scu)
+const handleVuetifySelect = async (value: Product | null) => {
+  if (!value) {
+    clearSelectedProduct()
+    return
+  }
+  selectedProduct.value = value
+  addSku.value = value?.scu ?? ''
+  await checkTemplateForSku(value?.scu)
+}
+
+const handleVuetifySearch = async (value: string) => {
+  await fetchProductSuggestions(value)
 }
 
 const clearSelectedProduct = () => {
   selectedProduct.value = null
   addSku.value = ''
-  hasTemplate.value = false
+  templateOptions.value = []
+  vuetifyProduct.value = null
+  vuetifySearch.value = ''
 }
 
-watch(productSearch, value => {
-  if (!value || typeof value === 'string') {
-    clearSelectedProduct()
-  }
-})
-
 const addItemBySku = async () => {
-  const id = await ensureEstimate(true)
+  const id = await ensureEstimate(true, { skipRouteReplace: true })
   if (!id) return
   if (!addSku.value.trim()) return
 
@@ -296,7 +358,6 @@ const addItemBySku = async () => {
     })
     addSku.value = ''
     addQty.value = 1
-    productSearch.value = null
     clearSelectedProduct()
     await refreshItems()
   } catch (error: any) {
@@ -306,27 +367,20 @@ const addItemBySku = async () => {
   }
 }
 
-const addItemWithTemplate = async () => {
-  const id = await ensureEstimate(true)
+const applyTemplateOnly = async (templateId: number) => {
+  const id = await ensureEstimate(true, { skipRouteReplace: true })
   if (!id) return
   if (!addSku.value.trim()) return
 
   saving.value = true
   errorMessage.value = ''
   try {
-    await $api(`/estimates/${id}/items`, {
-      method: 'POST',
-      body: {
-        scu: addSku.value.trim(),
-        qty: addQty.value ?? 1,
-      },
-    })
-
     const response = await $api(`/estimates/${id}/apply-template`, {
       method: 'POST',
       body: {
         root_scu: addSku.value.trim(),
         root_qty: addQty.value ?? 1,
+        template_id: templateId,
       },
     })
     const data = response?.data as EstimateItem[] | undefined
@@ -335,9 +389,7 @@ const addItemWithTemplate = async () => {
     } else {
       await refreshItems()
     }
-    productSearch.value = null
-    addQty.value = 1
-    clearSelectedProduct()
+    templateOptions.value = templateOptions.value.filter(option => option.id !== templateId)
   } catch (error: any) {
     errorMessage.value = error?.response?.data?.message ?? 'Не удалось применить шаблон.'
   } finally {
@@ -398,9 +450,19 @@ onMounted(async () => {
         <h2 class="text-xl font-semibold">
           {{ estimateId ? `Смета #${estimateId}` : 'Создание сметы' }}
         </h2>
-        <div v-if="clientLink || montajLink" class="estimate-links">
-          <div v-if="clientLink" class="estimate-link-card">
-            <div class="estimate-link-label">Клиент</div>
+        <div class="flex items-center gap-2">
+        <Button
+          label="Сохранить"
+          icon="pi pi-save"
+          :loading="saving"
+          @click="saveEstimate"
+        />
+      </div>
+      </div>
+      <div v-if="estimateId && (clientLink || montajLink)" class="estimate-links">
+        <div v-if="clientLink" class="estimate-link-card">
+          <div class="estimate-link-label">Клиент</div>
+          <div class="estimate-link-actions">
             <a
               :href="clientLink"
               class="estimate-link-action"
@@ -410,10 +472,19 @@ onMounted(async () => {
               <i class="pi pi-external-link" aria-hidden="true" />
               Открыть смету
             </a>
-            <div class="estimate-link-url">{{ clientLink }}</div>
+            <Button
+              icon="pi pi-copy"
+              text
+              size="small"
+              aria-label="Копировать ссылку"
+              @click="copyToClipboard(clientLink, 'client')"
+            />
           </div>
-          <div v-if="montajLink" class="estimate-link-card">
-            <div class="estimate-link-label">Монтажник</div>
+          <div v-if="copiedKey === 'client'" class="estimate-link-copied">Ссылка скопирована</div>
+        </div>
+        <div v-if="montajLink" class="estimate-link-card">
+          <div class="estimate-link-label">Монтажник</div>
+          <div class="estimate-link-actions">
             <a
               :href="montajLink"
               class="estimate-link-action"
@@ -423,110 +494,136 @@ onMounted(async () => {
               <i class="pi pi-external-link" aria-hidden="true" />
               Открыть смету
             </a>
-            <div class="estimate-link-url">{{ montajLink }}</div>
+            <Button
+              icon="pi pi-copy"
+              text
+              size="small"
+              aria-label="Копировать ссылку"
+              @click="copyToClipboard(montajLink, 'montaj')"
+            />
           </div>
+          <div v-if="copiedKey === 'montaj'" class="estimate-link-copied">Ссылка скопирована</div>
         </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button
-          label="Сохранить"
-          icon="pi pi-save"
-          :loading="saving"
-          @click="saveEstimate"
-        />
       </div>
     </div>
 
-    <Card>
-      <template #title>Клиент</template>
+    <VCard class="estimate-vuexy-card">
+      <VCardText>
+        <VRow align="stretch">
+          <VCol
+            cols="12"
+            lg="8"
+            class="d-flex"
+          >
+            <VCard variant="outlined" class="estimate-vuexy-frame flex-grow-1">
+              <div class="estimate-vuexy-legend">Добавить позицию</div>
+              <VCardText class="estimate-vuexy-content d-flex flex-column h-100">
+                <VRow class="align-center">
+                  <VCol cols="12" md="3">
+                  <VTextField
+                    v-model.number="addQty"
+                    type="number"
+                    min="0"
+                    label="Кол-во"
+                    hide-details
+                  />
+                  </VCol>
+                  <VCol cols="12" md="9">
+                    <VAutocomplete
+                      v-model="vuetifyProduct"
+                      v-model:search="vuetifySearch"
+                      :items="productSuggestions"
+                      item-title="name"
+                      return-object
+                      :loading="productLoading"
+                      :no-data-text="'Нет данных'"
+                      hide-details
+                      label="Товар"
+                      placeholder="Начните вводить название"
+                      @update:search="handleVuetifySearch"
+                      @update:modelValue="handleVuetifySelect"
+                    />
+                  </VCol>
+                </VRow>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <VBtn
+                    color="primary"
+                    prepend-icon="tabler-plus"
+                    :loading="saving"
+                    :disabled="!addSku.trim()"
+                    @click="addItemBySku"
+                  >
+                    Добавить товар
+                  </VBtn>
+                  <VBtn
+                    v-for="template in templateOptions"
+                    :key="template.id"
+                    variant="tonal"
+                    prepend-icon="tabler-bolt"
+                    :loading="saving || templateCheckLoading"
+                    :disabled="!addSku.trim()"
+                    @click="applyTemplateOnly(template.id)"
+                  >
+                    {{ template.title }}
+                  </VBtn>
+                </div>
+              </VCardText>
+            </VCard>
+          </VCol>
+          <VCol
+            cols="12"
+            lg="4"
+            class="d-flex"
+          >
+            <VCard variant="outlined" class="estimate-vuexy-frame flex-grow-1">
+              <div class="estimate-vuexy-legend">Клиент</div>
+              <VCardText class="estimate-vuexy-content d-flex flex-column h-100">
+                <div class="d-flex flex-column gap-3">
+                  <VTextField
+                    v-model="form.client_name"
+                    label="Имя *"
+                    hide-details
+                  />
+                  <AppPhoneField
+                    v-model="form.client_phone"
+                    placeholder="+7 000 000 00 00"
+                    hide-details
+                  />
+                  <VTextField
+                    v-model="form.site_address"
+                    label="Адрес участка"
+                    hide-details
+                  />
+                </div>
+              </VCardText>
+            </VCard>
+          </VCol>
+        </VRow>
+      </VCardText>
+    </VCard>
+    <Card v-if="estimate?.counterparty">
       <template #content>
+        <div class="mb-2 text-sm text-muted">Клиент (снимок из справочника)</div>
         <div class="grid">
-          <div class="col-12 md:col-4">
-            <label class="text-sm text-muted">Имя *</label>
-            <InputText v-model="form.client_name" class="w-full" placeholder="Имя клиента" />
+          <div class="col-12 md:col-3">
+            <label class="text-sm text-muted">ID контрагента</label>
+            <InputText :model-value="String(estimate.counterparty?.id ?? '')" class="w-full" disabled />
           </div>
-          <div class="col-12 md:col-4">
+          <div class="col-12 md:col-3">
+            <label class="text-sm text-muted">Тип</label>
+            <InputText :model-value="estimate.counterparty?.type ?? ''" class="w-full" disabled />
+          </div>
+          <div class="col-12 md:col-3">
+            <label class="text-sm text-muted">Имя</label>
+            <InputText :model-value="estimate.counterparty?.name ?? ''" class="w-full" disabled />
+          </div>
+          <div class="col-12 md:col-3">
             <label class="text-sm text-muted">Телефон</label>
-            <InputText v-model="form.client_phone" class="w-full" placeholder="+7..." />
-          </div>
-          <div class="col-12 md:col-4">
-            <label class="text-sm text-muted">Адрес участка</label>
-            <InputText v-model="form.site_address" class="w-full" placeholder="Адрес" />
-          </div>
-        </div>
-        <div v-if="estimate?.counterparty" class="mt-4">
-          <div class="mb-2 text-sm text-muted">Клиент (снимок из справочника)</div>
-          <div class="grid">
-            <div class="col-12 md:col-3">
-              <label class="text-sm text-muted">ID контрагента</label>
-              <InputText :model-value="String(estimate.counterparty?.id ?? '')" class="w-full" disabled />
-            </div>
-            <div class="col-12 md:col-3">
-              <label class="text-sm text-muted">Тип</label>
-              <InputText :model-value="estimate.counterparty?.type ?? ''" class="w-full" disabled />
-            </div>
-            <div class="col-12 md:col-3">
-              <label class="text-sm text-muted">Имя</label>
-              <InputText :model-value="estimate.counterparty?.name ?? ''" class="w-full" disabled />
-            </div>
-            <div class="col-12 md:col-3">
-              <label class="text-sm text-muted">Телефон</label>
-              <InputText :model-value="estimate.counterparty?.phone ?? ''" class="w-full" disabled />
-            </div>
+            <InputText :model-value="estimate.counterparty?.phone ?? ''" class="w-full" disabled />
           </div>
         </div>
       </template>
     </Card>
-
-    <div class="grid">
-      <div class="col-12">
-        <Card>
-          <template #title>Добавить позицию</template>
-          <template #content>
-            <div class="flex flex-column gap-3">
-              <div class="grid">
-                <div class="col-12 md:col-7">
-                  <label class="text-sm text-muted">Товар</label>
-                  <AutoComplete
-                    v-model="productSearch"
-                    :suggestions="productSuggestions"
-                    optionLabel="name"
-                    :loading="productLoading"
-                    forceSelection
-                    class="w-full"
-                    placeholder="Начните вводить название"
-                    @complete="handleProductSearch"
-                    @item-select="handleProductSelect"
-                  />
-                </div>
-                <div class="col-12 md:col-5">
-                  <label class="text-sm text-muted">Кол-во</label>
-                  <InputNumber v-model="addQty" class="w-full" :min="0" />
-                </div>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <Button
-                  label="Добавить"
-                  icon="pi pi-plus"
-                  :loading="saving"
-                  :disabled="!addSku.trim()"
-                  @click="addItemBySku"
-                />
-                <Button
-                  v-if="hasTemplate"
-                  label="Добавить по шаблону"
-                  icon="pi pi-bolt"
-                  severity="secondary"
-                  :loading="saving || templateCheckLoading"
-                  :disabled="!addSku.trim()"
-                  @click="addItemWithTemplate"
-                />
-              </div>
-            </div>
-          </template>
-        </Card>
-      </div>
-    </div>
 
     <Card>
       <template #title>Позиции сметы</template>
@@ -581,7 +678,7 @@ onMounted(async () => {
               <InputNumber
                 v-model="data.qty"
                 class="w-full"
-                :min="0"
+                :min="1"
                 :step="1"
                 showButtons
                 buttonLayout="horizontal"
@@ -648,6 +745,7 @@ onMounted(async () => {
   border-radius: 10px;
   background: #f8fafc;
   min-width: 260px;
+  min-height: 86px;
 }
 
 .estimate-link-label {
@@ -671,9 +769,62 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-.estimate-link-url {
+.estimate-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estimate-link-copied {
   font-size: 12px;
-  color: #475569;
-  word-break: break-all;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.estimate-client-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.estimate-vuexy-card {
+  border: 1px solid #e5e7eb;
+}
+
+.estimate-vuexy-frame {
+  position: relative;
+  overflow: visible;
+}
+
+.estimate-vuexy-legend {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+  background: rgb(var(--v-theme-surface));
+}
+
+.estimate-vuexy-content {
+  padding-top: 18px;
+}
+
+.estimate-fieldset {
+  height: 100%;
+}
+
+.estimate-add-title {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.estimate-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
 }
 </style>

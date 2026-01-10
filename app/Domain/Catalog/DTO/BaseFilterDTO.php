@@ -21,8 +21,8 @@ class BaseFilterDTO
         $page = max(1, (int) $request->integer('page', 1));
 
         return new static(
-            tenantId: $tenantId ?? $request->integer('tenant_id') ?: null,
-            companyId: $companyId ?? $request->integer('company_id') ?: null,
+            tenantId: $tenantId,
+            companyId: $companyId,
             search: trim((string) $request->get('q', '')),
             perPage: $perPage,
             page: $page,

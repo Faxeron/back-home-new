@@ -32,6 +32,7 @@ class ProductResource extends JsonResource
             'price_delivery' => $this->price_delivery,
             'montaj' => $this->montaj,
             'montaj_sebest' => $this->montaj_sebest,
+            'is_global' => $this->is_global,
             'is_visible' => $this->is_visible,
             'is_top' => $this->is_top,
             'is_new' => $this->is_new,

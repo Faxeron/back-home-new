@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
@@ -83,6 +83,23 @@ const cashboxInlineSize = computed(() => {
   return `${Math.max(maxLength, 6)}ch`
 })
 
+const selectedFundId = computed(() => filtersModel.value?.fond_id?.value ?? null)
+const spendingItemsForFund = computed(() => {
+  const fundId = selectedFundId.value
+  if (!fundId) return dictionaries.spendingItems
+  const fundKey = String(fundId)
+  return dictionaries.spendingItems.filter(item => String(item.fond_id ?? '') === fundKey)
+})
+
+watch(selectedFundId, () => {
+  const currentItemId = filtersModel.value?.spending_item_id?.value ?? null
+  if (!currentItemId) return
+  const exists = spendingItemsForFund.value.some(item => String(item.id) === String(currentItemId))
+  if (!exists && filtersModel.value?.spending_item_id) {
+    filtersModel.value.spending_item_id.value = null
+  }
+})
+
 const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Event) => {
   panel?.toggle(event)
 }
@@ -106,7 +123,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
   >
     <template #header>
       <div class="flex items-center justify-between gap-4">
-        <div class="text-sm text-muted">Всего: {{ totalLabel }}</div>
+        <TableTotalLabel label="Всего" :value="totalLabel" />
         <Button
           label="Сброс фильтров"
           text
@@ -118,6 +135,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
     <Column
       :field="SPENDING_COLUMNS.id.field"
       :header="SPENDING_COLUMNS.id.header"
+      :sortable="SPENDING_COLUMNS.id.sortable"
       :showFilterMenu="false"
       style="inline-size: 6ch;"
     >
@@ -249,7 +267,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       <template #filter="{ filterModel, filterCallback }">
         <Select
           v-model="filterModel.value"
-          :options="dictionaries.spendingItems"
+          :options="spendingItemsForFund"
           optionLabel="name"
           optionValue="id"
           class="w-full"

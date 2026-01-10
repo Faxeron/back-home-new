@@ -18,23 +18,23 @@ class FilterBuilder
         $joinedCounterparties = false;
 
         if ($f->id) {
-            $query->where('id', $f->id);
+            $query->where('transactions.id', $f->id);
         }
 
         if ($f->idLike) {
-            $query->where('id', 'like', '%' . $f->idLike . '%');
+            $query->where('transactions.id', 'like', '%' . $f->idLike . '%');
         }
 
         if ($f->tenantId !== null) {
-            $query->where('tenant_id', $f->tenantId);
+            $query->where('transactions.tenant_id', $f->tenantId);
         }
 
         if ($f->companyId) {
-            $query->where('company_id', $f->companyId);
+            $query->where('transactions.company_id', $f->companyId);
         }
 
         if ($f->cashBoxId) {
-            $query->where('cashbox_id', $f->cashBoxId);
+            $query->where('transactions.cashbox_id', $f->cashBoxId);
         }
 
         if ($f->cashBoxSearch) {
@@ -46,7 +46,7 @@ class FilterBuilder
         }
 
         if ($f->transactionTypeId) {
-            $query->where('transaction_type_id', $f->transactionTypeId);
+            $query->where('transactions.transaction_type_id', $f->transactionTypeId);
         }
 
         if ($f->transactionTypeSearch) {
@@ -61,7 +61,7 @@ class FilterBuilder
         }
 
         if ($f->paymentMethodId) {
-            $query->where('payment_method_id', $f->paymentMethodId);
+            $query->where('transactions.payment_method_id', $f->paymentMethodId);
         }
 
         if ($f->paymentMethodSearch) {
@@ -76,7 +76,7 @@ class FilterBuilder
         }
 
         if ($f->counterpartyId) {
-            $query->where('counterparty_id', $f->counterpartyId);
+            $query->where('transactions.counterparty_id', $f->counterpartyId);
         }
 
         if ($f->counterpartySearch) {
@@ -88,11 +88,11 @@ class FilterBuilder
         }
 
         if ($f->contractId) {
-            $query->where('contract_id', $f->contractId);
+            $query->where('transactions.contract_id', $f->contractId);
         }
 
         if ($f->contractLike) {
-            $query->where('contract_id', 'like', '%' . $f->contractLike . '%');
+            $query->where('transactions.contract_id', 'like', '%' . $f->contractLike . '%');
         }
 
         if ($f->contractOrCounterparty) {
@@ -108,61 +108,61 @@ class FilterBuilder
         }
 
         if ($f->relatedId) {
-            $query->where('related_id', $f->relatedId);
+            $query->where('transactions.related_id', $f->relatedId);
         }
 
         if ($f->relatedLike) {
-            $query->where('related_id', 'like', '%' . $f->relatedLike . '%');
+            $query->where('transactions.related_id', 'like', '%' . $f->relatedLike . '%');
         }
 
         if ($f->sumMin !== null) {
-            $query->where('sum', '>=', $f->sumMin);
+            $query->where('transactions.sum', '>=', $f->sumMin);
         }
 
         if ($f->sumMax !== null) {
-            $query->where('sum', '<=', $f->sumMax);
+            $query->where('transactions.sum', '<=', $f->sumMax);
         }
 
         if ($f->isPaid !== null) {
-            $query->where('is_paid', $f->isPaid);
+            $query->where('transactions.is_paid', $f->isPaid);
         }
 
         if ($f->notesLike) {
-            $query->where('notes', 'like', '%' . $f->notesLike . '%');
+            $query->where('transactions.notes', 'like', '%' . $f->notesLike . '%');
         }
 
         if ($f->datePaidFrom) {
-            $query->whereDate('date_is_paid', '>=', $f->datePaidFrom);
+            $query->whereDate('transactions.date_is_paid', '>=', $f->datePaidFrom);
         }
 
         if ($f->datePaidTo) {
-            $query->whereDate('date_is_paid', '<=', $f->datePaidTo);
+            $query->whereDate('transactions.date_is_paid', '<=', $f->datePaidTo);
         }
 
         if ($f->isCompleted !== null) {
-            $query->where('is_completed', $f->isCompleted);
+            $query->where('transactions.is_completed', $f->isCompleted);
         }
 
         if ($f->dateCompletedFrom) {
-            $query->whereDate('date_is_completed', '>=', $f->dateCompletedFrom);
+            $query->whereDate('transactions.date_is_completed', '>=', $f->dateCompletedFrom);
         }
 
         if ($f->dateCompletedTo) {
-            $query->whereDate('date_is_completed', '<=', $f->dateCompletedTo);
+            $query->whereDate('transactions.date_is_completed', '<=', $f->dateCompletedTo);
         }
 
         if ($f->dateFrom) {
-            $query->whereDate('created_at', '>=', $f->dateFrom);
+            $query->whereDate('transactions.created_at', '>=', $f->dateFrom);
         }
 
         if ($f->dateTo) {
-            $query->whereDate('created_at', '<=', $f->dateTo);
+            $query->whereDate('transactions.created_at', '<=', $f->dateTo);
         }
 
         if ($f->search) {
             $search = $f->search;
             $query->where(function (Builder $q) use ($search) {
-                $q->where('notes', 'like', "%{$search}%");
+                $q->where('transactions.notes', 'like', "%{$search}%");
             });
         }
 
@@ -176,27 +176,27 @@ class FilterBuilder
         $joinedContractCounterparties = false;
 
         if ($f->tenantId !== null) {
-            $query->where('tenant_id', $f->tenantId);
+            $query->where('receipts.tenant_id', $f->tenantId);
         }
 
         if ($f->companyId) {
-            $query->where('company_id', $f->companyId);
+            $query->where('receipts.company_id', $f->companyId);
         }
 
         if ($f->idLike) {
-            $query->where('id', 'like', '%' . $f->idLike . '%');
+            $query->where('receipts.id', 'like', '%' . $f->idLike . '%');
         }
 
         if ($f->cashBoxId) {
-            $query->where('cashbox_id', $f->cashBoxId);
+            $query->where('receipts.cashbox_id', $f->cashBoxId);
         }
 
         if ($f->contractId) {
-            $query->where('contract_id', $f->contractId);
+            $query->where('receipts.contract_id', $f->contractId);
         }
 
         if ($f->counterpartyId) {
-            $query->where('counterparty_id', $f->counterpartyId);
+            $query->where('receipts.counterparty_id', $f->counterpartyId);
         }
 
         if ($f->counterpartySearch) {
@@ -217,33 +217,33 @@ class FilterBuilder
         }
 
         if ($f->sumMin !== null) {
-            $query->where('sum', '>=', $f->sumMin);
+            $query->where('receipts.sum', '>=', $f->sumMin);
         }
 
         if ($f->sumMax !== null) {
-            $query->where('sum', '<=', $f->sumMax);
+            $query->where('receipts.sum', '<=', $f->sumMax);
         }
 
         if ($f->paymentDateFrom) {
-            $query->whereDate('payment_date', '>=', $f->paymentDateFrom);
+            $query->whereDate('receipts.payment_date', '>=', $f->paymentDateFrom);
         }
 
         if ($f->paymentDateTo) {
-            $query->whereDate('payment_date', '<=', $f->paymentDateTo);
+            $query->whereDate('receipts.payment_date', '<=', $f->paymentDateTo);
         }
 
         if ($f->dateFrom) {
-            $query->whereDate('created_at', '>=', $f->dateFrom);
+            $query->whereDate('receipts.created_at', '>=', $f->dateFrom);
         }
 
         if ($f->dateTo) {
-            $query->whereDate('created_at', '<=', $f->dateTo);
+            $query->whereDate('receipts.created_at', '<=', $f->dateTo);
         }
 
         if ($f->search) {
             $search = $f->search;
             $query->where(function (Builder $q) use ($search) {
-                $q->where('description', 'like', "%{$search}%");
+                $q->where('receipts.description', 'like', "%{$search}%");
             });
         }
 
@@ -256,35 +256,35 @@ class FilterBuilder
         $joinedCounterparties = false;
 
         if ($f->tenantId !== null) {
-            $query->where('tenant_id', $f->tenantId);
+            $query->where('spendings.tenant_id', $f->tenantId);
         }
 
         if ($f->companyId) {
-            $query->where('company_id', $f->companyId);
+            $query->where('spendings.company_id', $f->companyId);
         }
 
         if ($f->idLike) {
-            $query->where('id', 'like', '%' . $f->idLike . '%');
+            $query->where('spendings.id', 'like', '%' . $f->idLike . '%');
         }
 
         if ($f->cashBoxId) {
-            $query->where('cashbox_id', $f->cashBoxId);
+            $query->where('spendings.cashbox_id', $f->cashBoxId);
         }
 
         if ($f->fondId) {
-            $query->where('fond_id', $f->fondId);
+            $query->where('spendings.fond_id', $f->fondId);
         }
 
         if ($f->spendingItemId) {
-            $query->where('spending_item_id', $f->spendingItemId);
+            $query->where('spendings.spending_item_id', $f->spendingItemId);
         }
 
         if ($f->contractId) {
-            $query->where('contract_id', $f->contractId);
+            $query->where('spendings.contract_id', $f->contractId);
         }
 
         if ($f->counterpartyId) {
-            $query->where('counterparty_id', $f->counterpartyId);
+            $query->where('spendings.counterparty_id', $f->counterpartyId);
         }
 
         if ($f->counterpartySearch) {
@@ -296,37 +296,37 @@ class FilterBuilder
         }
 
         if ($f->spentToUserId) {
-            $query->where('spent_to_user_id', $f->spentToUserId);
+            $query->where('spendings.spent_to_user_id', $f->spentToUserId);
         }
 
         if ($f->sumMin !== null) {
-            $query->where('sum', '>=', $f->sumMin);
+            $query->where('spendings.sum', '>=', $f->sumMin);
         }
 
         if ($f->sumMax !== null) {
-            $query->where('sum', '<=', $f->sumMax);
+            $query->where('spendings.sum', '<=', $f->sumMax);
         }
 
         if ($f->paymentDateFrom) {
-            $query->whereDate('payment_date', '>=', $f->paymentDateFrom);
+            $query->whereDate('spendings.payment_date', '>=', $f->paymentDateFrom);
         }
 
         if ($f->paymentDateTo) {
-            $query->whereDate('payment_date', '<=', $f->paymentDateTo);
+            $query->whereDate('spendings.payment_date', '<=', $f->paymentDateTo);
         }
 
         if ($f->dateFrom) {
-            $query->whereDate('created_at', '>=', $f->dateFrom);
+            $query->whereDate('spendings.created_at', '>=', $f->dateFrom);
         }
 
         if ($f->dateTo) {
-            $query->whereDate('created_at', '<=', $f->dateTo);
+            $query->whereDate('spendings.created_at', '<=', $f->dateTo);
         }
 
         if ($f->search) {
             $search = $f->search;
             $query->where(function (Builder $q) use ($search) {
-                $q->where('description', 'like', "%{$search}%");
+                $q->where('spendings.description', 'like', "%{$search}%");
             });
         }
 

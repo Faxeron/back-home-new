@@ -222,10 +222,10 @@ const currencies = [
                 cols="12"
                 md="6"
               >
-                <AppTextField
+                <AppPhoneField
                   v-model="accountDataLocal.phone"
                   label="Phone Number"
-                  placeholder="+1 (917) 543-9876"
+                  placeholder="+7 000 000 00 00"
                 />
               </VCol>
 

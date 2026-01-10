@@ -28,6 +28,8 @@ class Estimate extends Model
 
     protected $casts = [
         'data' => 'array',
+        'public_expires_at' => 'datetime',
+        'public_revoked_at' => 'datetime',
     ];
 
     public function items(): HasMany

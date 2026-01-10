@@ -18,8 +18,9 @@ class EstimateTemplateMaterialController extends Controller
         $perPage = $perPage <= 0 ? 10 : min($perPage, 200);
         $page = (int) $request->integer('page', 1);
 
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = EstimateTemplateMaterial::query()
             ->orderByDesc('updated_at');
@@ -29,10 +30,7 @@ class EstimateTemplateMaterialController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         if ($search = $request->string('q')->toString()) {
@@ -68,8 +66,9 @@ class EstimateTemplateMaterialController extends Controller
 
     public function store(EstimateTemplateMaterialRequest $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $data = $request->validated();
 
@@ -78,8 +77,8 @@ class EstimateTemplateMaterialController extends Controller
             'company_id' => $companyId,
             'title' => $data['title'],
             'data' => $data['items'],
-            'created_by' => $request->user()?->id,
-            'updated_by' => $request->user()?->id,
+            'created_by' => $user?->id,
+            'updated_by' => $user?->id,
         ]);
 
         $data = (new EstimateTemplateMaterialResource($template))->toArray($request);
@@ -110,10 +109,19 @@ class EstimateTemplateMaterialController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, int $template): JsonResponse
+    {
+        $model = $this->resolveTemplate($request, $template);
+        $model->delete();
+
+        return response()->json(['success' => true]);
+    }
+
     private function resolveTemplate(Request $request, int $templateId): EstimateTemplateMaterial
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = EstimateTemplateMaterial::query()->where('id', $templateId);
 
@@ -122,10 +130,7 @@ class EstimateTemplateMaterialController extends Controller
         }
 
         if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
-            });
+            $query->where('company_id', $companyId);
         }
 
         return $query->firstOrFail();
@@ -147,8 +152,9 @@ class EstimateTemplateMaterialController extends Controller
             return $items;
         }
 
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Product::query()->select(['id', 'scu', 'name']);
 
@@ -158,8 +164,8 @@ class EstimateTemplateMaterialController extends Controller
 
         if ($companyId) {
             $query->where(function ($builder) use ($companyId) {
-                $builder->whereNull('company_id')
-                    ->orWhere('company_id', $companyId);
+                $builder->where('company_id', $companyId)
+                    ->orWhere('is_global', true);
             });
         }
 

@@ -17,8 +17,9 @@ class ProductBrandController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenantId = $request->user()?->tenant_id ?? $request->integer('tenant_id') ?: null;
-        $companyId = $request->user()?->company_id ?? $request->integer('company_id') ?: null;
+        $user = $request->user();
+        $tenantId = $user?->tenant_id;
+        $companyId = $user?->default_company_id ?? $user?->company_id;
         $filters = BaseFilterDTO::fromRequest($request, $tenantId, $companyId);
 
         $brands = $this->catalogService->paginateBrands($filters);

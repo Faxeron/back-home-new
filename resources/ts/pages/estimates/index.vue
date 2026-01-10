@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import EstimatesTable from '@/components/tables/estimates/EstimatesTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import type { Estimate } from '@/types/estimates'
+import { $api } from '@/utils/api'
 
 const router = useRouter()
 const tableRef = ref<any>(null)
@@ -64,6 +65,18 @@ const handleCreate = () => {
   router.push({ path: '/estimates/new' })
 }
 
+const handleDelete = async (row: Estimate) => {
+  const confirmed = window.confirm('Удалить смету?')
+  if (!confirmed) return
+  try {
+    await $api(`/estimates/${row.id}`, { method: 'DELETE' })
+    reset()
+  } catch (error: any) {
+    const message = error?.response?.data?.message ?? 'Не удалось удалить смету.'
+    window.alert(message)
+  }
+}
+
 onMounted(async () => {
   await reset()
   await nextTick()
@@ -92,6 +105,7 @@ onBeforeUnmount(() => {
     :virtualScrollerOptions="virtualScrollerOptions"
     @reset="handleReset"
     @open="handleOpen"
+    @delete="handleDelete"
     @create="handleCreate"
   />
 </template>
