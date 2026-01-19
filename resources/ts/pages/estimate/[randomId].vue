@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import EstimatePublicView from '@/components/estimates/EstimatePublicView.vue'
-
-definePage({
-  meta: {
-    layout: 'blank',
-    public: true,
-  },
-})
-
-const route = useRoute()
-const randomId = computed(() => String(route.params.randomId ?? ''))
+import EstimatePublicPage from '@/modules/estimates/pages/estimate/[randomId].vue'
 </script>
 
+<route lang="yaml">
+meta:
+  layout: blank
+  public: true
+</route>
+
 <template>
-  <EstimatePublicView :random-id="randomId" />
+  <EstimatePublicPage />
 </template>

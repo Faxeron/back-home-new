@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FlatPickr from 'vue-flatpickr-component'
 import { useTheme } from 'vuetify'
+import { Russian } from 'flatpickr/dist/l10n/ru.js'
 
 // @ts-expect-error There won't be declaration file for it
 import { VField, makeVFieldProps } from 'vuetify/lib/components/VField/VField'
@@ -76,6 +77,7 @@ if (compAttrs.config && compAttrs.config.inline) {
 }
 
 compAttrs.config = {
+  locale: Russian,
   ...compAttrs.config,
   prevArrow: '<i class="tabler-chevron-left v-icon" style="font-size: 20px; height: 20px; width: 20px;"></i>',
   nextArrow: '<i class="tabler-chevron-right v-icon" style="font-size: 20px; height: 20px; width: 20px;"></i>',

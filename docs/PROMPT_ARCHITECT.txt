@@ -22,6 +22,7 @@ PROMPT_ARCHITECT (RU)
 - `docs/schema.txt`
 - `docs/ai/API_MAP.md`
 - `docs/project-structure.txt`
+- `docs/STRUCTURE_GUIDE.md`
 
 Формат ответа архитектора
 1) Summary (что делаем и зачем).

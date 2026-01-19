@@ -1,10 +1,7 @@
+<script setup lang="ts">
+import ProductsEstimatesPage from '@/modules/products/pages/products/estimates.vue'
+</script>
+
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <VCardTitle>Сметы</VCardTitle>
-        <VCardText>Раздел в разработке.</VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <ProductsEstimatesPage />
 </template>

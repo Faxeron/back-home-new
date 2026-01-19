@@ -19,6 +19,7 @@ class EstimateResource extends JsonResource
             'client_phone' => $this->client_phone,
             'site_address' => $this->site_address,
             'created_by' => $this->created_by,
+            'contract_id' => $this->whenLoaded('contract', fn () => $this->contract?->id),
             'counterparty' => $this->whenLoaded('counterparty', fn () => $this->counterparty ? [
                 'id' => $this->counterparty->id,
                 'type' => $this->counterparty->type,

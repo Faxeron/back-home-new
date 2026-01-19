@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import EstimateEditor from '@/components/estimates/EstimateEditor.vue'
-
-const route = useRoute()
-const estimateId = computed(() => Number(route.params.id))
+import EstimateEditPage from '@/modules/estimates/pages/estimates/[id]/edit.vue'
 </script>
 
 <template>
-  <EstimateEditor :estimate-id="estimateId" />
+  <EstimateEditPage />
 </template>

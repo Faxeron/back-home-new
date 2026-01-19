@@ -3,6 +3,7 @@
 namespace App\Domain\Finance\DTO;
 
 use App\Domain\Finance\Models\Receipt;
+use App\Domain\Finance\ValueObjects\Money;
 
 class ReceiptDTO
 {
@@ -22,13 +23,16 @@ class ReceiptDTO
 
     public static function fromModel(Receipt $receipt): self
     {
+        $sum = $receipt->sum;
+        $sumValue = $sum instanceof Money ? $sum->toFloat() : (float) $sum;
+
         return new self(
             id: $receipt->id,
             tenantId: $receipt->tenant_id,
             companyId: $receipt->company_id,
             cashBoxId: $receipt->cashbox_id,
             transactionId: $receipt->transaction_id,
-            sum: (float) $receipt->sum,
+            sum: $sumValue,
             contractId: $receipt->contract_id,
             counterpartyId: $receipt->counterparty_id,
             paymentDate: $receipt->payment_date?->toDateString(),

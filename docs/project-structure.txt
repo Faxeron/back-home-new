@@ -27,6 +27,7 @@ Root
   - Finance Module.md
   - CRM_TABLE_STANDARD.md // CRM table UI/config/behavior standard
   - UI_STANDARDS.md       // UI blocks/forms (Vuexy) + tables (PrimeVue) standard
+  - STRUCTURE_GUIDE.md    // module structure + micro-standards
   - PRODUCT_CATALOG.md    // product catalog pages + data tables
   - ESTIMATES.md          // estimate rules + structure
 - project-structure.txt
@@ -35,7 +36,8 @@ Root
   - PrimeVueFilter.txt, PROMPT_*.txt, dataTableWork.txt
 - public/             // Vite build output
 - resources/
-  - ts/               // Vue SPA: @core, @layouts, api, components, composables, config, constants, layouts, navigation, pages, plugins, stores, types, utils, views, App.vue, main.ts
+  - ts/               // Vue SPA: @core, @layouts, api, components, composables, config, constants, domain, layouts, modules, navigation, pages (route wrappers), plugins, stores, types, utils, views, App.vue, main.ts
+    - modules/         // feature modules (finance, settings, production, estimates, products)
   - views/            // Blade views if present
 - routes/
   - api.php           // REST API (auth, finance, catalog, dev-control, etc.)

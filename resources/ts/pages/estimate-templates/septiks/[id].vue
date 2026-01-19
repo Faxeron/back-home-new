@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import EstimateTemplateSeptikEditor from '@/components/estimates/EstimateTemplateSeptikEditor.vue'
-
-const route = useRoute()
-const templateId = computed(() => Number(route.params.id))
+import SeptikTemplateEditPage from '@/modules/estimates/pages/estimate-templates/septiks/[id].vue'
 </script>
 
 <template>
-  <EstimateTemplateSeptikEditor :template-id="templateId" />
+  <SeptikTemplateEditPage />
 </template>

@@ -9,6 +9,16 @@ Baseline
 - Tables: PrimeVue DataTable (`DataTable`, `Column`) via `BaseDataTable.vue` or `components/tables/settings/DictionaryTable.vue`.
 - Do not replace data tables with Vuetify tables.
 
+Structure
+- Follow module layering. See `docs/STRUCTURE_GUIDE.md`.
+
+Module map (frontend)
+- finance: transactions/receipts/spendings + finance dictionaries
+- settings: common dictionaries (companies, cities, districts, contract statuses, sale types)
+- production: contracts, measurements, installations
+- estimates
+- products
+
 Block styling
 - Use `VCard variant="outlined"` for form blocks.
 - If a title must be "cut into" the frame, use a small overlay label tied to the card border (see estimate editor Vuexy variant).

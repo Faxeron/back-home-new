@@ -317,6 +317,7 @@ declare global {
   const useSwipe: typeof import('@vueuse/core')['useSwipe']
   const useTableInfinite: typeof import('./resources/ts/composables/useTableLazy')['useTableInfinite']
   const useTableLazy: typeof import('./resources/ts/composables/useTableLazy')['useTableLazy']
+  const useTableScrollHeight: typeof import('./resources/ts/composables/useTableScrollHeight')['useTableScrollHeight']
   const useTemplateRef: typeof import('vue')['useTemplateRef']
   const useTemplateRefsList: typeof import('@vueuse/core')['useTemplateRefsList']
   const useTextDirection: typeof import('@vueuse/core')['useTextDirection']
@@ -414,9 +415,6 @@ declare module 'vue' {
     readonly customRef: UnwrapRef<typeof import('vue')['customRef']>
     readonly debouncedRef: UnwrapRef<typeof import('@vueuse/core')['debouncedRef']>
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
-    readonly defaultReceiptFilters: UnwrapRef<typeof import('./resources/ts/composables/useReceiptFilters')['defaultReceiptFilters']>
-    readonly defaultSpendingFilters: UnwrapRef<typeof import('./resources/ts/composables/useSpendingFilters')['defaultSpendingFilters']>
-    readonly defaultTransactionFilters: UnwrapRef<typeof import('./resources/ts/composables/useTransactionFilters')['defaultTransactionFilters']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
     readonly definePage: UnwrapRef<typeof import('unplugin-vue-router/runtime')['definePage']>
@@ -568,7 +566,6 @@ declare module 'vue' {
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
-    readonly useContractsQuery: UnwrapRef<typeof import('./resources/ts/composables/useContractsQuery')['useContractsQuery']>
     readonly useCookie: UnwrapRef<typeof import('./resources/ts/@core/composable/useCookie')['useCookie']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>
@@ -658,11 +655,8 @@ declare module 'vue' {
     readonly usePreferredLanguages: UnwrapRef<typeof import('@vueuse/core')['usePreferredLanguages']>
     readonly usePreferredReducedMotion: UnwrapRef<typeof import('@vueuse/core')['usePreferredReducedMotion']>
     readonly usePrevious: UnwrapRef<typeof import('@vueuse/core')['usePrevious']>
-    readonly useProductFilters: UnwrapRef<typeof import('./resources/ts/composables/useProductFilters')['useProductFilters']>
-    readonly useProductLookups: UnwrapRef<typeof import('./resources/ts/composables/useProductLookups')['useProductLookups']>
     readonly useProjection: UnwrapRef<typeof import('@vueuse/math')['useProjection']>
     readonly useRafFn: UnwrapRef<typeof import('@vueuse/core')['useRafFn']>
-    readonly useReceiptFilters: UnwrapRef<typeof import('./resources/ts/composables/useReceiptFilters')['useReceiptFilters']>
     readonly useRefHistory: UnwrapRef<typeof import('@vueuse/core')['useRefHistory']>
     readonly useResizeObserver: UnwrapRef<typeof import('@vueuse/core')['useResizeObserver']>
     readonly useResponsiveLeftSidebar: UnwrapRef<typeof import('./resources/ts/@core/composable/useResponsiveSidebar')['useResponsiveLeftSidebar']>
@@ -681,7 +675,6 @@ declare module 'vue' {
     readonly useSorted: UnwrapRef<typeof import('@vueuse/core')['useSorted']>
     readonly useSpeechRecognition: UnwrapRef<typeof import('@vueuse/core')['useSpeechRecognition']>
     readonly useSpeechSynthesis: UnwrapRef<typeof import('@vueuse/core')['useSpeechSynthesis']>
-    readonly useSpendingFilters: UnwrapRef<typeof import('./resources/ts/composables/useSpendingFilters')['useSpendingFilters']>
     readonly useStepper: UnwrapRef<typeof import('@vueuse/core')['useStepper']>
     readonly useStorageAsync: UnwrapRef<typeof import('@vueuse/core')['useStorageAsync']>
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>
@@ -690,6 +683,7 @@ declare module 'vue' {
     readonly useSwipe: UnwrapRef<typeof import('@vueuse/core')['useSwipe']>
     readonly useTableInfinite: UnwrapRef<typeof import('./resources/ts/composables/useTableLazy')['useTableInfinite']>
     readonly useTableLazy: UnwrapRef<typeof import('./resources/ts/composables/useTableLazy')['useTableLazy']>
+    readonly useTableScrollHeight: UnwrapRef<typeof import('./resources/ts/composables/useTableScrollHeight')['useTableScrollHeight']>
     readonly useTemplateRef: UnwrapRef<typeof import('vue')['useTemplateRef']>
     readonly useTemplateRefsList: UnwrapRef<typeof import('@vueuse/core')['useTemplateRefsList']>
     readonly useTextDirection: UnwrapRef<typeof import('@vueuse/core')['useTextDirection']>
@@ -707,7 +701,6 @@ declare module 'vue' {
     readonly useToNumber: UnwrapRef<typeof import('@vueuse/core')['useToNumber']>
     readonly useToString: UnwrapRef<typeof import('@vueuse/core')['useToString']>
     readonly useToggle: UnwrapRef<typeof import('@vueuse/core')['useToggle']>
-    readonly useTransactionFilters: UnwrapRef<typeof import('./resources/ts/composables/useTransactionFilters')['useTransactionFilters']>
     readonly useTransition: UnwrapRef<typeof import('@vueuse/core')['useTransition']>
     readonly useTrunc: UnwrapRef<typeof import('@vueuse/math')['useTrunc']>
     readonly useUrlSearchParams: UnwrapRef<typeof import('@vueuse/core')['useUrlSearchParams']>

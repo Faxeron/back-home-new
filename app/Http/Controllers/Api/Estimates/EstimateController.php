@@ -29,7 +29,7 @@ class EstimateController extends Controller
         $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Estimate::query()
-            ->with(['counterparty', 'creator'])
+            ->with(['counterparty', 'creator', 'contract:id,estimate_id'])
             ->withCount('items')
             ->withSum('items as total_sum', 'total')
             ->orderByDesc('id');
@@ -98,7 +98,7 @@ class EstimateController extends Controller
             'data' => [],
             'random_id' => $randomId,
             'link' => "/estimate/{$randomId}",
-            'link_montaj' => "/estimate/{$randomId}/montaj-mnt",
+            'link_montaj' => "/estimate/{$randomId}mnt",
             'public_expires_at' => now()->addDays(30),
             'sms_sent' => 0,
             'created_by' => $user?->id,
@@ -122,6 +122,7 @@ class EstimateController extends Controller
             'items.product.unit',
             'items.group',
             'counterparty',
+            'contract:id,estimate_id',
         ]);
         $model->load('counterparty');
         $model->loadCount('items')->loadSum('items as total_sum', 'total');
@@ -136,6 +137,7 @@ class EstimateController extends Controller
         $model = $this->resolveEstimate($request, $estimate);
         $data = $request->validated();
         $isDraft = $request->boolean('draft');
+        unset($data['draft']);
 
         if (!$isDraft && !$model->client_id) {
             $data['client_id'] = $this->resolveCounterpartyId($data, $model->tenant_id, $model->company_id, $request->user()?->id);

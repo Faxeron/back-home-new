@@ -6,11 +6,13 @@ use App\Domain\Common\Traits\BelongsToCompany;
 use App\Domain\Common\Traits\BelongsToTenant;
 use App\Domain\Common\Traits\HasCreator;
 use App\Domain\Common\Traits\HasUpdater;
+use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\Counterparty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Estimate extends Model
 {
@@ -45,5 +47,10 @@ class Estimate extends Model
     public function itemSources(): HasMany
     {
         return $this->hasMany(EstimateItemSource::class, 'estimate_id');
+    }
+
+    public function contract(): HasOne
+    {
+        return $this->hasOne(Contract::class, 'estimate_id');
     }
 }

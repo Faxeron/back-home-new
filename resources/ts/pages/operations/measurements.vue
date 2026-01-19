@@ -1,13 +1,7 @@
+<script setup lang="ts">
+import MeasurementsPage from '@/modules/production/pages/measurements/index.vue'
+</script>
+
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <VCardTitle>Замеры</VCardTitle>
-        <VDivider />
-        <VCardText class="text-medium-emphasis">
-          Страница в разработке.
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <MeasurementsPage />
 </template>

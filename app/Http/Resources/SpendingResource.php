@@ -46,6 +46,11 @@ class SpendingResource extends JsonResource
                 'id' => $this->item->id,
                 'name' => $this->item->name,
             ]),
+            'creator' => $this->whenLoaded('creator', fn () => [
+                'id' => $this->creator->id,
+                'name' => $this->creator->name,
+                'email' => $this->creator->email,
+            ]),
         ];
     }
 

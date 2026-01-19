@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import EstimateTemplateSeptikEditor from '@/components/estimates/EstimateTemplateSeptikEditor.vue'
+import SeptikTemplateCreatePage from '@/modules/estimates/pages/estimate-templates/septiks/new.vue'
 </script>
 
 <template>
-  <EstimateTemplateSeptikEditor />
+  <SeptikTemplateCreatePage />
 </template>

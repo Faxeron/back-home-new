@@ -7,6 +7,10 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ContractStatusController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\ContractStatusHistoryController;
+use App\Http\Controllers\Api\ContractHistoryController;
+use App\Http\Controllers\Api\ContractTemplateController;
+use App\Http\Controllers\Api\ContractDocumentController;
+use App\Http\Controllers\Api\ContractTemplateFileController;
 use App\Http\Controllers\Api\DevControlController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\AuthController;
@@ -27,7 +31,9 @@ use App\Http\Controllers\Api\Catalog\ProductCategoryController;
 use App\Http\Controllers\Api\Catalog\ProductController;
 use App\Http\Controllers\Api\Catalog\ProductKindController;
 use App\Http\Controllers\Api\Catalog\ProductSubcategoryController;
+use App\Http\Controllers\Api\Catalog\ProductTypeController;
 use App\Http\Controllers\Api\Estimates\EstimateController;
+use App\Http\Controllers\Api\Estimates\EstimateContractController;
 use App\Http\Controllers\Api\Estimates\EstimateItemController;
 use App\Http\Controllers\Api\Estimates\EstimatePublicController;
 use App\Http\Controllers\Api\Estimates\EstimateTemplateMaterialController;
@@ -40,9 +46,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
 
+Route::get('estimate/{randomId}mnt', [EstimatePublicController::class, 'montaj']);
 Route::get('estimate/{randomId}', [EstimatePublicController::class, 'show']);
-Route::get('estimate/{randomId}/montaj', [EstimatePublicController::class, 'montaj']);
-Route::get('estimate/{randomId}/montaj-mnt', [EstimatePublicController::class, 'montaj']);
 
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::prefix('finance')->group(function (): void {
@@ -56,6 +61,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('funds', [FundController::class, 'index']);
         Route::get('spending-items', [SpendingItemLookupController::class, 'index']);
         Route::get('counterparties', [CounterpartyLookupController::class, 'index']);
+        Route::get('counterparties/{counterparty}', [CounterpartyLookupController::class, 'show']);
 
         Route::get('receipts', [ReceiptController::class, 'index']);
         Route::post('receipts/contract', [ReceiptController::class, 'storeContract']);
@@ -63,6 +69,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
 
         Route::get('spendings', [SpendingController::class, 'index']);
         Route::post('spendings', [SpendingController::class, 'store']);
+        Route::delete('spendings/{spending}', [SpendingController::class, 'destroy']);
 
         Route::post('director-withdrawal', [DirectorController::class, 'withdrawal']);
 
@@ -105,6 +112,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('subcategories', [ProductSubcategoryController::class, 'index']);
         Route::get('brands', [ProductBrandController::class, 'index']);
         Route::get('kinds', [ProductKindController::class, 'index']);
+        Route::get('types', [ProductTypeController::class, 'index']);
         Route::get('{product}', [ProductController::class, 'show']);
         Route::patch('{product}', [ProductController::class, 'update']);
     });
@@ -115,6 +123,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('{estimate}', [EstimateController::class, 'show']);
         Route::patch('{estimate}', [EstimateController::class, 'update']);
         Route::delete('{estimate}', [EstimateController::class, 'destroy']);
+        Route::post('{estimate}/contracts', [EstimateContractController::class, 'store']);
         Route::post('{estimate}/apply-template', [EstimateTemplateController::class, 'applyTemplate']);
         Route::post('{estimate}/items', [EstimateItemController::class, 'store']);
         Route::patch('{estimate}/items/{item}', [EstimateItemController::class, 'update']);
@@ -136,7 +145,21 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     });
 
     Route::get('contracts', [ContractController::class, 'index']);
+    Route::patch('contracts/{contract}', [ContractController::class, 'update'])->whereNumber('contract');
     Route::patch('contracts/{contract}/status', [ContractController::class, 'updateStatus']);
-    Route::get('contracts/status-history', [ContractStatusHistoryController::class, 'index']);
-    Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract');
+      Route::get('contracts/status-history', [ContractStatusHistoryController::class, 'index']);
+      Route::get('contracts/{contract}/history', [ContractHistoryController::class, 'index'])->whereNumber('contract');
+      Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract');
+      Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract');
+      Route::get('contracts/{contract}/documents', [ContractDocumentController::class, 'index'])->whereNumber('contract');
+      Route::post('contracts/{contract}/documents', [ContractDocumentController::class, 'store'])->whereNumber('contract');
+      Route::delete('contracts/{contract}/documents/{document}', [ContractDocumentController::class, 'destroy'])
+        ->whereNumber('contract')
+        ->whereNumber('document');
+      Route::get('contracts/{contract}/documents/{document}/download', [ContractDocumentController::class, 'download'])
+        ->whereNumber('contract')
+        ->whereNumber('document');
+      Route::get('contract-templates/files', [ContractTemplateFileController::class, 'index']);
+      Route::post('contract-templates/files', [ContractTemplateFileController::class, 'store']);
+      Route::apiResource('contract-templates', ContractTemplateController::class);
 });

@@ -6,8 +6,8 @@ class IncludeRegistry
 {
     private array $map = [
         'transactions' => ['cashbox', 'company', 'counterparty', 'contract', 'transactionType', 'paymentMethod'],
-        'receipts' => ['cashbox', 'company', 'counterparty', 'contract', 'transaction'],
-        'spendings' => ['cashbox', 'company', 'counterparty', 'contract', 'item', 'fund', 'transaction', 'spentToUser'],
+        'receipts' => ['cashbox', 'company', 'counterparty', 'contract', 'transaction', 'creator'],
+        'spendings' => ['cashbox', 'company', 'counterparty', 'contract', 'item', 'fund', 'transaction', 'spentToUser', 'creator'],
     ];
 
     public function resolve(string $resource, ?string $includeParam): array

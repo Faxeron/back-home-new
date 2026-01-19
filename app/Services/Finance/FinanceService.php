@@ -198,6 +198,43 @@ class FinanceService
         });
     }
 
+    public function deleteSpending(int $spendingId, int $tenantId, int $companyId, ?int $userId = null): void
+    {
+        $this->transaction(function () use ($spendingId, $tenantId, $companyId, $userId) {
+            $spending = Spending::query()
+                ->where('id', $spendingId)
+                ->where('tenant_id', $tenantId)
+                ->where('company_id', $companyId)
+                ->first();
+
+            if (!$spending) {
+                throw new RuntimeException('Spending not found');
+            }
+
+            $transactionId = $spending->transaction_id;
+
+            if ($transactionId) {
+                CashboxHistory::query()
+                    ->where('transaction_id', $transactionId)
+                    ->delete();
+
+                Transaction::query()
+                    ->where('id', $transactionId)
+                    ->delete();
+            }
+
+            $spending->delete();
+
+            event(new FinancialActionLogged('spending.deleted', [
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
+                'user_id' => $userId,
+                'spending_id' => $spendingId,
+                'transaction_id' => $transactionId,
+            ]));
+        });
+    }
+
     public function createDirectorWithdrawal(array $data): SpendingDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);

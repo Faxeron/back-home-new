@@ -31,3 +31,9 @@ pnpm dev
 ```sh
 pnpm build
 ```
+
+## Project Docs
+
+- `docs/STRUCTURE_GUIDE.md` (module structure, layering, imports)
+- `docs/UI_STANDARDS.md` (Vuexy/PrimeVue UI rules)
+- `docs/project-structure.txt` (repo layout)

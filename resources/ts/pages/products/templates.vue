@@ -1,10 +1,7 @@
+<script setup lang="ts">
+import ProductsTemplatesPage from '@/modules/products/pages/products/templates.vue'
+</script>
+
 <template>
-  <VRow>
-    <VCol cols="12">
-      <VCard>
-        <VCardTitle>Шаблоны</VCardTitle>
-        <VCardText>Раздел в разработке.</VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <ProductsTemplatesPage />
 </template>

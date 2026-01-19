@@ -4,6 +4,7 @@ namespace App\Domain\CRM\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Counterparty extends Model
 {
@@ -39,5 +40,15 @@ class Counterparty extends Model
         }
 
         return $digits;
+    }
+
+    public function individual(): HasOne
+    {
+        return $this->hasOne(CounterpartyIndividual::class, 'counterparty_id');
+    }
+
+    public function company(): HasOne
+    {
+        return $this->hasOne(CounterpartyCompany::class, 'counterparty_id');
     }
 }

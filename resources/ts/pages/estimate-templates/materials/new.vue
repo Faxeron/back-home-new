@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import EstimateTemplateMaterialEditor from '@/components/estimates/EstimateTemplateMaterialEditor.vue'
+import MaterialTemplateCreatePage from '@/modules/estimates/pages/estimate-templates/materials/new.vue'
 </script>
 
 <template>
-  <EstimateTemplateMaterialEditor />
+  <MaterialTemplateCreatePage />
 </template>

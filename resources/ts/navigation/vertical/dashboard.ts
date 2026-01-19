@@ -59,10 +59,11 @@ export default [
     ],
   },
   {
-    title: 'Производство',
+    title: 'Операции',
     icon: { icon: 'tabler-briefcase' },
     children: [
       { title: 'Договоры', to: { path: '/operations/contracts' } },
+      { title: 'Шаблоны договоров', to: { path: '/operations/contracts/templates' } },
       { title: 'Замеры', to: { path: '/operations/measurements' } },
       { title: 'Монтажи', to: { path: '/operations/installations' } },
     ],

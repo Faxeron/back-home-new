@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Domain\CRM\Models\ContractStatusChange;
 
 class Contract extends Model
@@ -26,9 +27,11 @@ class Contract extends Model
     protected $casts = [
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'contract_date' => 'date',
         'work_start_date' => 'date',
         'work_end_date' => 'date',
         'system_status_code' => ContractSystemStatusEnum::class,
+        'template_product_type_ids' => 'array',
     ];
 
     public function counterparty(): BelongsTo
@@ -74,5 +77,31 @@ class Contract extends Model
     public function statusChanges(): HasMany
     {
         return $this->hasMany(ContractStatusChange::class, 'contract_id');
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(ContractGroup::class, 'contract_group_id');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(ContractTemplate::class, 'contract_template_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ContractItem::class, 'contract_id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(ContractDocument::class, 'contract_id');
+    }
+
+    public function currentDocument(): HasOne
+    {
+        return $this->hasOne(ContractDocument::class, 'contract_id')
+            ->where('is_current', true);
     }
 }

@@ -43,6 +43,11 @@ class ReceiptResource extends JsonResource
                 'name' => $this->counterparty->name ?? null,
                 'phone' => $this->counterparty->phone ?? null,
             ]),
+            'creator' => $this->whenLoaded('creator', fn () => [
+                'id' => $this->creator->id,
+                'name' => $this->creator->name ?? $this->creator->fullName ?? null,
+                'email' => $this->creator->email ?? null,
+            ]),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

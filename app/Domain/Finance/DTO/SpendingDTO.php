@@ -3,6 +3,7 @@
 namespace App\Domain\Finance\DTO;
 
 use App\Domain\Finance\Models\Spending;
+use App\Domain\Finance\ValueObjects\Money;
 
 class SpendingDTO
 {
@@ -25,13 +26,16 @@ class SpendingDTO
 
     public static function fromModel(Spending $spending): self
     {
+        $sum = $spending->sum;
+        $sumValue = $sum instanceof Money ? $sum->toFloat() : (float) $sum;
+
         return new self(
             id: $spending->id,
             tenantId: $spending->tenant_id,
             companyId: $spending->company_id,
             cashBoxId: $spending->cashbox_id,
             transactionId: $spending->transaction_id,
-            sum: (float) $spending->sum,
+            sum: $sumValue,
             contractId: $spending->contract_id,
             counterpartyId: $spending->counterparty_id,
             fundId: $spending->fond_id,

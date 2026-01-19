@@ -3,6 +3,7 @@
 namespace App\Domain\Finance\DTO;
 
 use App\Domain\Finance\Models\Transaction;
+use App\Domain\Finance\ValueObjects\Money;
 
 class TransactionDTO
 {
@@ -24,11 +25,14 @@ class TransactionDTO
 
     public static function fromModel(Transaction $transaction): self
     {
+        $sum = $transaction->sum;
+        $sumValue = $sum instanceof Money ? $sum->toFloat() : (float) $sum;
+
         return new self(
             id: $transaction->id,
             tenantId: $transaction->tenant_id,
             companyId: $transaction->company_id,
-            sum: (float) $transaction->sum,
+            sum: $sumValue,
             cashBoxId: $transaction->cashbox_id,
             transactionTypeId: (int) $transaction->transaction_type_id,
             paymentMethodId: $transaction->payment_method_id,

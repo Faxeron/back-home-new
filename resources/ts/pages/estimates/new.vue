@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import EstimateEditor from '@/components/estimates/EstimateEditor.vue'
+import EstimateCreatePage from '@/modules/estimates/pages/estimates/new.vue'
 </script>
 
 <template>
-  <EstimateEditor />
+  <EstimateCreatePage />
 </template>

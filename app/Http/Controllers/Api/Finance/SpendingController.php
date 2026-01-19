@@ -10,6 +10,9 @@ use App\Services\Finance\FinanceService;
 use App\Services\Finance\SpendingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class SpendingController extends Controller
 {
@@ -61,5 +64,63 @@ class SpendingController extends Controller
         $spending = $this->financeService->createSpending($payload);
 
         return response()->json($spending, 201);
+    }
+
+    public function destroy(Request $request, int $spending): JsonResponse
+    {
+        $this->ensureAdmin($request);
+
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        try {
+            $this->financeService->deleteSpending($spending, (int) $tenantId, (int) $companyId, $request->user()?->id);
+        } catch (RuntimeException $exception) {
+            if ($exception->getMessage() === 'Spending not found') {
+                return response()->json(['message' => 'Spending not found'], 404);
+            }
+            throw $exception;
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    private function ensureAdmin(Request $request): void
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403, 'Only admins can delete.');
+        }
+
+        $userId = (int) $user->id;
+        $db = DB::connection('legacy_new');
+        $isAdmin = false;
+
+        if (Schema::connection('legacy_new')->hasTable('role_users') && Schema::connection('legacy_new')->hasTable('roles')) {
+            $isAdmin = $db->table('role_users')
+                ->join('roles', 'roles.id', '=', 'role_users.role_id')
+                ->where('role_users.user_id', $userId)
+                ->where(function ($query) {
+                    $query->where('roles.code', 'admin')
+                        ->orWhere('roles.name', 'Admin');
+                })
+                ->exists();
+        }
+
+        $isOwner = false;
+        if (Schema::connection('legacy_new')->hasTable('user_company')) {
+            $isOwner = $db->table('user_company')
+                ->where('user_id', $userId)
+                ->where('role', 'owner')
+                ->exists();
+        }
+
+        if (!$isAdmin && !$isOwner && $userId !== 1) {
+            abort(403, 'Only admins can delete.');
+        }
     }
 }

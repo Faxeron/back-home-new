@@ -1,46 +1,38 @@
 # PROJECT OVERVIEW
 
-Комментарий (RU)
-- Краткий обзор модулей и техстека. Детали см. `docs/Finance Module.md` и `docs/schema.txt`.
-
-## Назначение
-- ERP-админка на Laravel 12 + Vue 3 (база Vuexy).
-- Модули: finance, catalog, CRM/contracts, settings, dev-control.
+## Кратко (RU)
+- ERP на Laravel 12 + Vue 3 (Vuexy + PrimeVue), ориентирована на SaaS и мульти‑компании.
+- Основные модули: finance, products (catalog), estimates, production (contracts/measurements/installations), settings.
+- База данных: основная связь через `legacy_new` (default connection не используется).
 
 ## Технологии
 - Backend: PHP 8.2+, Laravel 12; Domain/Services/Repositories; FormRequest + Resources; события/джобы.
-- DB: основное подключение `legacy_new` (default connection не используется).
-- Frontend: Vue 3 + Vite + TypeScript; Pinia; Vue Router; PrimeVue 4 + Vuetify 3.
-- UI/Media: ApexCharts, Chart.js, Tiptap, mapbox-gl.
+- Frontend: Vue 3 + Vite + TypeScript; Pinia; Vue Router; Vuexy (Vuetify 3); PrimeVue 4.
 - Tooling: ESLint/Stylelint, vue-tsc, Iconify (`npm run build:icons`), MSW (`npm run msw:init`).
-- Docker: `compose.yaml` для локального стека.
 
-## API и доменные акценты
+## API (обзор)
 - Auth: `POST /api/auth/login`.
-- Finance: список транзакций, кассы/балансы, поступления, расходы, переводы, справочники (`/api/finance/*`).
-- Settings: contract statuses, cash boxes, companies, spending funds/items, sale types, cities/districts, tenants (`/api/settings/*`).
-- Catalog: products + categories/brands/subcategories (`/api/products/*`).
-- Contracts: `GET /api/contracts`.
-- Dev-control: `/api/dev-control`.
-- FinanceService (`App\Services\Finance\FinanceService`) контролирует суммы, балансы и пишет историю касс.
-
-## Данные и фоновые задачи
-- Ключевые таблицы: `transactions`, `transaction_types`, `receipts`, `spendings`, `cash_transfers`, `cashbox_history`, `cashboxes`, `payment_methods`, `cashbox_balance_snapshots`.
-- Баланс считается по транзакциям и сохраняется в `cashbox_history`; снапшоты пишет `CashBoxBalanceSnapshotJob`.
-- Тесты: `tests/Feature/FinanceServiceTest.php` покрывает основные кейсы переводов и балансов.
+- Finance: `/api/finance/*` (транзакции, приходы, расходы, кассы, типы транзакций, методы оплат).
+- Settings: `/api/settings/*` (общие справочники).
+- Catalog: `/api/products/*` (товары, категории, бренды, подкатегории).
+- Contracts: `/api/contracts`.
 
 ## Frontend структура
-- Исходники в `resources/ts` (api, components, composables, pages, stores, types, navigation, plugins, views, `main.ts`).
-- Автоген `.d.ts`: `auto-imports.d.ts`, `components.d.ts`, `typed-router.d.ts`.
+- Module‑first: `resources/ts/modules/<feature>/`.
+  - `pages/`, `components/`, `composables/`, `api/`, `types/`, `config/`, `store/` (редко).
+- Route wrappers: `resources/ts/pages/*` (тонкие файлы для автроутера).
+- Shared: `resources/ts/@core/shared/*`, `resources/ts/utils/*`, `resources/ts/stores/*`.
 
-## Локальный запуск
-- Backend: `composer install`, `.env` из `.env.example`, `php artisan key:generate`, миграции.
-- Frontend: `npm install` (или `pnpm install`), затем `npm run build:icons`, `npm run dev`.
-- Dev-стек: `composer run dev` (artisan + queue + pail + Vite).
-- Tests: `composer test`; фронтенд линт/типы: `npm run lint`, `npm run typecheck`.
+## Модульная карта
+- finance: транзакции/приходы/расходы + финансовые справочники.
+- settings: общие справочники (companies, cities, districts, contract statuses, sale types).
+- production: contracts, measurements, installations.
+- estimates
+- products
 
 ## Полезные документы
-- `docs/project-structure.txt`
-- `docs/Finance Module.md`
-- `docs/schema.txt`
-- `docs/ai/API_MAP.md`
+- `docs/STRUCTURE_GUIDE.md` — слои, импорты, модульная структура.
+- `docs/UI_STANDARDS.md` — стандарты UI (Vuexy + PrimeVue).
+- `docs/CRM_TABLE_STRUCTURE.md` — правила таблиц CRM.
+- `docs/project-structure.txt` — структура репозитория.
+- `docs/Finance Module.md`, `docs/schema.txt`, `docs/ai/API_MAP.md`.
