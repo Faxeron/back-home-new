@@ -21,6 +21,8 @@ use App\Http\Controllers\API\Finance\DirectorController;
 use App\Http\Controllers\Api\SaleTypeController;
 use App\Http\Controllers\Api\SpendingFundController;
 use App\Http\Controllers\Api\SpendingItemController;
+use App\Http\Controllers\Api\MarginSettingsController;
+use App\Http\Controllers\Api\PayrollSettingsController;
 use App\Http\Controllers\API\Finance\TransactionTypeController;
 use App\Http\Controllers\API\Finance\PaymentMethodController;
 use App\Http\Controllers\API\Finance\FundController;
@@ -100,6 +102,10 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::apiResource('companies', CompanyController::class);
         Route::apiResource('spending-funds', SpendingFundController::class)->parameter('spending-funds', 'spendingFund');
         Route::apiResource('spending-items', SpendingItemController::class)->parameter('spending-items', 'spendingItem');
+        Route::get('payroll', [PayrollSettingsController::class, 'show']);
+        Route::put('payroll', [PayrollSettingsController::class, 'update']);
+        Route::get('margin', [MarginSettingsController::class, 'show']);
+        Route::put('margin', [MarginSettingsController::class, 'update']);
         Route::get('cities', [CityController::class, 'index']);
         Route::get('cities-districts', [CityDistrictController::class, 'index']);
         Route::apiResource('sale-types', SaleTypeController::class);
@@ -150,6 +156,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
       Route::get('contracts/status-history', [ContractStatusHistoryController::class, 'index']);
       Route::get('contracts/{contract}/history', [ContractHistoryController::class, 'index'])->whereNumber('contract');
       Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract');
+      Route::get('contracts/{contract}/analysis', [ContractController::class, 'analysis'])->whereNumber('contract');
       Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract');
       Route::get('contracts/{contract}/documents', [ContractDocumentController::class, 'index'])->whereNumber('contract');
       Route::post('contracts/{contract}/documents', [ContractDocumentController::class, 'store'])->whereNumber('contract');

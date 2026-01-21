@@ -33,10 +33,12 @@ Finance (legacy aliases)
 Settings
 - /api/settings/contract-statuses — CRUD статусов договоров.
 - /api/settings/cash-boxes — CRUD касс.
-- /api/settings/companies — CRUD компаний.
-- /api/settings/spending-funds — CRUD фондов расходов.
-- /api/settings/spending-items — CRUD статей расходов.
-- /api/settings/sale-types — CRUD типов продаж.
+- /api/settings/companies - CRUD компаний.
+- /api/settings/spending-funds - CRUD фондов расходов.
+- /api/settings/spending-items - CRUD статей расходов.
+- /api/settings/payroll - GET/PUT настройки расчета зарплат менеджера/замерщика.
+- /api/settings/margin - GET/PUT настройки порогов цвета маржи.
+- /api/settings/sale-types - CRUD типов продаж.
 - GET /api/settings/cities — список городов.
 - GET /api/settings/cities-districts — список районов.
 - GET /api/settings/tenants — список тенантов.
@@ -71,7 +73,8 @@ Estimate templates
 - PATCH /api/estimate-templates/septiks/{template}
 
 Contracts
-- GET /api/contracts — список договоров.
+- GET /api/contracts - список договоров.
+- GET /api/contracts/{contract}/analysis - анализ плановых/фактических расходов по договору.
 
 Dev control
 - GET /api/dev-control — статусы модулей.

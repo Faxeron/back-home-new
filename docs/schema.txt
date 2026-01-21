@@ -30,6 +30,8 @@ Reference/settings (legacy_new)
 - cities_districts: id PK; city_id FK->cities; name; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
 - sale_types: id PK; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
 - contract_statuses: id PK; name; code UNIQUE; color; sort_order; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
+- payroll_settings: id PK; tenant_id; company_id; manager_fixed; manager_percent; measurer_fixed; measurer_percent; created_at; updated_at.
+- margin_settings: id PK; tenant_id; company_id; red_max; orange_max; created_at; updated_at.
 
 CRM/contracts (legacy_new)
 - counterparties: id PK; type; name; phone; email; address; comment; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.

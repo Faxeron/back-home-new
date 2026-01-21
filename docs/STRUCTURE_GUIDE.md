@@ -67,7 +67,7 @@ Example: Estimates
 
 Current module map (frontend)
 - finance: transactions/receipts/spendings + finance dictionaries (cash boxes, spending funds/items, transaction types)
-- settings: common dictionaries (companies, cities, districts, contract statuses, sale types)
+- settings: common dictionaries (companies, cities, districts, contract statuses, sale types, payroll, margin thresholds)
 - production: operations domain (contracts, measurements, installations)
 - estimates
 - products

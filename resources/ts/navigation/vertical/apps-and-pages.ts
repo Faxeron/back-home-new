@@ -52,6 +52,8 @@ export default [
       { title: 'Типы продаж', to: { path: '/settings/sale-types' } },
       { title: 'Города', to: { path: '/settings/cities' } },
       { title: 'Районы', to: { path: '/settings/districts' } },
+      { title: 'ЗП настройки', to: { path: '/settings/payroll' } },
+      { title: 'Настройки маржи', to: { path: '/settings/margin' } },
     ],
   },
   {

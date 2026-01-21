@@ -60,17 +60,52 @@ type ContractHistoryItem = {
   title?: string | null
   user?: { id: number; name?: string | null; email?: string | null } | null
 }
+type ContractAnalysisRow = {
+  category: string
+  client: number
+  planned: number
+  actual: number
+  delta: number
+}
+type ContractAnalysisTotals = {
+  client: number
+  planned: number
+  actual: number
+  delta: number
+}
+type ContractAnalysisResponse = {
+  rows: ContractAnalysisRow[]
+  totals: ContractAnalysisTotals
+  meta?: {
+    contract_total?: number
+    margin?: number
+    settings?: {
+      manager_fixed?: number
+      manager_percent?: number
+      measurer_fixed?: number
+      measurer_percent?: number
+    }
+  }
+}
+type MarginSettings = {
+  red_max: number
+  orange_max: number
+}
 
 const history = ref<ContractHistoryItem[]>([])
 const documents = ref<ContractDocument[]>([])
 const receipts = ref<Receipt[]>([])
 const spendings = ref<Spending[]>([])
+const analysisRows = ref<ContractAnalysisRow[]>([])
+const analysisTotals = ref<ContractAnalysisTotals>({ client: 0, planned: 0, actual: 0, delta: 0 })
+const marginSettings = ref<MarginSettings>({ red_max: 10, orange_max: 20 })
 const spendingsDraft = ref<SpendingDraft[]>([])
 const activeTab = ref('card')
 const loading = ref(false)
 const historyLoading = ref(false)
 const documentsLoading = ref(false)
 const receiptsLoading = ref(false)
+const analysisLoading = ref(false)
 const spendingsSaving = ref(false)
 const spendingsLoading = ref(false)
 const generatingId = ref<number | null>(null)
@@ -89,6 +124,7 @@ const historyError = ref('')
 const documentsError = ref('')
 const receiptsError = ref('')
 const spendingsError = ref('')
+const analysisError = ref('')
 const confirmSpendingDeleteOpen = ref(false)
 const pendingSpending = ref<SpendingDraft | null>(null)
 let spendingTempId = -1
@@ -118,9 +154,29 @@ const datePickerConfig = {
 }
 
 const formatMoney = (value?: number | null) => {
-  if (value === null || value === undefined) return '—'
+  if (value === null || value === undefined) return '-'
   return formatSum(value)
 }
+
+const formatPercent = (value?: number | null) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return '-'
+  return `${value.toFixed(2)}%`
+}
+
+const marginColor = (value?: number | null) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return 'rgba(var(--v-theme-on-surface), 0.7)'
+  }
+  const redMax = marginSettings.value.red_max ?? 10
+  const orangeMax = marginSettings.value.orange_max ?? 20
+  if (value < redMax) return 'rgb(var(--v-theme-error))'
+  if (value < orangeMax) return 'rgb(var(--v-theme-warning))'
+  return 'rgb(var(--v-theme-success))'
+}
+
+const planMinusFactColor = computed(() =>
+  planMinusFact.value >= 0 ? 'rgb(var(--v-theme-success))' : 'rgb(var(--v-theme-error))',
+)
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '-'
@@ -186,6 +242,15 @@ const formatReceiptSum = (value?: any) => formatSum(value)
 const formatReceiptDate = (value?: string | null) => formatDate(value)
 const formatSpendingSum = (value?: any) => formatSum(value)
 const formatSpendingDate = (value?: string | null) => formatDate(value)
+const receiptAmount = (value?: any) => {
+  if (value && typeof value === 'object' && 'amount' in value) {
+    const raw = (value as any).amount
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 const spendingAmount = (value?: any) => {
   if (value && typeof value === 'object' && 'amount' in value) {
     const raw = (value as any).amount
@@ -199,6 +264,25 @@ const spendingAmount = (value?: any) => {
 type SpendingRow = SpendingDraft
 
 const spendingsRows = computed<SpendingRow[]>(() => spendingsDraft.value as SpendingRow[])
+const receiptsTotal = computed(() =>
+  receipts.value.reduce((sum, row) => sum + receiptAmount(row.sum), 0),
+)
+const spendingsTotal = computed(() =>
+  spendingsDraft.value.reduce((sum, row) => sum + spendingAmount(row.sum), 0),
+)
+const planMinusFact = computed(() => analysisTotals.value.planned - analysisTotals.value.actual)
+const plannedProfit = computed(() => analysisTotals.value.client - analysisTotals.value.planned)
+const plannedMargin = computed(() => {
+  const base = analysisTotals.value.client
+  if (!base) return 0
+  return (plannedProfit.value / base) * 100
+})
+const actualProfit = computed(() => receiptsTotal.value - analysisTotals.value.actual)
+const actualMargin = computed(() => {
+  const base = analysisTotals.value.actual
+  if (!base) return 0
+  return (actualProfit.value / base) * 100
+})
 
 const spendingItemsForFund = (fondId?: number | null) => {
   if (!fondId) return dictionaries.spendingItems
@@ -414,6 +498,7 @@ const saveEdit = async () => {
     contract.value = response?.data ?? contract.value
     editMode.value = false
     syncEditForm()
+    await loadAnalysis()
     showSnackbar('Данные договора обновлены.', 'success')
   } catch (error: any) {
     editError.value = error?.response?.data?.message ?? 'Не удалось сохранить изменения.'
@@ -471,6 +556,21 @@ const loadReceipts = async () => {
   }
 }
 
+const loadMarginSettings = async () => {
+  try {
+    const response: any = await $api('settings/margin')
+    const data = response?.data as MarginSettings | undefined
+    if (data) {
+      marginSettings.value = {
+        red_max: Number(data.red_max ?? 10),
+        orange_max: Number(data.orange_max ?? 20),
+      }
+    }
+  } catch (error) {
+    marginSettings.value = { red_max: 10, orange_max: 20 }
+  }
+}
+
 const loadSpendings = async () => {
   if (!contractId.value) return
   spendingsLoading.value = true
@@ -495,6 +595,22 @@ const loadSpendings = async () => {
     spendingsError.value = error?.response?.data?.message ?? 'Не удалось загрузить расходы.'
   } finally {
     spendingsLoading.value = false
+  }
+}
+
+const loadAnalysis = async () => {
+  if (!contractId.value) return
+  analysisLoading.value = true
+  analysisError.value = ''
+  try {
+    const response: any = await $api(`contracts/${contractId.value}/analysis`)
+    const payload = (response?.data ?? {}) as ContractAnalysisResponse
+    analysisRows.value = payload.rows ?? []
+    analysisTotals.value = payload.totals ?? { client: 0, planned: 0, actual: 0, delta: 0 }
+  } catch (error: any) {
+    analysisError.value = error?.response?.data?.message ?? 'Не удалось загрузить анализ.'
+  } finally {
+    analysisLoading.value = false
   }
 }
 
@@ -571,6 +687,7 @@ const saveSpendings = async () => {
     }
 
     await loadSpendings()
+    await loadAnalysis()
     showSnackbar('Расходы сохранены.', 'success')
   } catch (error: any) {
     const message = normalizeFinanceError(error?.response?.data?.message ?? error?.data?.message)
@@ -599,6 +716,7 @@ const deleteSpending = async () => {
     await $api(`finance/spendings/${target.id}`, { method: 'DELETE' })
     showSnackbar('Расход удален.', 'success')
     await loadSpendings()
+    await loadAnalysis()
   } catch (error: any) {
     const message = normalizeFinanceError(error?.response?.data?.message ?? error?.data?.message)
     spendingsError.value = message ?? 'Не удалось удалить расход.'
@@ -723,15 +841,18 @@ watch(contractId, async () => {
   await loadDocuments()
   await loadReceipts()
   await loadSpendings()
+  await loadAnalysis()
 })
 
 onMounted(async () => {
   await Promise.all([dictionaries.loadSaleTypes(), dictionaries.loadCities()])
+  await loadMarginSettings()
   await loadContract()
   await loadHistory()
   await loadDocuments()
   await loadReceipts()
   await loadSpendings()
+  await loadAnalysis()
 })
 </script>
 
@@ -788,7 +909,6 @@ onMounted(async () => {
     <VWindow v-model="activeTab">
       <VWindowItem value="card">
         <Card>
-          <template #title>Карточка договора</template>
           <template #content>
             <div class="flex justify-end gap-2 mb-3">
               <Button
@@ -864,7 +984,6 @@ onMounted(async () => {
 
           <VWindowItem value="client">
             <Card>
-              <template #title>Данные о клиенте</template>
               <template #content>
                 <DataTable
                   :value="clientDetails"
@@ -880,8 +999,7 @@ onMounted(async () => {
 
       <VWindowItem value="documents">
         <Card>
-          <template #title>Документы</template>
-              <template #content>
+          <template #content>
                 <div v-if="documentsError" class="text-sm" style="color: #b91c1c;">
                   {{ documentsError }}
                 </div>
@@ -970,7 +1088,6 @@ onMounted(async () => {
 
       <VWindowItem value="payments">
         <Card>
-          <template #title>Оплаты</template>
           <template #content>
             <div v-if="receiptsError" class="text-sm" style="color: #b91c1c;">
               {{ receiptsError }}
@@ -1021,13 +1138,16 @@ onMounted(async () => {
                 <div class="text-center py-6 text-muted">Оплат нет.</div>
               </template>
             </DataTable>
+            <Divider />
+            <div class="flex justify-end text-sm font-semibold">
+              Сумма: {{ formatMoney(receiptsTotal) }}
+            </div>
           </template>
         </Card>
       </VWindowItem>
 
       <VWindowItem value="spendings">
         <Card>
-          <template #title>Расходы</template>
           <template #content>
             <div v-if="spendingsError" class="text-sm" style="color: #b91c1c;">
               {{ spendingsError }}
@@ -1040,7 +1160,7 @@ onMounted(async () => {
                   :disabled="spendingsSaving"
                   @click="addSpendingRow"
                 >
-                  Добавить строку
+                  Добавить расход
                 </VBtn>
                 <VBtn
                   color="success"
@@ -1166,31 +1286,117 @@ onMounted(async () => {
                 <div class="text-center py-6 text-muted">Расходов нет.</div>
               </template>
             </DataTable>
+            <Divider />
+            <div class="flex justify-end text-sm font-semibold">
+              Сумма: {{ formatMoney(spendingsTotal) }}
+            </div>
           </template>
         </Card>
       </VWindowItem>
 
       <VWindowItem value="installation">
         <Card>
-          <template #title>Монтаж</template>
-              <template #content>
-                <div class="text-sm text-muted">Раздел в разработке.</div>
-              </template>
-            </Card>
+          <template #content>
+            <div class="text-sm text-muted">Раздел в разработке.</div>
+          </template>
+        </Card>
           </VWindowItem>
 
           <VWindowItem value="analysis">
             <Card>
-              <template #title>Анализ</template>
               <template #content>
-                <div class="text-sm text-muted">Раздел в разработке.</div>
+                <div v-if="analysisError" class="text-sm" style="color: #b91c1c;">
+                  {{ analysisError }}
+                </div>
+                <div v-if="analysisLoading" class="text-sm text-muted">Загрузка...</div>
+                <DataTable
+                  v-else
+                  :value="analysisRows"
+                  dataKey="category"
+                  class="p-datatable-sm"
+                >
+                  <Column field="category" header="Статья">
+                    <template #body="{ data: row }">
+                      {{ row.category }}
+                    </template>
+                    <template #footer>
+                      <span class="font-semibold">Итого</span>
+                    </template>
+                  </Column>
+                  <Column field="client" header="Цена клиента" style="inline-size: 16ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.client) }}
+                    </template>
+                    <template #footer>
+                      <div class="flex justify-end font-semibold">
+                        {{ formatMoney(analysisTotals.client) }}
+                      </div>
+                    </template>
+                  </Column>
+                  <Column field="planned" header="План" style="inline-size: 16ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.planned) }}
+                    </template>
+                    <template #footer>
+                      <div class="flex justify-end font-semibold">
+                        {{ formatMoney(analysisTotals.planned) }}
+                      </div>
+                    </template>
+                  </Column>
+                  <Column field="actual" header="Факт" style="inline-size: 16ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.actual) }}
+                    </template>
+                    <template #footer>
+                      <div class="flex justify-end font-semibold">
+                        {{ formatMoney(analysisTotals.actual) }}
+                      </div>
+                    </template>
+                  </Column>
+                  <Column field="delta" header="Отклонение" style="inline-size: 16ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.delta) }}
+                    </template>
+                    <template #footer>
+                      <div class="flex justify-end font-semibold">
+                        {{ formatMoney(analysisTotals.delta) }}
+                      </div>
+                    </template>
+                  </Column>
+                  <template #empty>
+                    <div class="text-center py-6 text-muted">Нет данных.</div>
+                  </template>
+                </DataTable>
+                <Divider />
+                <div class="flex flex-wrap items-center justify-end gap-4 text-sm font-semibold">
+                  <div>Приходы: {{ formatMoney(receiptsTotal) }}</div>
+                  <div>Расходы: {{ formatMoney(analysisTotals.actual) }}</div>
+                </div>
+                <div class="flex flex-column items-end gap-1 text-sm font-semibold">
+                  <div :style="{ color: planMinusFactColor }">
+                    План - факт: {{ formatMoney(planMinusFact) }}
+                  </div>
+                  <div>Плановая валовая прибыль: {{ formatMoney(plannedProfit) }}</div>
+                  <div>
+                    Плановая валовая маржа:
+                    <span :style="{ color: marginColor(plannedMargin) }">
+                      {{ formatPercent(plannedMargin) }}
+                    </span>
+                  </div>
+                  <div>Валовая прибыль: {{ formatMoney(actualProfit) }}</div>
+                  <div>
+                    Валовая маржа:
+                    <span :style="{ color: marginColor(actualMargin) }">
+                      {{ formatPercent(actualMargin) }}
+                    </span>
+                  </div>
+                </div>
               </template>
             </Card>
           </VWindowItem>
 
           <VWindowItem value="payroll">
             <Card>
-              <template #title>З/П</template>
               <template #content>
                 <div class="text-sm text-muted">Раздел в разработке.</div>
               </template>
@@ -1199,7 +1405,6 @@ onMounted(async () => {
 
           <VWindowItem value="history">
             <Card>
-              <template #title>История</template>
               <template #content>
                 <div v-if="historyError" class="text-sm" style="color: #b91c1c;">
                   {{ historyError }}

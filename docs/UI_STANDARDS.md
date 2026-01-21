@@ -14,7 +14,7 @@ Structure
 
 Module map (frontend)
 - finance: transactions/receipts/spendings + finance dictionaries
-- settings: common dictionaries (companies, cities, districts, contract statuses, sale types)
+- settings: common dictionaries (companies, cities, districts, contract statuses, sale types, payroll, margin thresholds)
 - production: contracts, measurements, installations
 - estimates
 - products
