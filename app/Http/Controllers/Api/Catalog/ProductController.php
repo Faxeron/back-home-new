@@ -7,6 +7,7 @@ use App\Http\Resources\ProductResource;
 use App\Http\Requests\Catalog\ProductUpdateRequest;
 use App\Domain\Catalog\DTO\ProductFilterDTO;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Catalog\Models\ProductRelation;
 use App\Services\Catalog\CatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -122,10 +123,43 @@ class ProductController extends Controller
 
         $model->fill($data);
         $model->save();
+        if (array_key_exists('montaj_sebest', $data)) {
+            $this->syncInstallationWorkPrice($model, $data['montaj_sebest'], $request->user()?->id);
+        }
         $model->load(['category', 'subCategory', 'brand', 'kind']);
 
         return response()->json([
             'data' => (new ProductResource($model))->toArray($request),
         ]);
+    }
+
+    private function syncInstallationWorkPrice(Product $product, $montajSebest, ?int $userId): void
+    {
+        $relatedIds = ProductRelation::query()
+            ->where('product_id', $product->id)
+            ->where('relation_type', 'INSTALLATION_WORK')
+            ->pluck('related_product_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($relatedIds)) {
+            return;
+        }
+
+        $update = [
+            'price_zakup' => $montajSebest,
+            'work_kind' => 'installation_linked',
+            'updated_at' => now(),
+        ];
+
+        if ($userId) {
+            $update['updated_by'] = $userId;
+        }
+
+        Product::query()
+            ->whereIn('id', $relatedIds)
+            ->update($update);
     }
 }

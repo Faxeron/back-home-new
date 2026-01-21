@@ -13,6 +13,7 @@ class ProductUpdateRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'scu' => ['sometimes', 'string', 'max:255'],
             'product_type_id' => ['sometimes', 'integer', Rule::exists('legacy_new.product_types', 'id')],
+            'work_kind' => ['sometimes', 'nullable', Rule::in(['installation_linked', 'work_standalone'])],
             'product_kind_id' => ['sometimes', 'nullable', 'integer', Rule::exists('legacy_new.product_kinds', 'id')],
             'category_id' => ['sometimes', 'nullable', 'integer', Rule::exists('legacy_new.product_categories', 'id')],
             'sub_category_id' => ['sometimes', 'nullable', 'integer', Rule::exists('legacy_new.product_subcategories', 'id')],

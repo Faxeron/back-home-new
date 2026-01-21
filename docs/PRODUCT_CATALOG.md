@@ -35,4 +35,8 @@ Catalog schema additions
 - product_media: product_id, type, url, sort_order + meta columns.
 - product_relations: product_id, related_product_id, relation_type + meta columns.
 - product_kinds: name + meta columns.
-- products: unit_id, product_kind_id, is_visible, is_top, is_new, price_vendor_min, price_delivery, sort_order.
+- products: unit_id, product_kind_id, work_kind (installation_linked/work_standalone), is_visible, is_top, is_new, price_vendor_min, price_delivery, sort_order.
+
+Work kinds
+- installation_linked: installation work linked via product_relations (INSTALLATION_WORK); price_zakup is synced from parent product montaj_sebest.
+- work_standalone: standalone work; price_zakup is edited directly.

@@ -13,7 +13,7 @@
 ## API (обзор)
 - Auth: `POST /api/auth/login`.
 - Finance: `/api/finance/*` (транзакции, приходы, расходы, кассы, типы транзакций, методы оплат).
-- Settings: `/api/settings/*` (общие справочники).
+- Settings: `/api/settings/*` (общие справочники, включая настройки З/П).
 - Catalog: `/api/products/*` (товары, категории, бренды, подкатегории).
 - Contracts: `/api/contracts`.
 
@@ -25,7 +25,7 @@
 
 ## Модульная карта
 - finance: транзакции/приходы/расходы + финансовые справочники.
-- settings: общие справочники (companies, cities, districts, contract statuses, sale types).
+- settings: общие справочники (companies, cities, districts, contract statuses, sale types, payroll).
 - production: contracts, measurements, installations.
 - estimates
 - products

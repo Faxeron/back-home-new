@@ -4,6 +4,7 @@ export type Product = {
   company_id?: number
   name: string
   product_type_id?: number
+  work_kind?: 'installation_linked' | 'work_standalone' | null
   product_kind_id?: number
   spending_type_id?: number
   scu?: string
