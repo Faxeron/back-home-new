@@ -11,12 +11,14 @@ use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\Models\CashBox;
 use App\Domain\Finance\Models\SpendingFund;
 use App\Domain\Finance\Models\SpendingItem;
+use App\Domain\Finance\Models\FinanceAllocation;
 use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\Counterparty;
 use App\Domain\Common\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Spending extends Model
 {
@@ -75,6 +77,11 @@ class Spending extends Model
     public function spentToUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'spent_to_user_id');
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(FinanceAllocation::class, 'spending_id');
     }
 
     public function scopeOfContract($query, int $contractId)

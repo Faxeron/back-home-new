@@ -2,12 +2,14 @@
 
 namespace App\Domain\Finance\Models;
 
+use App\Domain\Common\Models\User;
 use App\Domain\Common\Traits\BelongsToCompany;
 use App\Domain\Common\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PayrollSetting extends Model
+class PayrollRule extends Model
 {
     use HasFactory;
     use BelongsToTenant;
@@ -15,14 +17,18 @@ class PayrollSetting extends Model
 
     protected $connection = 'legacy_new';
 
-    protected $table = 'payroll_settings';
+    protected $table = 'payroll_rules';
 
     protected $guarded = [];
 
     protected $casts = [
-        'manager_fixed' => 'float',
-        'manager_percent' => 'float',
-        'measurer_fixed' => 'float',
-        'measurer_percent' => 'float',
+        'is_active' => 'boolean',
+        'fixed_amount' => 'float',
+        'margin_percent' => 'float',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

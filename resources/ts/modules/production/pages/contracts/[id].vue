@@ -42,6 +42,25 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   install: 'Монтаж',
   combined: 'Совмещенный',
 }
+const PAYROLL_TYPE_LABELS: Record<string, string> = {
+  fixed: 'Фикс за договор',
+  margin_percent: 'Процент от маржи',
+  bonus: 'Бонус',
+  penalty: 'Штраф',
+}
+const PAYROLL_SOURCE_LABELS: Record<string, string> = {
+  system: 'Система',
+  manual: 'Вручную',
+}
+const PAYROLL_STATUS_LABELS: Record<string, string> = {
+  active: 'Создано',
+  paid: 'Оплачено',
+  cancelled: 'Отменено',
+}
+const PAYROLL_TYPE_OPTIONS = [
+  { title: 'Бонус', value: 'bonus' },
+  { title: 'Штраф', value: 'penalty' },
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -91,6 +110,20 @@ type MarginSettings = {
   red_max: number
   orange_max: number
 }
+type PayrollAccrualRow = {
+  id: number
+  type?: string | null
+  document_type?: string | null
+  base_amount?: number | null
+  percent?: number | null
+  amount?: number | null
+  status?: string | null
+  source?: string | null
+  comment?: string | null
+  created_at?: string | null
+  created_by?: { id: number; name?: string | null; email?: string | null } | null
+  user?: { id: number; name?: string | null; email?: string | null } | null
+}
 
 const history = ref<ContractHistoryItem[]>([])
 const documents = ref<ContractDocument[]>([])
@@ -125,12 +158,20 @@ const documentsError = ref('')
 const receiptsError = ref('')
 const spendingsError = ref('')
 const analysisError = ref('')
+const payrollError = ref('')
 const confirmSpendingDeleteOpen = ref(false)
 const pendingSpending = ref<SpendingDraft | null>(null)
 let spendingTempId = -1
 const editMode = ref(false)
 const editSaving = ref(false)
 const editError = ref('')
+const payrollRows = ref<PayrollAccrualRow[]>([])
+const payrollLoading = ref(false)
+const payrollSaving = ref(false)
+const payrollRecalcLoading = ref(false)
+const payrollType = ref<'bonus' | 'penalty'>('bonus')
+const payrollAmount = ref<number | null>(null)
+const payrollComment = ref('')
 const editForm = reactive({
   contract_date: '',
   total_amount: null as number | null,
@@ -232,6 +273,26 @@ const formatDocumentType = (doc: ContractDocument) => {
   return suffix ? `${label} (${suffix})` : label
 }
 
+const formatPayrollType = (row: PayrollAccrualRow) => {
+  const type = row.type ?? ''
+  return type ? (PAYROLL_TYPE_LABELS[type] ?? type) : '-'
+}
+
+const formatPayrollDocumentType = (row: PayrollAccrualRow) => {
+  const type = row.document_type ?? ''
+  return type ? (DOCUMENT_TYPE_LABELS[type] ?? type) : '-'
+}
+
+const formatPayrollSource = (row: PayrollAccrualRow) => {
+  const source = row.source ?? ''
+  return source ? (PAYROLL_SOURCE_LABELS[source] ?? source) : '-'
+}
+
+const formatPayrollStatus = (row: PayrollAccrualRow) => {
+  const status = row.status ?? ''
+  return status ? (PAYROLL_STATUS_LABELS[status] ?? status) : '-'
+}
+
 const showSnackbar = (text: string, color: 'success' | 'error' = 'success') => {
   snackbarText.value = text
   snackbarColor.value = color
@@ -269,6 +330,9 @@ const receiptsTotal = computed(() =>
 )
 const spendingsTotal = computed(() =>
   spendingsDraft.value.reduce((sum, row) => sum + spendingAmount(row.sum), 0),
+)
+const payrollTotal = computed(() =>
+  payrollRows.value.reduce((sum, row) => sum + (Number(row.amount ?? 0) || 0), 0),
 )
 const planMinusFact = computed(() => analysisTotals.value.planned - analysisTotals.value.actual)
 const plannedProfit = computed(() => analysisTotals.value.client - analysisTotals.value.planned)
@@ -323,6 +387,14 @@ const parseFileName = (contentDisposition?: string | null) => {
 
 const statusColor = computed(() => contract.value?.status?.color ?? '#94a3b8')
 const isAdmin = computed(() => String(userData.value?.role ?? '').toLowerCase() === 'admin')
+const canRecalcPayroll = computed(() => {
+  const status = contract.value?.status
+  if (!status) return false
+  const code = String(status.code ?? '').toUpperCase()
+  if (['COMPLETED', 'DONE', 'FINISHED', 'DONE_WORK', 'DONE_MONTAGE'].includes(code)) return true
+  const name = String(status.name ?? '').toLowerCase()
+  return name.includes('выполн')
+})
 
 const detailRows = computed(() => [
   {
@@ -614,6 +686,72 @@ const loadAnalysis = async () => {
   }
 }
 
+const loadPayroll = async () => {
+  if (!contractId.value) return
+  payrollLoading.value = true
+  payrollError.value = ''
+  try {
+    const response: any = await $api(`contracts/${contractId.value}/payroll`)
+    payrollRows.value = response?.data ?? []
+  } catch (error: any) {
+    payrollError.value = error?.response?.data?.message ?? 'Не удалось загрузить начисления.'
+  } finally {
+    payrollLoading.value = false
+  }
+}
+
+const saveManualPayroll = async () => {
+  if (!contractId.value) return
+  const amount = Number(payrollAmount.value ?? 0)
+  if (!amount || Number.isNaN(amount)) {
+    payrollError.value = 'Введите сумму.'
+    showSnackbar('Введите сумму.', 'error')
+    return
+  }
+
+  payrollSaving.value = true
+  payrollError.value = ''
+  try {
+    await $api(`contracts/${contractId.value}/payroll/manual`, {
+      method: 'POST',
+      body: {
+        type: payrollType.value,
+        amount,
+        comment: payrollComment.value || null,
+      },
+    })
+    payrollAmount.value = null
+    payrollComment.value = ''
+    await loadPayroll()
+    showSnackbar('Начисление добавлено.', 'success')
+  } catch (error: any) {
+    payrollError.value = error?.response?.data?.message ?? 'Не удалось добавить начисление.'
+    showSnackbar(payrollError.value, 'error')
+  } finally {
+    payrollSaving.value = false
+  }
+}
+
+const recalcPayroll = async () => {
+  if (!contractId.value) return
+  payrollRecalcLoading.value = true
+  payrollError.value = ''
+  try {
+    await $api(`contracts/${contractId.value}/payroll/recalculate`, { method: 'POST' })
+    await loadPayroll()
+    showSnackbar('Пересчитано.', 'success')
+  } catch (error: any) {
+    const status = error?.response?.status
+    const message = error?.response?.data?.message
+      ?? (status === 409 ? 'Пересчет доступен после статуса "Выполнен".' : null)
+      ?? 'Не удалось пересчитать начисления.'
+    payrollError.value = message
+    showSnackbar(message, 'error')
+  } finally {
+    payrollRecalcLoading.value = false
+  }
+}
+
 const ensureSpendingLookups = async () => {
   await Promise.all([
     dictionaries.loadCashBoxes(),
@@ -842,6 +980,7 @@ watch(contractId, async () => {
   await loadReceipts()
   await loadSpendings()
   await loadAnalysis()
+  await loadPayroll()
 })
 
 onMounted(async () => {
@@ -853,6 +992,7 @@ onMounted(async () => {
   await loadReceipts()
   await loadSpendings()
   await loadAnalysis()
+  await loadPayroll()
 })
 </script>
 
@@ -1398,7 +1538,119 @@ onMounted(async () => {
           <VWindowItem value="payroll">
             <Card>
               <template #content>
-                <div class="text-sm text-muted">Раздел в разработке.</div>
+                <div v-if="payrollError" class="text-sm" style="color: #b91c1c;">
+                  {{ payrollError }}
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <Button
+                      v-if="isAdmin"
+                      label="Пересчитать"
+                      icon="pi pi-refresh"
+                      outlined
+                      :loading="payrollRecalcLoading"
+                      :disabled="!canRecalcPayroll || payrollRecalcLoading"
+                      :title="!canRecalcPayroll ? 'Доступно после статуса Выполнен' : ''"
+                      @click="recalcPayroll"
+                    />
+                  </div>
+                </div>
+                <div v-if="payrollLoading" class="text-sm text-muted">Загрузка...</div>
+                <DataTable
+                  v-else
+                  :value="payrollRows"
+                  dataKey="id"
+                  class="p-datatable-sm"
+                >
+                  <Column field="created_at" header="Дата" style="inline-size: 18ch;">
+                    <template #body="{ data: row }">
+                      {{ formatDateTime(row.created_at) }}
+                    </template>
+                  </Column>
+                  <Column field="type" header="Тип" style="inline-size: 18ch;">
+                    <template #body="{ data: row }">
+                      {{ formatPayrollType(row) }}
+                    </template>
+                  </Column>
+                  <Column field="document_type" header="Документ" style="inline-size: 16ch;">
+                    <template #body="{ data: row }">
+                      {{ formatPayrollDocumentType(row) }}
+                    </template>
+                  </Column>
+                  <Column field="base_amount" header="База" style="inline-size: 14ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.base_amount) }}
+                    </template>
+                  </Column>
+                  <Column field="percent" header="%" style="inline-size: 10ch;">
+                    <template #body="{ data: row }">
+                      {{ formatPercent(row.percent) }}
+                    </template>
+                  </Column>
+                  <Column field="amount" header="Сумма" style="inline-size: 14ch;">
+                    <template #body="{ data: row }">
+                      {{ formatMoney(row.amount) }}
+                    </template>
+                  </Column>
+                  <Column field="status" header="Статус" style="inline-size: 12ch;">
+                    <template #body="{ data: row }">
+                      <Tag
+                        :value="formatPayrollStatus(row)"
+                        :severity="row.status === 'paid' ? 'success' : row.status === 'cancelled' ? 'danger' : 'secondary'"
+                      />
+                    </template>
+                  </Column>
+                  <Column field="source" header="Источник" style="inline-size: 12ch;">
+                    <template #body="{ data: row }">
+                      {{ formatPayrollSource(row) }}
+                    </template>
+                  </Column>
+                  <Column field="comment" header="Комментарий">
+                    <template #body="{ data: row }">
+                      {{ row.comment ?? '-' }}
+                    </template>
+                  </Column>
+                  <template #empty>
+                    <div class="text-center py-6 text-muted">Начислений нет.</div>
+                  </template>
+                </DataTable>
+                <Divider />
+                <div class="flex justify-end text-sm font-semibold">
+                  Сумма: {{ formatMoney(payrollTotal) }}
+                </div>
+                <div v-if="isAdmin" class="mt-4">
+                  <div class="text-sm font-semibold mb-2">Ручное начисление</div>
+                  <div class="flex flex-wrap items-end gap-2">
+                    <AppSelect
+                      :model-value="payrollType"
+                      :items="PAYROLL_TYPE_OPTIONS"
+                      item-title="title"
+                      item-value="value"
+                      style="min-width: 180px;"
+                      hide-details
+                      @update:modelValue="payrollType = $event"
+                    />
+                    <VTextField
+                      v-model.number="payrollAmount"
+                      type="number"
+                      label="Сумма"
+                      hide-details
+                      style="min-width: 160px;"
+                    />
+                    <VTextField
+                      v-model="payrollComment"
+                      label="Комментарий"
+                      hide-details
+                      style="min-width: 260px;"
+                    />
+                    <Button
+                      label="Добавить"
+                      icon="pi pi-plus"
+                      :loading="payrollSaving"
+                      @click="saveManualPayroll"
+                    />
+                  </div>
+                </div>
               </template>
             </Card>
           </VWindowItem>

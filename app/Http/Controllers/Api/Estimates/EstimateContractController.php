@@ -17,6 +17,7 @@ use App\Domain\Finance\Models\FinanceAuditLog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contracts\StoreEstimateContractsRequest;
 use App\Http\Resources\ContractResource;
+use App\Services\Finance\PayrollService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -182,6 +183,7 @@ class EstimateContractController extends Controller
                 'contract_group_id' => $group->id,
                 'template_product_type_ids' => $estimateTypeIds,
                 'estimate_id' => $estimateModel->id,
+                'manager_id' => $user?->id,
                 'created_by' => $user?->id,
                 'updated_by' => $user?->id,
             ]);
@@ -232,6 +234,8 @@ class EstimateContractController extends Controller
                     'created_by' => $user?->id,
                 ]);
             }
+
+            app(PayrollService::class)->accrueFixedForContract($contract, $user?->id);
 
             $group->total_amount = $estimateTotal;
             $group->save();

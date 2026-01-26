@@ -18,6 +18,8 @@ class CatalogRepository
         $query = Product::query()
             ->with(['category', 'subCategory', 'brand', 'kind']);
 
+        $query->whereNull('archived_at');
+
         if ($filter->tenantId) {
             $query->where('tenant_id', $filter->tenantId);
         }

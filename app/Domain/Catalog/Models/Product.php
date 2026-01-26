@@ -40,6 +40,7 @@ class Product extends Model
         'is_visible' => 'bool',
         'is_top' => 'bool',
         'is_new' => 'bool',
+        'archived_at' => 'datetime',
     ];
 
     public function category(): BelongsTo

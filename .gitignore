@@ -17,6 +17,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/contracts/
+/storage/app/pricebooks/
 /vendor
 Homestead.json
 Homestead.yaml

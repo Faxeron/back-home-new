@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -210,9 +210,7 @@ class ContractDocumentController extends Controller
                 ->join('roles', 'roles.id', '=', 'role_users.role_id')
                 ->where('role_users.user_id', $userId)
                 ->where(function ($query) {
-                    $query->where('roles.code', 'admin')
-                        ->orWhere('roles.name', 'Админ')
-                        ->orWhere('roles.name', 'Admin');
+                    $query->where('roles.code', 'admin');
                 })
                 ->exists();
         }

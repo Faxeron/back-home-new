@@ -10,10 +10,11 @@ use App\Domain\CRM\Models\ContractGroup;
 use App\Domain\CRM\Models\ContractItem;
 use App\Domain\CRM\Models\ContractStatusChange;
 use App\Domain\Estimates\Models\Estimate;
-use App\Domain\Finance\Models\PayrollSetting;
+use App\Domain\Finance\Models\FinanceAllocation;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\ValueObjects\Money;
 use App\Domain\Finance\Models\FinanceAuditLog;
+use App\Services\Finance\PayrollService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -183,43 +184,50 @@ class ContractController extends Controller
             $this->applyEstimateSnapshotPlan($model, $plannedTotals, $plannedDirectTotal, $clientTotals);
         }
 
-        $settings = PayrollSetting::query()->firstOrCreate(
-            ['tenant_id' => $tenantId, 'company_id' => $companyId],
-            [
-                'manager_fixed' => 1000,
-                'manager_percent' => 7,
-                'measurer_fixed' => 1000,
-                'measurer_percent' => 5,
-            ],
-        );
-
         $contractTotal = (float) ($model->total_amount ?? 0);
         $margin = $contractTotal - $plannedDirectTotal;
-
-        $managerCost = (float) $settings->manager_fixed + ($margin * ((float) $settings->manager_percent / 100));
-        $measurerCost = (float) $settings->measurer_fixed + ($margin * ((float) $settings->measurer_percent / 100));
-
-        $this->addAnalysisAmount($plannedTotals, 'ЗП менеджер', $managerCost);
-        $this->addAnalysisAmount($plannedTotals, 'ЗП замерщик', $measurerCost);
 
         $plannedTotal = array_sum($plannedTotals);
         $clientTotal = array_sum($clientTotals);
 
         $actualTotals = [];
-        $spendings = Spending::query()
-            ->with('item')
+        $allocations = FinanceAllocation::query()
+            ->with(['spending.item'])
             ->where('contract_id', $model->id)
-            ->where('company_id', $companyId)
+            ->whereNotNull('spending_id')
             ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
             ->get();
 
-        foreach ($spendings as $spending) {
-            $amount = abs($this->moneyToFloat($spending->sum));
-            if ($amount <= 0) {
-                continue;
+        if ($allocations->isNotEmpty()) {
+            foreach ($allocations as $allocation) {
+                $spending = $allocation->spending;
+                if (!$spending) {
+                    continue;
+                }
+                $amount = (float) ($allocation->amount ?? 0);
+                if ($amount <= 0) {
+                    continue;
+                }
+                $category = $this->mapSpendingCategory($spending->spending_item_id, $spending->item?->name ?? null);
+                $this->addAnalysisAmount($actualTotals, $category, $amount);
             }
-            $category = $this->mapSpendingCategory($spending->spending_item_id, $spending->item?->name ?? null);
-            $this->addAnalysisAmount($actualTotals, $category, $amount);
+        } else {
+            $spendings = Spending::query()
+                ->with('item')
+                ->where('contract_id', $model->id)
+                ->where('company_id', $companyId)
+                ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+                ->get();
+
+            foreach ($spendings as $spending) {
+                $amount = abs($this->moneyToFloat($spending->sum));
+                if ($amount <= 0) {
+                    continue;
+                }
+                $category = $this->mapSpendingCategory($spending->spending_item_id, $spending->item?->name ?? null);
+                $this->addAnalysisAmount($actualTotals, $category, $amount);
+            }
         }
 
         $rows = $this->buildAnalysisRows($plannedTotals, $actualTotals, $clientTotals);
@@ -237,12 +245,7 @@ class ContractController extends Controller
                 'meta' => [
                     'contract_total' => round($contractTotal, 2),
                     'margin' => round($margin, 2),
-                    'settings' => [
-                        'manager_fixed' => (float) $settings->manager_fixed,
-                        'manager_percent' => (float) $settings->manager_percent,
-                        'measurer_fixed' => (float) $settings->measurer_fixed,
-                        'measurer_percent' => (float) $settings->measurer_percent,
-                    ],
+                    'settings' => null,
                 ],
             ],
         ]);
@@ -290,6 +293,8 @@ class ContractController extends Controller
                 ]);
             });
         }
+
+        app(PayrollService::class)->handleStatusChange($model, $previousStatusId, $nextStatusId, $user?->id);
 
         $model->load(['counterparty', 'status', 'saleType', 'manager', 'measurer']);
         $model->loadSum('receipts as receipts_total', 'sum');
@@ -790,9 +795,7 @@ class ContractController extends Controller
                 ->join('roles', 'roles.id', '=', 'role_users.role_id')
                 ->where('role_users.user_id', $userId)
                 ->where(function ($query) {
-                    $query->where('roles.code', 'admin')
-                        ->orWhere('roles.name', 'Админ')
-                        ->orWhere('roles.name', 'Admin');
+                    $query->where('roles.code', 'admin');
                 })
                 ->exists();
         }

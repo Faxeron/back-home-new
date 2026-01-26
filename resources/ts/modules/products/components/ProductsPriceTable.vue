@@ -28,6 +28,10 @@ const props = defineProps<{
   subcategories: ProductSubcategory[]
   brands: ProductBrand[]
   errorMessage?: string
+  importing?: boolean
+  exporting?: boolean
+  templating?: boolean
+  importErrors?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -40,6 +44,9 @@ const emit = defineEmits<{
   (e: 'open', row: Product): void
   (e: 'update-field', payload: { row: Product; field: keyof Product; value: any }): void
   (e: 'update-flag', payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }): void
+  (e: 'import'): void
+  (e: 'export'): void
+  (e: 'template'): void
 }>()
 
 const searchModel = computed({
@@ -138,14 +145,56 @@ const updateNumberField = (row: Product, field: keyof Product) => {
               @click="emit('reset')"
             />
           </div>
-          <TableTotalLabel :label="PRODUCT_PRICE_TABLE_LABELS.total" :value="totalLabel" />
+          <div class="flex flex-wrap items-center gap-2">
+            <Button
+              :label="PRODUCT_PRICE_TABLE_LABELS.template"
+              icon="pi pi-file-excel"
+              size="small"
+              outlined
+              :loading="templating"
+              @click="emit('template')"
+            />
+            <Button
+              :label="PRODUCT_PRICE_TABLE_LABELS.export"
+              icon="pi pi-download"
+              size="small"
+              outlined
+              :loading="exporting"
+              @click="emit('export')"
+            />
+            <Button
+              :label="PRODUCT_PRICE_TABLE_LABELS.import"
+              icon="pi pi-upload"
+              size="small"
+              :loading="importing"
+              @click="emit('import')"
+            />
+            <TableTotalLabel :label="PRODUCT_PRICE_TABLE_LABELS.total" :value="totalLabel" />
+          </div>
         </div>
         <div
           v-if="errorMessage"
           class="text-sm"
-          style="color: #dc2626"
+          style="color: #dc2626; white-space: pre-line;"
         >
           {{ errorMessage }}
+        </div>
+        <div v-if="importErrors?.length" class="pricebook-error-list">
+          <div class="pricebook-error-title">Ошибки импорта</div>
+          <table class="pricebook-error-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Описание</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in importErrors" :key="`${index}-${item}`">
+                <td>{{ index + 1 }}</td>
+                <td>{{ item }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </template>
@@ -413,6 +462,37 @@ const updateNumberField = (row: Product, field: keyof Product) => {
   box-sizing: border-box;
   font-size: 0.85rem;
   padding-inline: 0.35rem;
+}
+
+.pricebook-error-list {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgb(var(--v-theme-surface));
+}
+
+.pricebook-error-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pricebook-error-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.pricebook-error-table th,
+.pricebook-error-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.pricebook-error-table th:first-child,
+.pricebook-error-table td:first-child {
+  width: 48px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 </style>
 

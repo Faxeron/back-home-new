@@ -22,7 +22,9 @@ use App\Http\Controllers\Api\SaleTypeController;
 use App\Http\Controllers\Api\SpendingFundController;
 use App\Http\Controllers\Api\SpendingItemController;
 use App\Http\Controllers\Api\MarginSettingsController;
-use App\Http\Controllers\Api\PayrollSettingsController;
+use App\Http\Controllers\Api\PayrollRuleController;
+use App\Http\Controllers\Api\PayrollAccrualController;
+use App\Http\Controllers\Api\PayrollPayoutController;
 use App\Http\Controllers\API\Finance\TransactionTypeController;
 use App\Http\Controllers\API\Finance\PaymentMethodController;
 use App\Http\Controllers\API\Finance\FundController;
@@ -34,6 +36,7 @@ use App\Http\Controllers\Api\Catalog\ProductController;
 use App\Http\Controllers\Api\Catalog\ProductKindController;
 use App\Http\Controllers\Api\Catalog\ProductSubcategoryController;
 use App\Http\Controllers\Api\Catalog\ProductTypeController;
+use App\Http\Controllers\Api\Catalog\PricebookController;
 use App\Http\Controllers\Api\Estimates\EstimateController;
 use App\Http\Controllers\Api\Estimates\EstimateContractController;
 use App\Http\Controllers\Api\Estimates\EstimateItemController;
@@ -44,6 +47,8 @@ use App\Http\Controllers\Api\Estimates\EstimateTemplateController;
 use App\Http\Controllers\API\Finance\ReceiptController;
 use App\Http\Controllers\API\Finance\SpendingController;
 use App\Http\Controllers\API\Finance\TransactionController;
+use App\Http\Controllers\Api\ContractPayrollController;
+use App\Http\Controllers\Api\UserLookupController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -102,8 +107,13 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::apiResource('companies', CompanyController::class);
         Route::apiResource('spending-funds', SpendingFundController::class)->parameter('spending-funds', 'spendingFund');
         Route::apiResource('spending-items', SpendingItemController::class)->parameter('spending-items', 'spendingItem');
-        Route::get('payroll', [PayrollSettingsController::class, 'show']);
-        Route::put('payroll', [PayrollSettingsController::class, 'update']);
+        Route::get('users', [UserLookupController::class, 'index']);
+        Route::apiResource('payroll-rules', PayrollRuleController::class);
+        Route::get('payroll-accruals', [PayrollAccrualController::class, 'index']);
+        Route::get('payroll-payouts', [PayrollPayoutController::class, 'index']);
+        Route::post('payroll-payouts', [PayrollPayoutController::class, 'store']);
+        Route::delete('payroll-payouts/{payout}', [PayrollPayoutController::class, 'destroy'])
+            ->whereNumber('payout');
         Route::get('margin', [MarginSettingsController::class, 'show']);
         Route::put('margin', [MarginSettingsController::class, 'update']);
         Route::get('cities', [CityController::class, 'index']);
@@ -114,6 +124,9 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
 
     Route::prefix('products')->group(function (): void {
         Route::get('/', [ProductController::class, 'index']);
+        Route::get('pricebook/export', [PricebookController::class, 'export']);
+        Route::get('pricebook/template', [PricebookController::class, 'template']);
+        Route::post('pricebook/import', [PricebookController::class, 'import']);
         Route::get('categories', [ProductCategoryController::class, 'index']);
         Route::get('subcategories', [ProductSubcategoryController::class, 'index']);
         Route::get('brands', [ProductBrandController::class, 'index']);
@@ -158,6 +171,9 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
       Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract');
       Route::get('contracts/{contract}/analysis', [ContractController::class, 'analysis'])->whereNumber('contract');
       Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract');
+      Route::get('contracts/{contract}/payroll', [ContractPayrollController::class, 'index'])->whereNumber('contract');
+      Route::post('contracts/{contract}/payroll/manual', [ContractPayrollController::class, 'storeManual'])->whereNumber('contract');
+      Route::post('contracts/{contract}/payroll/recalculate', [ContractPayrollController::class, 'recalc'])->whereNumber('contract');
       Route::get('contracts/{contract}/documents', [ContractDocumentController::class, 'index'])->whereNumber('contract');
       Route::post('contracts/{contract}/documents', [ContractDocumentController::class, 'store'])->whereNumber('contract');
       Route::delete('contracts/{contract}/documents/{document}', [ContractDocumentController::class, 'destroy'])

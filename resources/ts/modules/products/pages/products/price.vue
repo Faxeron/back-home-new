@@ -13,7 +13,21 @@ const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 const errorMessage = ref('')
+const importErrors = ref<string[]>([])
 const saving = reactive<Record<number, boolean>>({})
+const importInputRef = ref<HTMLInputElement | null>(null)
+const importLoading = ref(false)
+const exportLoading = ref(false)
+const templateLoading = ref(false)
+const snackbarOpen = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref<'success' | 'error'>('success')
+
+const showSnackbar = (text: string, color: 'success' | 'error' = 'success') => {
+  snackbarText.value = text
+  snackbarColor.value = color
+  snackbarOpen.value = true
+}
 
 const {
   search,
@@ -94,7 +108,7 @@ const updateProduct = async (row: Product, payload: Record<string, any>) => {
     return true
   } catch (error) {
     console.error(error)
-    errorMessage.value = 'Не удалось сохранить изменения.'
+    errorMessage.value = 'Не удалось сохранить изменения. Проверьте соединение.'
     return false
   } finally {
     saving[row.id] = false
@@ -115,7 +129,7 @@ const numericFields = new Set([
 const handleUpdateField = async (payload: { row: Product; field: keyof Product; value: any }) => {
   const { row, field, value } = payload
   if (row.is_global && numericFields.has(String(field))) {
-    errorMessage.value = 'Глобальные цены нельзя редактировать в прайсе.'
+    errorMessage.value = 'Глобальные товары нельзя менять в прайсе.'
     return
   }
   const previousValue = row[field]
@@ -129,7 +143,7 @@ const handleUpdateField = async (payload: { row: Product; field: keyof Product; 
 const handleUpdateFlag = async (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {
   const { row, field, value } = payload
   if (row.is_global && numericFields.has(String(field))) {
-    errorMessage.value = 'Глобальные цены нельзя редактировать в прайсе.'
+    errorMessage.value = 'Глобальные товары нельзя менять в прайсе.'
     return
   }
   const previousValue = row[field]
@@ -137,6 +151,110 @@ const handleUpdateFlag = async (payload: { row: Product; field: 'is_visible' | '
   const ok = await updateProduct(row, { [field]: value })
   if (!ok)
     row[field] = previousValue
+}
+
+const parseFileName = (value: string | null) => {
+  if (!value) return null
+  const match = /filename\*=(?:UTF-8''|)([^;]+)|filename="?([^";]+)"?/i.exec(value)
+  const raw = match?.[1] ?? match?.[2]
+  if (!raw) return null
+  try {
+    return decodeURIComponent(raw)
+  } catch (error) {
+    return raw
+  }
+}
+
+const downloadFile = async (endpoint: string, fallbackName: string, setLoading: (value: boolean) => void) => {
+  setLoading(true)
+  errorMessage.value = ''
+  try {
+    const accessToken = useCookie('accessToken').value
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+    const url = `${baseUrl}/${endpoint}`
+    const response = await fetch(url, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    })
+    if (!response.ok)
+      throw new Error('Download failed')
+
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('text/html') || contentType.includes('application/json')) {
+      throw new Error('Unexpected response')
+    }
+
+    const blob = await response.blob()
+    const fileName = parseFileName(response.headers.get('content-disposition')) ?? fallbackName
+    const link = document.createElement('a')
+    const blobUrl = URL.createObjectURL(blob)
+    link.href = blobUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1500)
+    link.remove()
+    showSnackbar('Файл подготовлен.', 'success')
+  } catch (error: any) {
+    console.error(error)
+    showSnackbar('Не удалось скачать файл.', 'error')
+  } finally {
+    setLoading(false)
+  }
+}
+
+const handleExport = async () => {
+  await downloadFile('products/pricebook/export', 'pricebook_export.xlsx', value => {
+    exportLoading.value = value
+  })
+}
+
+const handleTemplate = async () => {
+  await downloadFile('products/pricebook/template', 'pricebook_template.xlsx', value => {
+    templateLoading.value = value
+  })
+}
+
+const handleImportClick = () => {
+  importInputRef.value?.click()
+}
+
+const handleImportFile = async (event: Event) => {
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (!file) return
+  await importPricebook(file)
+  if (input)
+    input.value = ''
+}
+
+const importPricebook = async (file: File) => {
+  importLoading.value = true
+  errorMessage.value = ''
+  importErrors.value = []
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await $api('products/pricebook/import', {
+      method: 'POST',
+      body: formData,
+    })
+    const result = response?.data ?? response
+    const created = result?.created ?? result?.data?.created ?? 0
+    const updated = result?.updated ?? result?.data?.updated ?? 0
+    const archived = result?.archived ?? result?.data?.archived ?? 0
+    showSnackbar(`Импорт завершен. Создано: ${created}, обновлено: ${updated}, архивировано: ${archived}.`, 'success')
+    reloadRef.value()
+  } catch (error: any) {
+    const data = error?.data ?? error?.response?.data
+    const errors = Array.isArray(data?.errors) ? data.errors : []
+    importErrors.value = errors
+    errorMessage.value = errors.length
+      ? 'Импорт не выполнен. Исправьте ошибки ниже.'
+      : (data?.message ?? 'Не удалось импортировать прайс.')
+    showSnackbar('Импорт не выполнен. Проверьте ошибки.', 'error')
+  } finally {
+    importLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -153,25 +271,44 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ProductsPriceTable
-    ref="tableRef"
-    v-model:search="search"
-    v-model:categoryId="categoryId"
-    v-model:subCategoryId="subCategoryId"
-    v-model:brandId="brandId"
-    :rows="data"
-    :loading="loading"
-    :totalRecords="totalRecords"
-    :scrollHeight="scrollHeight"
-    :virtualScrollerOptions="virtualScrollerOptions"
-    :categories="categories"
-    :subcategories="subcategories"
-    :brands="brands"
-    :errorMessage="errorMessage"
-    @sort="handleSort"
-    @reset="resetFilters"
-    @open="openProduct"
-    @update-field="handleUpdateField"
-    @update-flag="handleUpdateFlag"
-  />
+  <div>
+    <input
+      ref="importInputRef"
+      type="file"
+      accept=".xlsx"
+      class="d-none"
+      @change="handleImportFile"
+    />
+    <ProductsPriceTable
+      ref="tableRef"
+      v-model:search="search"
+      v-model:categoryId="categoryId"
+      v-model:subCategoryId="subCategoryId"
+      v-model:brandId="brandId"
+      :rows="data"
+      :loading="loading"
+      :totalRecords="totalRecords"
+      :scrollHeight="scrollHeight"
+      :virtualScrollerOptions="virtualScrollerOptions"
+      :categories="categories"
+      :subcategories="subcategories"
+      :brands="brands"
+      :errorMessage="errorMessage"
+      :importErrors="importErrors"
+      :importing="importLoading"
+      :exporting="exportLoading"
+      :templating="templateLoading"
+      @sort="handleSort"
+      @reset="resetFilters"
+      @open="openProduct"
+      @update-field="handleUpdateField"
+      @update-flag="handleUpdateFlag"
+      @import="handleImportClick"
+      @export="handleExport"
+      @template="handleTemplate"
+    />
+    <VSnackbar v-model="snackbarOpen" :color="snackbarColor" location="bottom end" :timeout="2500">
+      {{ snackbarText }}
+    </VSnackbar>
+  </div>
 </template>

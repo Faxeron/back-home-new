@@ -10,10 +10,12 @@ use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\Counterparty;
 use App\Domain\Finance\Casts\MoneyCast;
 use App\Domain\Finance\Models\CashBox;
+use App\Domain\Finance\Models\FinanceAllocation;
 use App\Domain\Finance\Models\Transaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Receipt extends Model
 {
@@ -56,6 +58,11 @@ class Receipt extends Model
     public function counterparty(): BelongsTo
     {
         return $this->belongsTo(Counterparty::class, 'counterparty_id');
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(FinanceAllocation::class, 'receipt_id');
     }
 
     public function scopeOfContract($query, int $contractId)

@@ -83,6 +83,7 @@ declare module 'vue-router/auto-routes' {
     'estimates-new': RouteRecordInfo<'estimates-new', '/estimates/new', Record<never, never>, Record<never, never>>,
     'extensions-swiper': RouteRecordInfo<'extensions-swiper', '/extensions/swiper', Record<never, never>, Record<never, never>>,
     'extensions-tour': RouteRecordInfo<'extensions-tour', '/extensions/tour', Record<never, never>, Record<never, never>>,
+    'finance-balance': RouteRecordInfo<'finance-balance', '/finance/balance', Record<never, never>, Record<never, never>>,
     'finance-receipts': RouteRecordInfo<'finance-receipts', '/finance/receipts', Record<never, never>, Record<never, never>>,
     'finance-spendings': RouteRecordInfo<'finance-spendings', '/finance/spendings', Record<never, never>, Record<never, never>>,
     'finance-transactions': RouteRecordInfo<'finance-transactions', '/finance/transactions', Record<never, never>, Record<never, never>>,

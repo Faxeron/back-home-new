@@ -5,6 +5,7 @@ namespace App\Services\Finance;
 use App\Domain\Finance\Models\CashBox;
 use App\Domain\Finance\Models\CashTransfer;
 use App\Domain\Finance\Models\CashboxHistory;
+use App\Domain\Finance\Models\FinanceAllocation;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\Models\Transaction;
@@ -62,6 +63,8 @@ class FinanceService
 
             $receipt->transaction_id = $transaction->id;
             $receipt->save();
+
+            $this->createReceiptAllocation($receipt, $data);
 
             event(new FinancialActionLogged('contract_receipt.created', [
                 'tenant_id' => $receipt->tenant_id,
@@ -181,6 +184,8 @@ class FinanceService
             $spending->transaction_id = $transaction->id;
             $spending->save();
 
+            $this->createSpendingAllocation($spending, $data);
+
             event(new FinancialActionLogged('spending.created', [
                 'tenant_id' => $spending->tenant_id,
                 'company_id' => $spending->company_id,
@@ -212,6 +217,10 @@ class FinanceService
             }
 
             $transactionId = $spending->transaction_id;
+
+            FinanceAllocation::query()
+                ->where('spending_id', $spendingId)
+                ->delete();
 
             if ($transactionId) {
                 CashboxHistory::query()
@@ -538,6 +547,60 @@ class FinanceService
         if ($from->tenant_id !== null && $to->tenant_id !== null && (int) $from->tenant_id !== (int) $to->tenant_id) {
             throw new RuntimeException('Cash boxes belong to different tenants');
         }
+    }
+
+    private function createSpendingAllocation(Spending $spending, array $data): void
+    {
+        if (!empty($data['skip_allocation'])) {
+            return;
+        }
+        if (empty($spending->contract_id)) {
+            return;
+        }
+
+        FinanceAllocation::query()->firstOrCreate(
+            [
+                'spending_id' => $spending->id,
+                'contract_id' => (int) $spending->contract_id,
+            ],
+            [
+                'tenant_id' => $spending->tenant_id,
+                'company_id' => $spending->company_id,
+                'amount' => abs($this->toFloat($spending->sum)),
+                'kind' => $data['allocation_kind'] ?? 'expense',
+                'comment' => $spending->description,
+                'created_by' => $data['created_by_user_id'] ?? null,
+                'created_at' => $spending->created_at ?? now(),
+                'updated_at' => $spending->created_at ?? now(),
+            ]
+        );
+    }
+
+    private function createReceiptAllocation(Receipt $receipt, array $data): void
+    {
+        if (empty($receipt->contract_id)) {
+            return;
+        }
+        if (!empty($data['skip_allocation'])) {
+            return;
+        }
+
+        FinanceAllocation::query()->firstOrCreate(
+            [
+                'receipt_id' => $receipt->id,
+                'contract_id' => (int) $receipt->contract_id,
+            ],
+            [
+                'tenant_id' => $receipt->tenant_id,
+                'company_id' => $receipt->company_id,
+                'amount' => abs($this->toFloat($receipt->sum)),
+                'kind' => $data['allocation_kind'] ?? 'income',
+                'comment' => $receipt->description,
+                'created_by' => $data['created_by_user_id'] ?? null,
+                'created_at' => $receipt->created_at ?? now(),
+                'updated_at' => $receipt->created_at ?? now(),
+            ]
+        );
     }
 
     /**
