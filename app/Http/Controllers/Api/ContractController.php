@@ -11,7 +11,11 @@ use App\Domain\CRM\Models\ContractItem;
 use App\Domain\CRM\Models\ContractStatusChange;
 use App\Domain\Estimates\Models\Estimate;
 use App\Domain\Finance\Models\FinanceAllocation;
+use App\Domain\Finance\Models\PayrollAccrual;
+use App\Domain\Finance\Models\PayrollPayoutItem;
+use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
+use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\ValueObjects\Money;
 use App\Domain\Finance\Models\FinanceAuditLog;
 use App\Services\Finance\PayrollService;
@@ -732,6 +736,50 @@ class ContractController extends Controller
         $model = $query->firstOrFail();
         $groupId = $model->contract_group_id;
 
+        $hasTransactions = Transaction::query()
+            ->where('contract_id', $model->id)
+            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->exists();
+        if ($hasTransactions) {
+            return response()->json([
+                'message' => 'Удаление невозможно: по договору есть транзакции.',
+            ], 422);
+        }
+
+        $hasReceipts = Receipt::query()
+            ->where('contract_id', $model->id)
+            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->exists();
+        if ($hasReceipts) {
+            return response()->json([
+                'message' => 'Удаление невозможно: по договору есть приход.',
+            ], 422);
+        }
+
+        $hasSpendings = Spending::query()
+            ->where('contract_id', $model->id)
+            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->exists();
+        if ($hasSpendings) {
+            return response()->json([
+                'message' => 'Удаление невозможно: по договору есть расход.',
+            ], 422);
+        }
+
+        $hasAllocations = FinanceAllocation::query()
+            ->where('contract_id', $model->id)
+            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->exists();
+        if ($hasAllocations) {
+            return response()->json([
+                'message' => 'Удаление невозможно: по договору есть расход.',
+            ], 422);
+        }
+
         DB::connection('legacy_new')->transaction(function () use ($model, $groupId, $tenantId, $companyId): void {
             $documents = ContractDocument::query()
                 ->where('contract_id', $model->id)
@@ -762,6 +810,36 @@ class ContractController extends Controller
                 ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
                 ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
                 ->delete();
+
+            FinanceAuditLog::query()
+                ->where('tenant_id', $tenantId)
+                ->where('company_id', $companyId)
+                ->where('payload->contract_id', $model->id)
+                ->delete();
+
+            $payoutItemsQuery = PayrollPayoutItem::query()
+                ->where('contract_id', $model->id);
+            if (Schema::connection('legacy_new')->hasColumn('payroll_payout_items', 'tenant_id')) {
+                $payoutItemsQuery->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId));
+            }
+            if (Schema::connection('legacy_new')->hasColumn('payroll_payout_items', 'company_id')) {
+                $payoutItemsQuery->when($companyId, fn ($query) => $query->where('company_id', $companyId));
+            }
+            $payoutItemsQuery->delete();
+
+            PayrollAccrual::query()
+                ->where('contract_id', $model->id)
+                ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+                ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+                ->delete();
+
+            if (Schema::connection('legacy_new')->hasColumn('estimates', 'contract_id')) {
+                Estimate::query()
+                    ->where('contract_id', $model->id)
+                    ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+                    ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+                    ->update(['contract_id' => null]);
+            }
 
             $model->delete();
 

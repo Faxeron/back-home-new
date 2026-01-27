@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ContractsTable from '@/modules/production/components/contracts/ContractsTable.vue'
 import ContractReceiptDialog from '@/modules/production/components/contracts/ContractReceiptDialog.vue'
@@ -14,12 +14,17 @@ import type { Contract } from '@/types/finance'
 const dictionaries = useDictionariesStore()
 const route = useRoute()
 const router = useRouter()
+const userData = useCookie<any>('userData')
+const isAdmin = computed(() => String(userData.value?.role ?? '').toLowerCase() === 'admin')
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 const receiptDialogOpen = ref(false)
 const spendingDialogOpen = ref(false)
 const selectedContract = ref<Contract | null>(null)
+const confirmDeleteOpen = ref(false)
+const contractToDelete = ref<Contract | null>(null)
+const deleting = ref(false)
 const snackbarOpen = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref<'success' | 'error'>('success')
@@ -64,6 +69,33 @@ const showSnackbar = (text: string, color: 'success' | 'error' = 'success') => {
   snackbarOpen.value = true
 }
 
+const requestDeleteContract = (row: Contract) => {
+  contractToDelete.value = row
+  confirmDeleteOpen.value = true
+}
+
+const deleteContract = async () => {
+  const row = contractToDelete.value
+  if (!row) return
+  deleting.value = true
+  try {
+    await $api(`contracts/${row.id}`, { method: 'DELETE' })
+    confirmDeleteOpen.value = false
+    contractToDelete.value = null
+    showSnackbar('Договор удален.', 'success')
+    resetData()
+  } catch (error: any) {
+    const message =
+      error?.data?.message ??
+      error?.response?.data?.message ??
+      error?.response?._data?.message ??
+      'Не удалось удалить договор.'
+    showSnackbar(message, 'error')
+  } finally {
+    deleting.value = false
+  }
+}
+
 const handleAction = (payload: { action: string; row: Contract }) => {
   if (payload.action === 'contract' || payload.action === 'edit') {
     router.push({ path: '/operations/contracts/' + payload.row.id })
@@ -75,6 +107,9 @@ const handleAction = (payload: { action: string; row: Contract }) => {
   if (payload.action === 'spending') {
     selectedContract.value = payload.row
     spendingDialogOpen.value = true
+  }
+  if (payload.action === 'delete') {
+    requestDeleteContract(payload.row)
   }
 }
 
@@ -142,6 +177,7 @@ onBeforeUnmount(() => {
     :scrollHeight="scrollHeight"
     :virtualScrollerOptions="virtualScrollerOptions"
     :statuses="dictionaries.contractStatuses"
+    :canDelete="isAdmin"
     @status-change="applyStatusUpdate"
     @reset="reset"
     @action="handleAction"
@@ -158,6 +194,18 @@ onBeforeUnmount(() => {
     :contract="selectedContract"
     @created="showSnackbar('Расход добавлен.')"
   />
+
+  <VDialog v-model="confirmDeleteOpen" max-width="420">
+    <VCard>
+      <VCardTitle>Удалить договор?</VCardTitle>
+      <VCardText>Договор и связанные данные будут удалены без восстановления.</VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="confirmDeleteOpen = false">Отмена</VBtn>
+        <VBtn color="error" :loading="deleting" @click="deleteContract">Удалить</VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
 
   <VSnackbar v-model="snackbarOpen" :color="snackbarColor" location="bottom end" :timeout="2500">
     {{ snackbarText }}

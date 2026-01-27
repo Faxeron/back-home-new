@@ -6,8 +6,8 @@ export const TRANSACTION_TABLE = {
 
 export const TRANSACTION_BOOLEAN_OPTIONS = [
   { label: 'Все', value: null },
-  { label: 'ДА', value: true },
-  { label: 'НЕТ', value: false },
+  { label: 'Да', value: true },
+  { label: 'Нет', value: false },
 ]
 
 export const TRANSACTION_COLUMNS = {

@@ -25,12 +25,14 @@ const props = defineProps<{
   scrollHeight: string
   virtualScrollerOptions: Record<string, any>
   filters: any
+  canDelete?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:filters', value: any): void
   (e: 'sort', event: any): void
   (e: 'reset-filters'): void
+  (e: 'delete', row: Transaction): void
 }>()
 
 const filtersModel = computed({
@@ -343,6 +345,23 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
       <template #body="{ data }">
         {{ data.related_id ?? '' }}
+      </template>
+    </Column>
+
+    <Column v-if="canDelete" header="" style="inline-size: 5ch;">
+      <template #body="{ data }">
+        <VTooltip location="top" content-class="text-body-2">
+          <template #activator="{ props: tooltipProps }">
+            <Button
+              v-bind="tooltipProps"
+              icon="pi pi-trash"
+              text
+              severity="danger"
+              @click.stop="emit('delete', data)"
+            />
+          </template>
+          <span>Удалить</span>
+        </VTooltip>
       </template>
     </Column>
 

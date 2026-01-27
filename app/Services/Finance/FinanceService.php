@@ -244,6 +244,47 @@ class FinanceService
         });
     }
 
+    public function deleteReceipt(int $receiptId, int $tenantId, int $companyId, ?int $userId = null): void
+    {
+        $this->transaction(function () use ($receiptId, $tenantId, $companyId, $userId) {
+            $receipt = Receipt::query()
+                ->where('id', $receiptId)
+                ->where('tenant_id', $tenantId)
+                ->where('company_id', $companyId)
+                ->first();
+
+            if (!$receipt) {
+                throw new RuntimeException('Receipt not found');
+            }
+
+            $transactionId = $receipt->transaction_id;
+
+            FinanceAllocation::query()
+                ->where('receipt_id', $receiptId)
+                ->delete();
+
+            if ($transactionId) {
+                CashboxHistory::query()
+                    ->where('transaction_id', $transactionId)
+                    ->delete();
+
+                Transaction::query()
+                    ->where('id', $transactionId)
+                    ->delete();
+            }
+
+            $receipt->delete();
+
+            event(new FinancialActionLogged('receipt.deleted', [
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
+                'user_id' => $userId,
+                'receipt_id' => $receiptId,
+                'transaction_id' => $transactionId,
+            ]));
+        });
+    }
+
     public function createDirectorWithdrawal(array $data): SpendingDTO
     {
         $this->assertPositiveSum($data['sum'] ?? 0);

@@ -40,6 +40,13 @@ class EstimateContractController extends Controller
             ->where('company_id', $companyId)
             ->firstOrFail();
 
+        if (!empty($estimateModel->contract_id)) {
+            return response()->json([
+                'message' => 'Договор по этой смете уже создан.',
+                'contract_id' => $estimateModel->contract_id,
+            ], 409);
+        }
+
         $existingContract = Contract::query()
             ->where('estimate_id', $estimateModel->id)
             ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
@@ -187,6 +194,9 @@ class EstimateContractController extends Controller
                 'created_by' => $user?->id,
                 'updated_by' => $user?->id,
             ]);
+
+            $estimateModel->contract_id = $contract->id;
+            $estimateModel->save();
 
             foreach ($estimateItems as $item) {
                 $product = $item->product;

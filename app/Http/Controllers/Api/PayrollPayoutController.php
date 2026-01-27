@@ -171,6 +171,8 @@ class PayrollPayoutController extends Controller
                     $amount = $row['amount'];
 
                     PayrollPayoutItem::query()->create([
+                        'tenant_id' => $tenantId,
+                        'company_id' => $companyId,
                         'payout_id' => $payout->id,
                         'accrual_id' => $accrual->id,
                         'contract_id' => $accrual->contract_id,

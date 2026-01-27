@@ -59,6 +59,7 @@ Route::get('estimate/{randomId}', [EstimatePublicController::class, 'show']);
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::prefix('finance')->group(function (): void {
         Route::get('transactions', [TransactionController::class, 'index']);
+        Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy']);
 
         Route::get('cashboxes', [FinanceCashBoxController::class, 'index']);
         Route::get('cashboxes/{cashBoxId}/balance', [FinanceCashBoxController::class, 'balance']);
