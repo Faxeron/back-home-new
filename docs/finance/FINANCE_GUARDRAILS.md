@@ -1,4 +1,5 @@
 # FINANCE GUARDRAILS (P0 hardening)
+See also: `docs/finance/DELETION_AND_PAYROLL_RULES.md`
 
 Статус: обязательный. Применяется ко всем изменениям Finance / Transactions / Cashboxes. Любое расхождение с документом считается ошибкой, даже если <сейчас работает>.
 

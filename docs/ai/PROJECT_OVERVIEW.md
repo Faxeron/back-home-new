@@ -36,3 +36,4 @@
 - `docs/CRM_TABLE_STRUCTURE.md` — правила таблиц CRM.
 - `docs/project-structure.txt` — структура репозитория.
 - `docs/Finance Module.md`, `docs/schema.txt`, `docs/ai/API_MAP.md`.
+- `docs/finance/DELETION_AND_PAYROLL_RULES.md` — deletion rules + payroll payouts.
