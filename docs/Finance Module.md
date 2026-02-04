@@ -58,3 +58,7 @@ Controller
      -> emit FinancialActionLogged
  -> return DTO/Resource
 ```
+
+
+## ?????
+????????: `docs/finance/CASHBOXES.md`
