@@ -159,6 +159,7 @@ declare module 'vue-router/auto-routes' {
     'products-subcategories': RouteRecordInfo<'products-subcategories', '/products/subcategories', Record<never, never>, Record<never, never>>,
     'products-templates': RouteRecordInfo<'products-templates', '/products/templates', Record<never, never>, Record<never, never>>,
     'register': RouteRecordInfo<'register', '/register', Record<never, never>, Record<never, never>>,
+    'sales-knowledge': RouteRecordInfo<'sales-knowledge', '/sales/knowledge', Record<never, never>, Record<never, never>>,
     'settings-cash-boxes': RouteRecordInfo<'settings-cash-boxes', '/settings/cash-boxes', Record<never, never>, Record<never, never>>,
     'settings-cities': RouteRecordInfo<'settings-cities', '/settings/cities', Record<never, never>, Record<never, never>>,
     'settings-companies': RouteRecordInfo<'settings-companies', '/settings/companies', Record<never, never>, Record<never, never>>,

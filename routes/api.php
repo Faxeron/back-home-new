@@ -51,6 +51,10 @@ use App\Http\Controllers\API\Finance\TransactionController;
 use App\Http\Controllers\Api\ContractPayrollController;
 use App\Http\Controllers\Api\UserLookupController;
 use App\Http\Controllers\Api\InstallationController;
+use App\Http\Controllers\Api\Knowledge\KnowledgeArticleController;
+use App\Http\Controllers\Api\Knowledge\KnowledgeAttachmentController;
+use App\Http\Controllers\Api\Knowledge\KnowledgeTagController;
+use App\Http\Controllers\Api\Knowledge\KnowledgeTopicController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -170,6 +174,27 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('septiks/{template}', [EstimateTemplateSeptikController::class, 'show']);
         Route::patch('septiks/{template}', [EstimateTemplateSeptikController::class, 'update']);
         Route::delete('septiks/{template}', [EstimateTemplateSeptikController::class, 'destroy']);
+    });
+
+    Route::prefix('knowledge')->group(function (): void {
+        Route::get('articles', [KnowledgeArticleController::class, 'index']);
+        Route::post('articles', [KnowledgeArticleController::class, 'store']);
+        Route::get('articles/{article}', [KnowledgeArticleController::class, 'show'])->whereNumber('article');
+        Route::patch('articles/{article}', [KnowledgeArticleController::class, 'update'])->whereNumber('article');
+        Route::delete('articles/{article}', [KnowledgeArticleController::class, 'destroy'])->whereNumber('article');
+
+        Route::get('topics', [KnowledgeTopicController::class, 'index']);
+        Route::post('topics', [KnowledgeTopicController::class, 'store']);
+
+        Route::get('tags', [KnowledgeTagController::class, 'index']);
+        Route::post('tags', [KnowledgeTagController::class, 'store']);
+
+        Route::post('articles/{article}/attachments', [KnowledgeAttachmentController::class, 'store'])
+            ->whereNumber('article');
+        Route::delete('attachments/{attachment}', [KnowledgeAttachmentController::class, 'destroy'])
+            ->whereNumber('attachment');
+        Route::get('attachments/{attachment}/download', [KnowledgeAttachmentController::class, 'download'])
+            ->whereNumber('attachment');
     });
 
     Route::get('contracts', [ContractController::class, 'index']);

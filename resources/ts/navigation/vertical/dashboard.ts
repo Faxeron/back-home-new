@@ -63,4 +63,5 @@
   { title: 'Договоры', icon: { icon: 'tabler-briefcase' }, to: { path: '/operations/contracts' } },
   { title: 'Замеры', icon: { icon: 'tabler-ruler-measure' }, to: { path: '/operations/measurements' } },
   { title: 'Монтажи', icon: { icon: 'tabler-tools' }, to: { path: '/operations/installations' } },
+  { title: 'База знаний', icon: { icon: 'tabler-books' }, to: { path: '/sales/knowledge' } },
 ]
