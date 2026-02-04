@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ContractResource;
 use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\ContractDocument;
-use App\Domain\CRM\Models\ContractGroup;
 use App\Domain\CRM\Models\ContractItem;
 use App\Domain\CRM\Models\ContractStatusChange;
 use App\Domain\Estimates\Models\Estimate;
@@ -323,12 +322,6 @@ class ContractController extends Controller
     ): void
     {
         $estimateId = $contract->estimate_id ?? null;
-        if (!$estimateId && $contract->contract_group_id) {
-            $estimateId = ContractGroup::query()
-                ->where('id', $contract->contract_group_id)
-                ->value('estimate_id');
-        }
-
         if (!$estimateId) {
             return;
         }
@@ -734,8 +727,6 @@ class ContractController extends Controller
         }
 
         $model = $query->firstOrFail();
-        $groupId = $model->contract_group_id;
-
         $hasTransactions = Transaction::query()
             ->where('contract_id', $model->id)
             ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
@@ -843,15 +834,6 @@ class ContractController extends Controller
 
             $model->delete();
 
-            if ($groupId) {
-                $hasContracts = Contract::query()
-                    ->where('contract_group_id', $groupId)
-                    ->exists();
-
-                if (!$hasContracts) {
-                    ContractGroup::query()->where('id', $groupId)->delete();
-                }
-            }
         });
 
         return response()->json(['status' => 'ok']);

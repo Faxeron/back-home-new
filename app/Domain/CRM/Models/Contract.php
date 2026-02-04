@@ -30,6 +30,7 @@ class Contract extends Model
         'contract_date' => 'date',
         'work_start_date' => 'date',
         'work_end_date' => 'date',
+        'work_done_date' => 'date',
         'system_status_code' => ContractSystemStatusEnum::class,
         'template_product_type_ids' => 'array',
     ];
@@ -59,6 +60,11 @@ class Contract extends Model
         return $this->belongsTo(User::class, 'measurer_id');
     }
 
+    public function worker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'worker_id');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'contract_id');
@@ -77,11 +83,6 @@ class Contract extends Model
     public function statusChanges(): HasMany
     {
         return $this->hasMany(ContractStatusChange::class, 'contract_id');
-    }
-
-    public function group(): BelongsTo
-    {
-        return $this->belongsTo(ContractGroup::class, 'contract_group_id');
     }
 
     public function template(): BelongsTo

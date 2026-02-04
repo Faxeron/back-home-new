@@ -28,7 +28,6 @@ class ContractDocumentService
             'counterparty.company',
             'items.product.unit',
             'template',
-            'group',
             'saleType',
         ]);
 
@@ -138,17 +137,16 @@ class ContractDocumentService
         ?string $documentType = null,
         string $numberSuffix = '',
     ): array {
-        $group = $contract->group;
         $counterparty = $contract->counterparty;
         $individual = $counterparty?->individual;
         $company = $counterparty?->company;
         $seller = $contract->company_id ? Company::query()->find($contract->company_id) : null;
-        $city = $group?->city_id ? City::query()->find($group->city_id) : null;
+        $city = $contract->city_id ? City::query()->find($contract->city_id) : null;
 
-        $totalAmount = $contract->total_amount ?? $group?->total_amount ?? $items->sum('total');
-        $contractDate = $contract->contract_date ?? $group?->contract_date;
-        $installDate = $group?->installation_date;
-        $workStartDate = $contract->work_start_date ?? $installDate;
+        $totalAmount = $contract->total_amount ?? $items->sum('total');
+        $contractDate = $contract->contract_date ?? null;
+        $installDate = $contract->work_done_date ?? $contract->work_start_date ?? null;
+        $workStartDate = $contract->work_start_date ?? null;
         $workEndDate = $contract->work_end_date ?? null;
         $totalsByType = $this->buildTotalsByType($items);
         $advanceAmount = $this->resolveAdvanceAmount($template, $items, $totalAmount);
@@ -168,7 +166,7 @@ class ContractDocumentService
             'work_start_date' => $this->formatDate($workStartDate),
             'work_end_date' => $this->formatDate($workEndDate),
             'city' => $city?->name ?? '',
-            'site_address' => $group?->site_address ?? $contract->address ?? '',
+            'site_address' => $contract->address ?? '',
             'sale_type' => $contract->saleType?->name ?? '',
             'template_name' => $template->name ?? '',
             'template_short_name' => $template->short_name ?? '',
@@ -189,7 +187,7 @@ class ContractDocumentService
             'remaining_sum_raw' => $this->formatNumber($remainingAmount, 2),
             'remaining_sum_words' => $this->formatMoneyWords($remainingAmount),
 
-            'client_type' => $group?->counterparty_type ?? '',
+            'client_type' => $company ? 'company' : 'individual',
             'client_name' => $counterparty?->name ?? '',
             'client_short_name' => $clientShortName,
             'client_phone' => $counterparty?->phone ?? '',

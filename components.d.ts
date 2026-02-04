@@ -35,6 +35,7 @@ declare module 'vue' {
     CardStatisticsHorizontal: typeof import('./resources/ts/@core/components/cards/CardStatisticsHorizontal.vue')['default']
     CardStatisticsVertical: typeof import('./resources/ts/@core/components/cards/CardStatisticsVertical.vue')['default']
     CardStatisticsVerticalSimple: typeof import('./resources/ts/@core/components/CardStatisticsVerticalSimple.vue')['default']
+    CashboxBadge: typeof import('./resources/ts/components/cashboxes/CashboxBadge.vue')['default']
     CashBoxesTable: typeof import('./resources/ts/components/tables/settings/CashBoxesTable.vue')['default']
     CitiesTable: typeof import('./resources/ts/components/tables/settings/CitiesTable.vue')['default']
     ColumnBuilder: typeof import('./resources/ts/components/table/ColumnBuilder.vue')['default']

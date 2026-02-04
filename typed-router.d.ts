@@ -170,6 +170,7 @@ declare module 'vue-router/auto-routes' {
     'settings-spending-funds': RouteRecordInfo<'settings-spending-funds', '/settings/spending-funds', Record<never, never>, Record<never, never>>,
     'settings-spending-items': RouteRecordInfo<'settings-spending-items', '/settings/spending-items', Record<never, never>, Record<never, never>>,
     'settings-transaction-types': RouteRecordInfo<'settings-transaction-types', '/settings/transaction-types', Record<never, never>, Record<never, never>>,
+    'system-logos': RouteRecordInfo<'system-logos', '/system/logos', Record<never, never>, Record<never, never>>,
     'tables-data-table': RouteRecordInfo<'tables-data-table', '/tables/data-table', Record<never, never>, Record<never, never>>,
     'tables-simple-table': RouteRecordInfo<'tables-simple-table', '/tables/simple-table', Record<never, never>, Record<never, never>>,
     'wizard-examples-checkout': RouteRecordInfo<'wizard-examples-checkout', '/wizard-examples/checkout', Record<never, never>, Record<never, never>>,

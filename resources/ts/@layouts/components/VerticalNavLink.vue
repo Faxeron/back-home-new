@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import { layoutConfig } from '@layouts'
 import { can } from '@layouts/plugins/casl'
+import { computed } from 'vue'
+import { useCookie } from '@/@core/composable/useCookie'
 import { useLayoutConfigStore } from '@layouts/stores/config'
 import type { NavLink } from '@layouts/types'
 import {
@@ -9,17 +11,20 @@ import {
   isNavLinkActive,
 } from '@layouts/utils'
 
-defineProps<{
+const props = defineProps<{
   item: NavLink
 }>()
 
 const configStore = useLayoutConfigStore()
 const hideTitleAndBadge = configStore.isVerticalNavMini()
+const userData = useCookie<any>('userData')
+const isSuperAdmin = computed(() => userData.value?.role === 'superadmin')
+const canShow = computed(() => can(props.item.action, props.item.subject) && (!props.item.superadminOnly || isSuperAdmin.value))
 </script>
 
 <template>
   <li
-    v-if="can(item.action, item.subject)"
+    v-if="canShow"
     class="nav-link"
     :class="{ disabled: item.disable }"
   >

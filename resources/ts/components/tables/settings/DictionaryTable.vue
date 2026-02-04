@@ -123,7 +123,7 @@ const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString
     </Column>
 
     <template #empty>
-      <div class="text-center py-6 text-muted">Нет данных</div>
+      <div class="text-center py-6 text-muted">Нет данных.</div>
     </template>
 
     <template #loading>

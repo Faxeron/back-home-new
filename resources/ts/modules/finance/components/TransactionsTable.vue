@@ -11,6 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatSum, statusLines } from '@/utils/formatters/finance'
 import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
+import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
 import type { Transaction } from '@/types/finance'
 
 type TransactionRow = Transaction & {
@@ -43,6 +44,13 @@ const filtersModel = computed({
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))
 
 const dictionaries = useDictionariesStore()
+
+const cashboxInlineSize = computed(() => {
+  const names = dictionaries.cashBoxes.map(item => item.name ?? '')
+  const maxLength = names.reduce((max, name) => Math.max(max, name.length), 0)
+  const ch = Math.max(maxLength, 6)
+  return `calc(${ch}ch + 56px)`
+})
 
 const paidRangePanel = ref<any>(null)
 const completedRangePanel = ref<any>(null)
@@ -272,6 +280,9 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
     <Column
       :field="TRANSACTION_COLUMNS.cashbox.field"
       :header="TRANSACTION_COLUMNS.cashbox.header"
+      :style="{ inlineSize: cashboxInlineSize }"
+      :headerStyle="{ inlineSize: cashboxInlineSize }"
+      :bodyStyle="{ inlineSize: cashboxInlineSize }"
     >
       <template #filter="{ filterModel, filterCallback }">
         <Select
@@ -284,7 +295,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        {{ data.cashbox?.name ?? '' }}
+        <CashboxBadge :cashbox="data.cashbox" size="sm" />
       </template>
     </Column>
 

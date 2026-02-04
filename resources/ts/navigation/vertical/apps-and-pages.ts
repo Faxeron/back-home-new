@@ -41,4 +41,11 @@
       { title: 'Настройки маржи', to: { path: '/settings/margin' } },
     ],
   },
+  { heading: 'СИСТЕМА', superadminOnly: true },
+  {
+    title: 'Логотипы',
+    icon: { icon: 'tabler-brand-visa' },
+    to: { path: '/system/logos' },
+    superadminOnly: true,
+  },
 ]

@@ -11,6 +11,7 @@ const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 
 const filterDefs: DictionaryFilterDef[] = [
+  { key: 'id', kind: 'number', queryKey: 'id' },
   { key: 'name', kind: 'text', queryKey: 'q', debounce: true },
 ]
 
@@ -36,9 +37,10 @@ reloadRef.value = () => {
 }
 
 const updateScrollHeight = () => {
-  const tableEl = tableRef.value?.$el as HTMLElement | undefined
-  if (!tableEl) return
-  const rect = tableEl.getBoundingClientRect()
+  const rawEl = tableRef.value?.$el
+  const tableEl = Array.isArray(rawEl) ? rawEl[0] : rawEl
+  if (!tableEl || typeof (tableEl as HTMLElement).getBoundingClientRect !== 'function') return
+  const rect = (tableEl as HTMLElement).getBoundingClientRect()
   const padding = 24
   const nextHeight = Math.max(320, window.innerHeight - rect.top - padding)
   scrollHeight.value = `${Math.floor(nextHeight)}px`
@@ -71,5 +73,6 @@ onBeforeUnmount(() => {
     :virtualScrollerOptions="virtualScrollerOptions"
     @sort="handleSort"
     @reset-filters="resetFilters"
+    @reload="resetData"
   />
 </template>

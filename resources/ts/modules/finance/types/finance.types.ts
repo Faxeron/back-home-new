@@ -127,10 +127,20 @@ export type CashBox = {
   id: number
   name: string
   balance?: number
+  logo_url?: string | null
+  logo_source?: string | null
+  logo_preset_id?: number | null
   company_id?: number
   description?: string
   is_active?: boolean
   company?: { id: number; name: string }
+  logo_preset?: { id: number; name: string; logo_url?: string | null }
+}
+export type CashboxLogo = {
+  id: number
+  name: string
+  file_path?: string
+  logo_url?: string | null
 }
 export type Company = {
   id: number

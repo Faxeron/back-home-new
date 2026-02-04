@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { TransitionGroup } from 'vue'
+import { TransitionGroup, computed } from 'vue'
 import { layoutConfig } from '@layouts'
 import { TransitionExpand, VerticalNavLink } from '@layouts/components'
 import { canViewNavMenuGroup } from '@layouts/plugins/casl'
@@ -11,6 +11,7 @@ import {
   isNavGroupActive,
   openGroups,
 } from '@layouts/utils'
+import { useCookie } from '@/@core/composable/useCookie'
 
 defineOptions({
   name: 'VerticalNavGroup',
@@ -24,6 +25,9 @@ const route = useRoute()
 const router = useRouter()
 const configStore = useLayoutConfigStore()
 const hideTitleAndBadge = configStore.isVerticalNavMini()
+const userData = useCookie<any>('userData')
+const isSuperAdmin = computed(() => userData.value?.role === 'superadmin')
+const canShow = computed(() => canViewNavMenuGroup(props.item) && (!props.item.superadminOnly || isSuperAdmin.value))
 
 /*
   ℹ️ We provided default value `ref(false)` because inject will return `T | undefined`
@@ -158,7 +162,7 @@ watch(configStore.isVerticalNavMini(isVerticalNavHovered), val => {
 
 <template>
   <li
-    v-if="canViewNavMenuGroup(item)"
+    v-if="canShow"
     class="nav-group"
     :class="[
       {

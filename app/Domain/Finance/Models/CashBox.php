@@ -6,6 +6,7 @@ use App\Domain\Common\Models\Company;
 use App\Domain\Common\Traits\BelongsToCompany;
 use App\Domain\Finance\Models\CashTransfer;
 use App\Domain\Finance\Models\CashboxHistory;
+use App\Domain\Finance\Models\CashboxLogo;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\Models\Transaction;
@@ -62,5 +63,10 @@ class CashBox extends Model
     public function transfersTo(): HasMany
     {
         return $this->hasMany(CashTransfer::class, 'to_cashbox_id');
+    }
+
+    public function logoPreset(): BelongsTo
+    {
+        return $this->belongsTo(CashboxLogo::class, 'logo_preset_id');
     }
 }

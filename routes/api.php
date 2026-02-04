@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CashBoxController;
+use App\Http\Controllers\Api\CashBoxLogoController;
 use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\CityDistrictController;
 use App\Http\Controllers\Api\CompanyController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\API\Finance\SpendingController;
 use App\Http\Controllers\API\Finance\TransactionController;
 use App\Http\Controllers\Api\ContractPayrollController;
 use App\Http\Controllers\Api\UserLookupController;
+use App\Http\Controllers\Api\InstallationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -105,6 +107,12 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::prefix('settings')->group(function (): void {
         Route::apiResource('contract-statuses', ContractStatusController::class)->parameter('contract-statuses', 'contractStatus');
         Route::apiResource('cash-boxes', CashBoxController::class)->parameter('cash-boxes', 'cashBox');
+        Route::get('cashbox-logos', [CashBoxLogoController::class, 'index']);
+        Route::post('cashbox-logos', [CashBoxLogoController::class, 'store']);
+        Route::patch('cashbox-logos/{cashboxLogo}', [CashBoxLogoController::class, 'update'])
+            ->whereNumber('cashboxLogo');
+        Route::delete('cashbox-logos/{cashboxLogo}', [CashBoxLogoController::class, 'destroy'])
+            ->whereNumber('cashboxLogo');
         Route::apiResource('companies', CompanyController::class);
         Route::apiResource('spending-funds', SpendingFundController::class)->parameter('spending-funds', 'spendingFund');
         Route::apiResource('spending-items', SpendingItemController::class)->parameter('spending-items', 'spendingItem');
@@ -180,10 +188,14 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
       Route::delete('contracts/{contract}/documents/{document}', [ContractDocumentController::class, 'destroy'])
         ->whereNumber('contract')
         ->whereNumber('document');
-      Route::get('contracts/{contract}/documents/{document}/download', [ContractDocumentController::class, 'download'])
+    Route::get('contracts/{contract}/documents/{document}/download', [ContractDocumentController::class, 'download'])
         ->whereNumber('contract')
         ->whereNumber('document');
       Route::get('contract-templates/files', [ContractTemplateFileController::class, 'index']);
       Route::post('contract-templates/files', [ContractTemplateFileController::class, 'store']);
       Route::apiResource('contract-templates', ContractTemplateController::class);
+
+      Route::get('installations', [InstallationController::class, 'index']);
+      Route::patch('installations/{contract}', [InstallationController::class, 'update'])
+        ->whereNumber('contract');
 });

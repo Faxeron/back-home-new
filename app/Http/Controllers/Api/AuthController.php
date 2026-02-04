@@ -7,6 +7,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AuthController extends Controller
 {
@@ -28,12 +30,31 @@ class AuthController extends Controller
             ], 401);
         }
 
+        $role = 'admin';
+        if (Schema::connection('legacy_new')->hasTable('role_users') && Schema::connection('legacy_new')->hasTable('roles')) {
+            $roles = DB::connection('legacy_new')
+                ->table('role_users')
+                ->join('roles', 'roles.id', '=', 'role_users.role_id')
+                ->where('role_users.user_id', $user->id)
+                ->pluck('roles.code')
+                ->map(fn ($code) => strtolower((string) $code))
+                ->unique();
+
+            if ($roles->contains('superadmin')) {
+                $role = 'superadmin';
+            } elseif ($roles->contains('admin')) {
+                $role = 'admin';
+            } else {
+                $role = 'user';
+            }
+        }
+
         $userData = [
             'id' => $user->id,
             'fullName' => $user->name,
             'username' => $user->email,
             'email' => $user->email,
-            'role' => 'admin',
+            'role' => $role,
             'tenant_id' => $user->tenant_id,
             'company_id' => $user->default_company_id ?? $user->company_id ?? null,
             'avatar' => null,

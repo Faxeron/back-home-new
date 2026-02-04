@@ -39,7 +39,6 @@
 - **payroll_payout_items**
 - **estimate.contract_id** → `NULL`
 - сам **contract**
-- если **contract_group** остался пустым — удаляем группу
 
 **Тип удаления:** жёсткое удаление из БД.
 

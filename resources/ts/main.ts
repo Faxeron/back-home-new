@@ -34,3 +34,9 @@ app.component('MultiSelect', MultiSelect)
 
 // Mount vue app
 app.mount('#app')
+
+// Remove initial loader once app is mounted
+const loadingBg = document.getElementById('loading-bg')
+if (loadingBg) {
+  loadingBg.remove()
+}

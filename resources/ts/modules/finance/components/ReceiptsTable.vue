@@ -11,6 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import { RECEIPT_COLUMNS } from '@/modules/finance/config/receiptsTable.config'
+import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
 import type { Receipt } from '@/types/finance'
 
 type ReceiptRow = Receipt & {
@@ -50,7 +51,8 @@ const counterpartyMap = computed(
 const cashboxInlineSize = computed(() => {
   const names = dictionaries.cashBoxes.map(item => item.name ?? '')
   const maxLength = names.reduce((max, name) => Math.max(max, name.length), 0)
-  return `${Math.max(maxLength, 6)}ch`
+  const ch = Math.max(maxLength, 6)
+  return `calc(${ch}ch + 56px)`
 })
 
 const rows = computed<ReceiptRow[]>(() =>
@@ -170,7 +172,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        {{ data.cashbox?.name ?? '' }}
+        <CashboxBadge :cashbox="data.cashbox" size="sm" />
       </template>
     </Column>
 

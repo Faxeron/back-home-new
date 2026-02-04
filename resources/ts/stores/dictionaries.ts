@@ -9,6 +9,7 @@ interface NamedItem {
   color?: string
   sign?: number | string | null
   fond_id?: number | string | null
+  logo_url?: string | null
 }
 
 export const useDictionariesStore = defineStore('dictionaries', {
@@ -46,6 +47,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
           .map((item: any) => ({
             id: item?.id ?? item?.value,
             name: item?.name ?? item?.cashbox_name ?? item?.title ?? item?.label ?? item?.code,
+            logo_url: item?.logo_url ?? null,
           }))
           .filter((item: any) => item.id != null && item.name)
         this.loaded.cashBoxes = true

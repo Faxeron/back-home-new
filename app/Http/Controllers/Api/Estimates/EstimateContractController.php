@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Estimates;
 use App\Domain\Catalog\Models\ProductType;
 use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\ContractDocument;
-use App\Domain\CRM\Models\ContractGroup;
 use App\Domain\CRM\Models\ContractItem;
 use App\Domain\CRM\Models\ContractStatus;
 use App\Domain\CRM\Models\ContractTemplate;
@@ -142,23 +141,6 @@ class EstimateContractController extends Controller
             ]);
             $estimateModel->save();
 
-            $group = ContractGroup::query()->create([
-                'tenant_id' => $tenantId,
-                'company_id' => $companyId,
-                'estimate_id' => $estimateModel->id,
-                'counterparty_id' => $counterparty->id,
-                'counterparty_type' => $counterpartyType,
-                'contract_date' => $contractPayload['contract_date'] ?? null,
-                'city_id' => $contractPayload['city_id'] ?? null,
-                'site_address' => $contractPayload['site_address'] ?? null,
-                'sale_type_id' => $contractPayload['sale_type_id'] ?? null,
-                'installation_date' => $contractPayload['work_start_date'] ?? $contractPayload['installation_date'] ?? null,
-                'total_amount' => null,
-                'contract_status_id' => $draftStatusId,
-                'created_by' => $user?->id,
-                'updated_by' => $user?->id,
-            ]);
-
             $estimateItems = $estimateModel->items;
             $estimateTotal = $estimateItems->sum(fn ($item) => (float) ($item->total ?? 0));
 
@@ -184,10 +166,9 @@ class EstimateContractController extends Controller
                 'contract_date' => $contractPayload['contract_date'] ?? null,
                 'sale_type_id' => $contractPayload['sale_type_id'] ?? null,
                 'city_id' => $contractPayload['city_id'] ?? null,
-                'address' => $contractPayload['site_address'] ?? null,
+                'address' => $contractPayload['site_address'] ?? $estimateModel->site_address ?? null,
                 'work_start_date' => $contractPayload['work_start_date'] ?? $contractPayload['installation_date'] ?? null,
                 'work_end_date' => $contractPayload['work_end_date'] ?? null,
-                'contract_group_id' => $group->id,
                 'template_product_type_ids' => $estimateTypeIds,
                 'estimate_id' => $estimateModel->id,
                 'manager_id' => $user?->id,
@@ -247,9 +228,6 @@ class EstimateContractController extends Controller
 
             app(PayrollService::class)->accrueFixedForContract($contract, $user?->id);
 
-            $group->total_amount = $estimateTotal;
-            $group->save();
-
             FinanceAuditLog::create([
                 'tenant_id' => $tenantId,
                 'company_id' => $companyId,
@@ -262,17 +240,16 @@ class EstimateContractController extends Controller
                 'created_at' => now(),
             ]);
 
-            return [$group, [$contract]];
+            return [$contract];
         });
 
-        [$group, $contracts] = $result;
+        [$contract] = $result;
 
         return response()->json([
             'data' => [
-                'contract_group_id' => $group->id,
-                'contracts' => collect($contracts)->map(
-                    fn (Contract $contract) => (new ContractResource($contract))->toArray($request),
-                ),
+                'contracts' => [
+                    (new ContractResource($contract))->toArray($request),
+                ],
             ],
         ]);
     }

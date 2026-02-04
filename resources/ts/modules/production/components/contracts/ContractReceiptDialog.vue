@@ -5,6 +5,7 @@ import type { Contract } from '@/types/finance'
 import { createContractReceipt } from '@/modules/finance/api/receipts.api'
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue'
 import AppSelect from '@/@core/components/app-form-elements/AppSelect.vue'
+import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -125,7 +126,16 @@ watch(
           item-title="name"
           item-value="id"
           label="Касса"
-        />
+        >
+          <template #selection="{ item }">
+            <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+          </template>
+          <template #item="{ props: itemProps, item }">
+            <VListItem v-bind="itemProps">
+              <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+            </VListItem>
+          </template>
+        </AppSelect>
 
         <AppSelect
           v-model="form.payment_method_id"

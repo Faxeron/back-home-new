@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Finance\FinanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CashBoxController extends Controller
 {
@@ -40,6 +41,7 @@ class CashBoxController extends Controller
                 'id' => $cashBox->id,
                 'name' => $cashBox->name,
                 'balance' => $this->financeService->getCashBoxBalance($cashBox->id),
+                'logo_url' => $cashBox->logo_path ? Storage::disk('public')->url($cashBox->logo_path) : null,
             ];
         });
 

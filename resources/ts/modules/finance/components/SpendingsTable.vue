@@ -11,6 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import { SPENDING_COLUMNS } from '@/modules/finance/config/spendingsTable.config'
+import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
 import type { Spending } from '@/types/finance'
 
 type SpendingRow = Spending & {
@@ -80,7 +81,8 @@ const rows = computed<SpendingRow[]>(() =>
 const cashboxInlineSize = computed(() => {
   const names = dictionaries.cashBoxes.map(item => item.name ?? '')
   const maxLength = names.reduce((max, name) => Math.max(max, name.length), 0)
-  return `${Math.max(maxLength, 6)}ch`
+  const ch = Math.max(maxLength, 6)
+  return `calc(${ch}ch + 56px)`
 })
 
 const selectedFundId = computed(() => filtersModel.value?.fond_id?.value ?? null)
@@ -202,7 +204,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        {{ data.cashbox?.name ?? '' }}
+        <CashboxBadge :cashbox="data.cashbox" size="sm" />
       </template>
     </Column>
 

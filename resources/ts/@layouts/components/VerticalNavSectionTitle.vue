@@ -4,18 +4,23 @@ import { can } from '@layouts/plugins/casl'
 import { useLayoutConfigStore } from '@layouts/stores/config'
 import type { NavSectionTitle } from '@layouts/types'
 import { getDynamicI18nProps } from '@layouts/utils'
+import { computed } from 'vue'
+import { useCookie } from '@/@core/composable/useCookie'
 
-defineProps<{
+const props = defineProps<{
   item: NavSectionTitle
 }>()
 
 const configStore = useLayoutConfigStore()
 const shallRenderIcon = configStore.isVerticalNavMini()
+const userData = useCookie<any>('userData')
+const isSuperAdmin = computed(() => userData.value?.role === 'superadmin')
+const canShow = computed(() => can(props.item.action, props.item.subject) && (!props.item.superadminOnly || isSuperAdmin.value))
 </script>
 
 <template>
   <li
-    v-if="can(item.action, item.subject)"
+    v-if="canShow"
     class="nav-section-title"
   >
     <div class="title-wrapper">

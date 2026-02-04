@@ -5,6 +5,7 @@ import { useAppSnackbarStore } from '@/stores/appSnackbar'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { formatSum } from '@/utils/formatters/finance'
+import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
 
 type PayrollRuleRow = {
   id?: number
@@ -677,7 +678,16 @@ onMounted(async () => {
                 placeholder="Выберите кассу"
                 hide-details
                 class="payroll-label-fix"
-              />
+              >
+                <template #selection="{ item }">
+                  <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+                </template>
+                <template #item="{ props: itemProps, item }">
+                  <VListItem v-bind="itemProps">
+                    <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+                  </VListItem>
+                </template>
+              </VSelect>
             </VCol>
             <VCol cols="12" md="4">
               <VSelect
@@ -824,7 +834,7 @@ onMounted(async () => {
             </Column>
             <Column field="cashbox" header="Касса">
               <template #body="{ data: row }">
-                {{ row.cashbox?.name ?? '-' }}
+                <CashboxBadge :cashbox="row.cashbox" size="sm" />
               </template>
             </Column>
             <Column field="item" header="Статья">
