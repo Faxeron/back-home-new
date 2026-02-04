@@ -57,19 +57,54 @@ class UserLookupController extends Controller
             $select[] = 'users.email';
         }
 
-        $users = $query->select($select)
+        $rows = $query->select($select)
             ->distinct()
             ->orderBy('users.id')
             ->limit(5000)
-            ->get()
-            ->map(function ($row) {
-                $name = $row->name ?? $row->email ?? ('User #' . $row->id);
-                return [
-                    'id' => (int) $row->id,
-                    'name' => $name,
-                    'email' => $row->email ?? null,
-                ];
-            });
+            ->get();
+
+        $roleMap = [];
+        if ($rows->isNotEmpty()
+            && Schema::connection('legacy_new')->hasTable('role_users')
+            && Schema::connection('legacy_new')->hasTable('roles')
+        ) {
+            $userIds = $rows->pluck('id')
+                ->filter(fn ($id) => $id !== null)
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+
+            if (!empty($userIds)) {
+                $roleRows = $db->table('role_users')
+                    ->join('roles', 'roles.id', '=', 'role_users.role_id')
+                    ->whereIn('role_users.user_id', $userIds)
+                    ->select(['role_users.user_id', 'roles.code'])
+                    ->get();
+
+                foreach ($roleRows as $roleRow) {
+                    $userId = (int) $roleRow->user_id;
+                    $code = (string) ($roleRow->code ?? '');
+                    if ($code === '') {
+                        continue;
+                    }
+                    if (!isset($roleMap[$userId])) {
+                        $roleMap[$userId] = [];
+                    }
+                    $roleMap[$userId][] = $code;
+                }
+            }
+        }
+
+        $users = $rows->map(function ($row) use ($roleMap) {
+            $name = $row->name ?? $row->email ?? ('User #' . $row->id);
+            $roles = $roleMap[(int) $row->id] ?? [];
+            return [
+                'id' => (int) $row->id,
+                'name' => $name,
+                'email' => $row->email ?? null,
+                'role_codes' => array_values(array_unique($roles)),
+            ];
+        });
 
         return response()->json(['data' => $users]);
     }

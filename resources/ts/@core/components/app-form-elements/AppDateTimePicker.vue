@@ -24,6 +24,7 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  labelInField: Boolean,
   autofocus: Boolean,
   counter: [Boolean, Number, String] as PropType<true | number | string>,
   counterValue: Function as PropType<(value: any) => number>,
@@ -142,7 +143,7 @@ const elementId = computed (() => {
   <div class="app-picker-field">
     <!-- v-input -->
     <VLabel
-      v-if="fieldProps.label"
+      v-if="fieldProps.label && !props.labelInField"
       class="mb-1 text-body-2"
       :for="elementId"
       :text="fieldProps.label"
@@ -163,7 +164,7 @@ const elementId = computed (() => {
       <template #default="{ id, isDirty, isValid, isDisabled, isReadonly, validate }">
         <!-- v-field -->
         <VField
-          v-bind="{ ...fieldProps, label: undefined }"
+          v-bind="{ ...fieldProps, label: props.labelInField ? fieldProps.label : undefined }"
           :id="id.value"
           role="textbox"
           :active="focused || isDirty.value || isCalendarOpen"

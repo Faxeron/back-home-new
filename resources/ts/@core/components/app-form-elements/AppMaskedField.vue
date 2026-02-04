@@ -9,6 +9,7 @@ defineOptions({
 const props = defineProps<{
   modelValue?: string | null
   mask: string
+  labelInField?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,7 +59,7 @@ const model = computed({
     :class="$attrs.class"
   >
     <VLabel
-      v-if="label"
+      v-if="label && !props.labelInField"
       :for="elementId"
       class="mb-1 text-body-2 text-wrap"
       style="line-height: 15px;"
@@ -69,7 +70,7 @@ const model = computed({
       v-bind="{
         ...$attrs,
         class: null,
-        label: undefined,
+        label: props.labelInField ? label : undefined,
         variant: 'outlined',
         id: elementId,
         type: 'text',

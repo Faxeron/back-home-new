@@ -1,7 +1,11 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { VForm } from 'vuetify/components/VForm'
+import { useCookie } from '@/@core/composable/useCookie'
 import { useDictionariesStore } from '@/stores/dictionaries'
+import { $api } from '@/utils/api'
+import { emailValidator, requiredValidator } from '@/@core/utils/validators'
 import type { Estimate } from '@/modules/estimates/types/estimates.types'
 import type { ContractTemplate } from '@/modules/production/types/contract-templates.types'
 import { fetchContractTemplates } from '@/modules/production/api/contractTemplates.api'
@@ -12,6 +16,13 @@ import {
 } from '@/modules/estimates/api/estimate.api'
 import AppMaskedField from '@/@core/components/app-form-elements/AppMaskedField.vue'
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue'
+
+type UserOption = {
+  id: number
+  name: string
+  email?: string | null
+  role_codes?: string[]
+}
 
 const props = defineProps<{
   modelValue: boolean
@@ -25,6 +36,19 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const dictionaries = useDictionariesStore()
+const userData = useCookie<any>('userData')
+
+const numberedSteps = [
+  { title: 'Договор', subtitle: 'Данные договора' },
+  { title: 'Клиент', subtitle: 'Данные клиента' },
+  { title: 'Монтаж', subtitle: 'Данные монтажа' },
+]
+
+const currentStep = ref(0)
+const isCurrentStepValid = ref(true)
+const refStepOne = ref<VForm>()
+const refStepTwo = ref<VForm>()
+const refStepThree = ref<VForm>()
 
 const loadingTemplates = ref(false)
 const saving = ref(false)
@@ -33,6 +57,8 @@ const validationErrors = ref<Record<string, string[]>>({})
 const existingContractId = ref<number | null>(null)
 const templates = ref<ContractTemplate[]>([])
 const counterpartyLoading = ref(false)
+const usersLoading = ref(false)
+const users = ref<UserOption[]>([])
 
 const form = reactive({
   counterparty_type: 'individual',
@@ -64,6 +90,9 @@ const form = reactive({
   contract: {
     contract_date: '',
     total_amount: null as number | null,
+    manager_id: null as number | null,
+    measurer_id: null as number | null,
+    worker_id: null as number | null,
     city_id: null as number | null,
     site_address: '',
     sale_type_id: null as number | null,
@@ -125,10 +154,13 @@ const fieldLabels: Record<string, string> = {
   'counterparty.accountant_name': 'Бухгалтер',
   'contract.contract_date': 'Дата договора',
   'contract.total_amount': 'Сумма',
+  'contract.manager_id': 'Менеджер',
+  'contract.measurer_id': 'Замерщик',
+  'contract.worker_id': 'Монтажник',
   'contract.city_id': 'Город',
   'contract.site_address': 'Адрес объекта',
   'contract.sale_type_id': 'Тип продаж',
-  'contract.installation_date': 'Дата монтажа',
+  'contract.installation_date': 'Период монтажа',
   'contract.work_start_date': 'Дата начала монтажа',
   'contract.work_end_date': 'Дата окончания монтажа',
 }
@@ -143,6 +175,51 @@ const validationErrorList = computed(() => {
   return Array.from(list)
 })
 
+const estimateLink = computed(() => {
+  if (!props.estimate?.id) return null
+  return props.estimate.link || `/estimates/${props.estimate.id}/edit`
+})
+
+const estimateLinkLabel = computed(() =>
+  props.estimate?.id ? `Смета #${props.estimate.id}` : 'Смета',
+)
+
+const currentUserId = computed(() => {
+  const raw = userData.value?.id ?? userData.value?.userId ?? null
+  const id = Number(raw)
+  return Number.isFinite(id) ? id : null
+})
+
+const normalizeRoleCodes = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => String(item).toLowerCase())
+      .filter(Boolean)
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim().toLowerCase()]
+  }
+  return []
+}
+
+const filterUsersByRoles = (roles: string[]) => {
+  return users.value.filter(user =>
+    roles.some(role => (user.role_codes ?? []).includes(role)),
+  )
+}
+
+const managerOptions = computed<UserOption[]>(() => {
+  return filterUsersByRoles(['admin', 'manager'])
+})
+
+const measurerOptions = computed<UserOption[]>(() => {
+  return filterUsersByRoles(['measurer'])
+})
+
+const workerOptions = computed<UserOption[]>(() => {
+  return filterUsersByRoles(['admin', 'worker'])
+})
+
 const normalizeValue = (value?: string | null) => (value ?? '').trim()
 const normalizeDateValue = (value?: string | null) => {
   const trimmed = normalizeValue(value)
@@ -155,16 +232,26 @@ const normalizeDateValue = (value?: string | null) => {
   return trimmed
 }
 
-const parseDateRange = (value?: string | null) => {
-  const trimmed = normalizeValue(value)
+const normalizeRangeToken = (value: unknown) => {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10)
+  }
+  return String(value ?? '')
+}
+
+const parseDateRange = (value?: unknown) => {
+  if (Array.isArray(value)) {
+    const start = normalizeDateValue(normalizeRangeToken(value[0]))
+    const end = normalizeDateValue(normalizeRangeToken(value[1] ?? value[0]))
+    return { start, end }
+  }
+  if (value instanceof Date) {
+    const start = normalizeDateValue(normalizeRangeToken(value))
+    return { start, end: start }
+  }
+  const trimmed = normalizeValue(String(value ?? ''))
   if (!trimmed) return { start: '', end: '' }
-  let parts = trimmed.split(' to ')
-  if (parts.length === 1) {
-    parts = trimmed.split(' - ')
-  }
-  if (parts.length === 1) {
-    parts = trimmed.split(' — ')
-  }
+  const parts = trimmed.split(/\s+(?:to|–|—|-)\s+/)
   const start = normalizeDateValue(parts[0] ?? '')
   const end = normalizeDateValue(parts[1] ?? parts[0] ?? '')
   return { start, end }
@@ -212,6 +299,9 @@ const buildContractPayload = () => {
   const { start, end } = parseDateRange(form.contract.installation_date)
   return {
     ...form.contract,
+    manager_id: form.contract.manager_id,
+    measurer_id: form.contract.measurer_id,
+    worker_id: form.contract.worker_id,
     site_address: normalizeValue(form.contract.site_address),
     contract_date: normalizeDateValue(form.contract.contract_date),
     installation_date: start || normalizeDateValue(form.contract.installation_date),
@@ -321,6 +411,12 @@ const resetFormFromEstimate = () => {
   form.contract.city_id = null
   form.contract.sale_type_id = null
   form.contract.installation_date = ''
+  {
+    const role = String(userData.value?.role ?? '').toLowerCase()
+    form.contract.manager_id = ['admin', 'manager'].includes(role) ? currentUserId.value : null
+  }
+  form.contract.measurer_id = null
+  form.contract.worker_id = null
   form.counterparty.phone = estimate?.client_phone ?? estimate?.counterparty?.phone ?? ''
   form.counterparty.email = estimate?.counterparty?.email ?? ''
 
@@ -360,6 +456,26 @@ const loadTemplates = async () => {
   }
 }
 
+const loadUsers = async () => {
+  usersLoading.value = true
+  try {
+    const response: any = await $api('settings/users')
+    const list = Array.isArray(response?.data?.data) ? response.data.data : Array.isArray(response?.data) ? response.data : []
+    users.value = list
+      .map((item: any) => ({
+        id: Number(item?.id),
+        name: item?.name ?? item?.email ?? `User #${item?.id}`,
+        email: item?.email ?? null,
+        role_codes: normalizeRoleCodes(item?.role_codes ?? item?.role_code ?? item?.roles),
+      }))
+      .filter((item: any) => Number.isFinite(item.id) && item.name)
+  } catch (error) {
+    users.value = []
+  } finally {
+    usersLoading.value = false
+  }
+}
+
 const loadDictionaries = async () => {
   await Promise.all([dictionaries.loadCities(), dictionaries.loadSaleTypes()])
 }
@@ -372,6 +488,53 @@ const openExistingContract = async () => {
   if (!existingContractId.value) return
   await router.push({ path: `/operations/contracts/${existingContractId.value}` })
   closeDialog()
+}
+
+const templateRules = [
+  (value: number[]) => (Array.isArray(value) && value.length > 0) || 'Выберите хотя бы один шаблон договора.',
+]
+const sumRules = [
+  (value: unknown) => requiredValidator(value),
+  (value: unknown) => {
+    const amount = Number(value)
+    return Number.isFinite(amount) && amount > 0 || 'Укажите сумму'
+  },
+]
+const rangeRules = [
+  (value: unknown) => {
+    const { start, end } = parseDateRange(value)
+    return Boolean(start && end) || 'Укажите период монтажа'
+  },
+]
+
+const validateStepOne = async () => {
+  const result = await refStepOne.value?.validate()
+  if (result?.valid) {
+    isCurrentStepValid.value = true
+    currentStep.value = 1
+  } else {
+    isCurrentStepValid.value = false
+  }
+}
+
+const validateStepTwo = async () => {
+  const result = await refStepTwo.value?.validate()
+  if (result?.valid) {
+    isCurrentStepValid.value = true
+    currentStep.value = 2
+  } else {
+    isCurrentStepValid.value = false
+  }
+}
+
+const validateStepThree = async () => {
+  const result = await refStepThree.value?.validate()
+  if (result?.valid) {
+    isCurrentStepValid.value = true
+    await submit()
+  } else {
+    isCurrentStepValid.value = false
+  }
 }
 
 const submit = async (forceAllow = false) => {
@@ -431,22 +594,25 @@ watch(
   () => props.modelValue,
   async value => {
     if (!value) return
+    currentStep.value = 0
+    isCurrentStepValid.value = true
     resetFormFromEstimate()
     errorMessage.value = ''
     validationErrors.value = {}
     existingContractId.value = null
-    await Promise.all([loadTemplates(), loadDictionaries(), loadCounterpartyDetails()])
+    await Promise.all([loadTemplates(), loadDictionaries(), loadCounterpartyDetails(), loadUsers()])
   },
 )
 </script>
 
 <template>
-  <VDialog v-model="isOpen" max-width="920">
+  <VDialog v-model="isOpen" max-width="980">
     <VCard>
       <VCardTitle class="d-flex align-center justify-between">
         <span>Создание договоров</span>
         <VBtn icon="tabler-x" variant="text" @click="closeDialog" />
       </VCardTitle>
+
       <VCardText class="d-flex flex-column gap-4">
         <div v-if="errorMessage" class="text-sm text-error">
           <div>{{ errorMessage }}</div>
@@ -469,215 +635,346 @@ watch(
           </ul>
         </div>
 
-        <VCard variant="outlined">
-          <VCardText>
-            <div class="text-sm font-semibold mb-3">Данные договора</div>
-            <VRow>
-              <VCol cols="12" md="4">
-                <AppDateTimePicker
-                  v-model="form.contract.contract_date"
-                  label="Дата договора"
-                  placeholder="ДД.ММ.ГГГГ"
-                  :config="datePickerConfig"
-                  hide-details
-                />
-              </VCol>
-              <VCol cols="12" md="4">
-                <VTextField
-                  v-model.number="form.contract.total_amount"
-                  type="number"
-                  label="Сумма"
-                  hide-details
-                />
-              </VCol>
-              <VCol cols="12" md="4">
-                <AppSelect
-                  v-model="form.contract.city_id"
-                  :items="dictionaries.cities"
-                  item-title="name"
-                  item-value="id"
-                  label="Город"
-                />
-              </VCol>
-              <VCol cols="12" md="6">
-                <VTextField v-model="form.contract.site_address" label="Адрес объекта" hide-details />
-              </VCol>
-              <VCol cols="12" md="6">
-                <AppSelect
-                  v-model="form.contract.sale_type_id"
-                  :items="dictionaries.saleTypes"
-                  item-title="name"
-                  item-value="id"
-                  label="Тип продаж"
-                />
-              </VCol>
-              <VCol cols="12" md="6">
-                <AppDateTimePicker
-                  v-model="form.contract.installation_date"
-                  label="Период монтажа"
-                  placeholder="ДД.ММ.ГГГГ - ДД.ММ.ГГГГ"
-                  :config="rangeDatePickerConfig"
-                  hide-details
-                />
-              </VCol>
-            </VRow>
-          </VCardText>
-        </VCard>
+        <AppStepper
+          v-model:current-step="currentStep"
+          align="start"
+          :items="numberedSteps"
+          :is-active-step-valid="isCurrentStepValid"
+        />
+      </VCardText>
 
-        <VCard variant="outlined">
-          <VCardText>
-            <div class="text-sm font-semibold mb-3">
-              Клиент
-              <span v-if="counterpartyLoading" class="text-xs text-muted ml-2">(загрузка)</span>
-            </div>
-            <VRow>
-              <VCol cols="12">
-                <VRadioGroup v-model="form.counterparty_type" inline>
-                  <VRadio label="Физлицо" value="individual" />
-                  <VRadio label="Юрлицо" value="company" />
-                </VRadioGroup>
-              </VCol>
+      <VDivider />
 
-              <template v-if="form.counterparty_type === 'individual'">
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.last_name" label="Фамилия" hide-details />
+      <VCardText>
+        <VWindow v-model="currentStep" class="disable-tab-transition">
+          <VWindowItem>
+            <VForm ref="refStepOne" @submit.prevent="validateStepOne">
+              <VRow>
+                <VCol cols="12">
+                  <div class="d-flex align-center gap-2 text-sm text-muted">
+                    <span>Смета:</span>
+                    <VBtn
+                      v-if="estimateLink"
+                      :href="estimateLink"
+                      target="_blank"
+                      rel="noopener"
+                      variant="text"
+                      size="small"
+                      class="px-0"
+                    >
+                      {{ estimateLinkLabel }}
+                    </VBtn>
+                    <span v-else>-</span>
+                  </div>
                 </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.first_name" label="Имя" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.patronymic" label="Отчество" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <AppPhoneField v-model="form.counterparty.phone" placeholder="+7 000 000 00 00" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.email" label="Email" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <AppMaskedField
-                    v-model="form.counterparty.passport_series"
-                    label="Серия паспорта"
-                    mask="0000"
-                    placeholder="0000"
-                    hide-details
-                  />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <AppMaskedField
-                    v-model="form.counterparty.passport_number"
-                    label="Номер паспорта"
-                    mask="000000"
-                    placeholder="000000"
-                    hide-details
-                  />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <AppMaskedField
-                    v-model="form.counterparty.passport_code"
-                    label="Код подразделения"
-                    mask="000-000"
-                    placeholder="000-000"
-                    hide-details
-                  />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.passport_whom" label="Кем выдан" hide-details />
-                </VCol>
+
                 <VCol cols="12" md="4">
                   <AppDateTimePicker
-                    v-model="form.counterparty.issued_at"
-                    label="Когда выдан"
+                    v-model="form.contract.contract_date"
+                    label="Дата договора"
+                    label-in-field
                     placeholder="ДД.ММ.ГГГГ"
                     :config="datePickerConfig"
-                    hide-details
+                    :rules="[requiredValidator]"
+                    hide-details="auto"
                   />
                 </VCol>
-              </template>
+                <VCol cols="12" md="4">
+                  <VTextField
+                    v-model.number="form.contract.total_amount"
+                    type="number"
+                    label="Сумма"
+                    :rules="sumRules"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12" md="4">
+                  <AppSelect
+                    v-model="form.contract.manager_id"
+                    :items="managerOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="Менеджер"
+                    label-in-field
+                    :loading="usersLoading"
+                    :rules="[requiredValidator]"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12" md="6">
+                  <AppSelect
+                    v-model="form.contract.sale_type_id"
+                    :items="dictionaries.saleTypes"
+                    item-title="name"
+                    item-value="id"
+                    label="Тип продаж"
+                    label-in-field
+                    :rules="[requiredValidator]"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12" md="6">
+                  <AppSelect
+                    v-model="form.contract.measurer_id"
+                    :items="measurerOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="Замерщик"
+                    label-in-field
+                    clearable
+                    :loading="usersLoading"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12">
+                  <div class="text-sm font-semibold mb-2">Сформировать документы</div>
+                  <div v-if="loadingTemplates" class="text-sm text-muted">Загрузка...</div>
+                  <VInput
+                    v-else
+                    :model-value="form.template_ids"
+                    :rules="templateRules"
+                    hide-details="auto"
+                  >
+                    <VRow>
+                      <VCol
+                        v-for="template in templates"
+                        :key="template.id"
+                        cols="12"
+                        md="6"
+                      >
+                        <VCheckbox
+                          v-model="form.template_ids"
+                          :value="template.id"
+                          hide-details
+                        >
+                          <template #label>
+                            <div>
+                              <div class="font-medium">{{ template.short_name }}</div>
+                              <div class="text-xs text-muted">{{ template.name }}</div>
+                            </div>
+                          </template>
+                        </VCheckbox>
+                      </VCol>
+                    </VRow>
+                  </VInput>
+                </VCol>
 
-              <template v-else>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.legal_name" label="Полное наименование" hide-details />
+                <VCol cols="12">
+                  <div class="d-flex flex-wrap gap-4 justify-sm-space-between justify-center mt-6">
+                    <VBtn color="secondary" variant="tonal" disabled>
+                      <VIcon icon="tabler-arrow-left" start class="flip-in-rtl" />
+                      Назад
+                    </VBtn>
+                    <VBtn type="submit">
+                      Далее
+                      <VIcon icon="tabler-arrow-right" end class="flip-in-rtl" />
+                    </VBtn>
+                  </div>
                 </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.short_name" label="Краткое наименование" hide-details />
+              </VRow>
+            </VForm>
+          </VWindowItem>
+          <VWindowItem>
+            <VForm ref="refStepTwo" @submit.prevent="validateStepTwo">
+              <VRow>
+                <VCol v-if="counterpartyLoading" cols="12">
+                  <div class="text-xs text-muted">(загрузка)</div>
                 </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.inn" label="ИНН" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.kpp" label="КПП" hide-details />
-                </VCol>
-                <VCol cols="12" md="4">
-                  <VTextField v-model="form.counterparty.ogrn" label="ОГРН" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.legal_address" label="Юридический адрес" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.postal_address" label="Почтовый адрес" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.director_name" label="Директор" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.accountant_name" label="Бухгалтер" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.bank_name" label="Банк" hide-details />
-                </VCol>
-                <VCol cols="12" md="3">
-                  <VTextField v-model="form.counterparty.bik" label="БИК" hide-details />
-                </VCol>
-                <VCol cols="12" md="3">
-                  <VTextField v-model="form.counterparty.account_number" label="Счет" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.correspondent_account" label="Корр. счет" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <AppPhoneField v-model="form.counterparty.phone" placeholder="+7 000 000 00 00" hide-details />
-                </VCol>
-                <VCol cols="12" md="6">
-                  <VTextField v-model="form.counterparty.email" label="Email" hide-details />
-                </VCol>
-              </template>
-            </VRow>
-          </VCardText>
-        </VCard>
 
-        <VCard variant="outlined">
-          <VCardText>
-            <div class="text-sm font-semibold mb-3">Шаблоны договоров</div>
-            <div v-if="loadingTemplates" class="text-sm text-muted">Загрузка...</div>
-            <VRow v-else>
-              <VCol
-                v-for="template in templates"
-                :key="template.id"
-                cols="12"
-                md="6"
-              >
-                <VCheckbox
-                  v-model="form.template_ids"
-                  :value="template.id"
-                  hide-details
-                >
-                  <template #label>
-                    <div>
-                      <div class="font-medium">{{ template.short_name }}</div>
-                      <div class="text-xs text-muted">{{ template.name }}</div>
-                    </div>
-                  </template>
-                </VCheckbox>
-              </VCol>
-            </VRow>
-          </VCardText>
-        </VCard>
+                <VCol cols="12">
+                  <VRadioGroup v-model="form.counterparty_type" inline :rules="[requiredValidator]">
+                    <VRadio label="Физлицо" value="individual" />
+                    <VRadio label="Юрлицо" value="company" />
+                  </VRadioGroup>
+                </VCol>
+
+                <template v-if="form.counterparty_type === 'individual'">
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.last_name" label="Фамилия" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.first_name" label="Имя" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.patronymic" label="Отчество" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                  <AppPhoneField v-model="form.counterparty.phone" label="Телефон" label-in-field placeholder="+7 000 000 00 00" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                  <VTextField v-model="form.counterparty.email" label="Email" :rules="[emailValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <AppMaskedField
+                      v-model="form.counterparty.passport_series"
+                      label="Серия паспорта"
+                      label-in-field
+                      mask="0000"
+                      placeholder="0000"
+                      :rules="[requiredValidator]"
+                      hide-details="auto"
+                    />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <AppMaskedField
+                      v-model="form.counterparty.passport_number"
+                      label="Номер паспорта"
+                      label-in-field
+                      mask="000000"
+                      placeholder="000000"
+                      :rules="[requiredValidator]"
+                      hide-details="auto"
+                    />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <AppMaskedField
+                      v-model="form.counterparty.passport_code"
+                      label="Код подразделения"
+                      label-in-field
+                      mask="000-000"
+                      placeholder="000-000"
+                      :rules="[requiredValidator]"
+                      hide-details="auto"
+                    />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.passport_whom" label="Кем выдан" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <AppDateTimePicker
+                      v-model="form.counterparty.issued_at"
+                      label="Когда выдан"
+                      label-in-field
+                      placeholder="ДД.ММ.ГГГГ"
+                      :config="datePickerConfig"
+                      :rules="[requiredValidator]"
+                      hide-details="auto"
+                    />
+                  </VCol>
+                </template>
+
+                <template v-else>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.legal_name" label="Полное наименование" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.short_name" label="Краткое наименование" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.inn" label="ИНН" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.kpp" label="КПП" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="4">
+                    <VTextField v-model="form.counterparty.ogrn" label="ОГРН" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.legal_address" label="Юридический адрес" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.postal_address" label="Почтовый адрес" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.director_name" label="Директор" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.accountant_name" label="Бухгалтер" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.bank_name" label="Банк" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="3">
+                    <VTextField v-model="form.counterparty.bik" label="БИК" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="3">
+                    <VTextField v-model="form.counterparty.account_number" label="Счет" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.correspondent_account" label="Корр. счет" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                  <AppPhoneField v-model="form.counterparty.phone" label="Телефон" label-in-field placeholder="+7 000 000 00 00" :rules="[requiredValidator]" hide-details="auto" />
+                  </VCol>
+                  <VCol cols="12" md="6">
+                    <VTextField v-model="form.counterparty.email" label="Email" :rules="[requiredValidator, emailValidator]" hide-details="auto" />
+                  </VCol>
+                </template>
+
+                <VCol cols="12">
+                  <div class="d-flex flex-wrap gap-4 justify-sm-space-between justify-center mt-6">
+                    <VBtn color="secondary" variant="tonal" @click="currentStep = 0">
+                      <VIcon icon="tabler-arrow-left" start class="flip-in-rtl" />
+                      Назад
+                    </VBtn>
+                    <VBtn type="submit">
+                      Далее
+                      <VIcon icon="tabler-arrow-right" end class="flip-in-rtl" />
+                    </VBtn>
+                  </div>
+                </VCol>
+              </VRow>
+            </VForm>
+          </VWindowItem>
+          <VWindowItem>
+            <VForm ref="refStepThree" @submit.prevent="validateStepThree">
+              <VRow>
+                <VCol cols="12" md="4">
+                  <AppSelect
+                    v-model="form.contract.city_id"
+                    :items="dictionaries.cities"
+                    item-title="name"
+                    item-value="id"
+                    label="Город"
+                    label-in-field
+                    :rules="[requiredValidator]"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12" md="8">
+                  <VTextField v-model="form.contract.site_address" label="Адрес объекта" :rules="[requiredValidator]" hide-details="auto" />
+                </VCol>
+                <VCol cols="12" md="6">
+                  <AppDateTimePicker
+                    v-model="form.contract.installation_date"
+                    label="Период монтажа"
+                    label-in-field
+                    placeholder="ДД.ММ.ГГГГ - ДД.ММ.ГГГГ"
+                    :config="rangeDatePickerConfig"
+                    :rules="rangeRules"
+                    hide-details="auto"
+                  />
+                </VCol>
+                <VCol cols="12" md="6">
+                  <AppSelect
+                    v-model="form.contract.worker_id"
+                    :items="workerOptions"
+                    item-title="name"
+                    item-value="id"
+                    label="Монтажник"
+                    label-in-field
+                    clearable
+                    :loading="usersLoading"
+                    hide-details="auto"
+                  />
+                </VCol>
+
+                <VCol cols="12">
+                  <div class="d-flex flex-wrap gap-4 justify-sm-space-between justify-center mt-6">
+                    <VBtn color="secondary" variant="tonal" @click="currentStep = 1">
+                      <VIcon icon="tabler-arrow-left" start class="flip-in-rtl" />
+                      Назад
+                    </VBtn>
+                    <VBtn color="primary" :loading="saving" type="submit">
+                      Создать договоры
+                    </VBtn>
+                  </div>
+                </VCol>
+              </VRow>
+            </VForm>
+          </VWindowItem>
+        </VWindow>
       </VCardText>
-      <VCardActions class="justify-end gap-2">
-        <VBtn variant="text" @click="closeDialog">Отмена</VBtn>
-        <VBtn color="primary" :loading="saving" @click="submit">Создать договоры</VBtn>
-      </VCardActions>
     </VCard>
   </VDialog>
 </template>

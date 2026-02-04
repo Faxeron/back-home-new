@@ -4,6 +4,10 @@ defineOptions({
   inheritAttrs: false,
 })
 
+const props = defineProps<{
+  labelInField?: boolean
+}>()
+
 const elementId = computed (() => {
   const attrs = useAttrs()
   const _elementIdToken = attrs.id
@@ -21,7 +25,7 @@ const label = computed(() => useAttrs().label as string | undefined)
     :class="$attrs.class"
   >
     <VLabel
-      v-if="label"
+      v-if="label && !props.labelInField"
       :for="elementId"
       class="mb-1 text-body-2"
       style="line-height: 15px;"
@@ -31,7 +35,7 @@ const label = computed(() => useAttrs().label as string | undefined)
       v-bind="{
         ...$attrs,
         class: null,
-        label: undefined,
+        label: props.labelInField ? label : undefined,
         variant: 'outlined',
         id: elementId,
         menuProps: { contentClass: ['app-inner-list', 'app-select__content', 'v-select__content', $attrs.multiple !== undefined ? 'v-list-select-multiple' : ''] },

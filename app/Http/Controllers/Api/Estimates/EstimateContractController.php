@@ -156,6 +156,16 @@ class EstimateContractController extends Controller
                 ? $templateTitles->implode(' + ')
                 : 'Сделка по смете #' . $estimateModel->id;
 
+            $managerId = isset($contractPayload['manager_id']) && is_numeric($contractPayload['manager_id'])
+                ? (int) $contractPayload['manager_id']
+                : $user?->id;
+            $measurerId = isset($contractPayload['measurer_id']) && $contractPayload['measurer_id'] !== ''
+                ? (int) $contractPayload['measurer_id']
+                : null;
+            $workerId = isset($contractPayload['worker_id']) && $contractPayload['worker_id'] !== ''
+                ? (int) $contractPayload['worker_id']
+                : null;
+
             $contract = Contract::query()->create([
                 'tenant_id' => $tenantId,
                 'company_id' => $companyId,
@@ -171,7 +181,9 @@ class EstimateContractController extends Controller
                 'work_end_date' => $contractPayload['work_end_date'] ?? null,
                 'template_product_type_ids' => $estimateTypeIds,
                 'estimate_id' => $estimateModel->id,
-                'manager_id' => $user?->id,
+                'manager_id' => $managerId,
+                'measurer_id' => $measurerId,
+                'worker_id' => $workerId,
                 'created_by' => $user?->id,
                 'updated_by' => $user?->id,
             ]);

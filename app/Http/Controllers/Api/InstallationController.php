@@ -161,7 +161,7 @@ class InstallationController extends Controller
             return true;
         }
 
-        return $this->hasRoleCode($userId, ['installer', 'worker', 'montaj']);
+        return $this->hasRoleCode($userId, ['worker']);
     }
 
     private function isAdmin(int $userId): bool
