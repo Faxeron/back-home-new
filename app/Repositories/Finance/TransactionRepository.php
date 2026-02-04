@@ -13,7 +13,7 @@ class TransactionRepository
         $page = max((int)($filters['page'] ?? 1), 1);
 
         $query = Transaction::query()
-            ->with(['company', 'cashBox', 'counterparty', 'transactionType', 'paymentMethod'])
+            ->with(['company', 'cashBox.logoPreset', 'counterparty', 'transactionType', 'paymentMethod'])
             ->orderByDesc('created_at');
 
         if (!empty($filters['date_from'])) {

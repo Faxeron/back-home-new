@@ -42,6 +42,7 @@ class TransactionResource extends JsonResource
             'cashbox' => $this->whenLoaded('cashbox', fn () => [
                 'id' => $this->cashbox->id,
                 'name' => $this->cashbox->name,
+                'logo_url' => $this->cashboxLogoUrl($this->cashbox),
             ]),
             'counterparty' => $this->whenLoaded('counterparty', fn () => [
                 'id' => $this->counterparty->id,
@@ -74,5 +75,22 @@ class TransactionResource extends JsonResource
             'amount' => $normalized,
             'currency' => 'RUB',
         ];
+    }
+
+    private function cashboxLogoUrl($cashbox): ?string
+    {
+        if (!$cashbox) {
+            return null;
+        }
+
+        if ($cashbox->logo_source === 'preset' && $cashbox->logoPreset?->file_path) {
+            return '/storage/' . ltrim($cashbox->logoPreset->file_path, '/');
+        }
+
+        if ($cashbox->logo_path) {
+            return '/storage/' . ltrim($cashbox->logo_path, '/');
+        }
+
+        return null;
     }
 }

@@ -16,7 +16,7 @@ import { useCookie } from '@/@core/composable/useCookie'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue'
 import AppSelect from '@/@core/components/app-form-elements/AppSelect.vue'
-import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
+import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 
 type ContractDocument = {
   id: number
@@ -1267,7 +1267,7 @@ onMounted(async () => {
               </Column>
               <Column field="cashbox" header="Касса">
                 <template #body="{ data: row }">
-                  <CashboxBadge :cashbox="row.cashbox" size="sm" />
+                  <CashboxCell :cashbox="row.cashbox" size="sm" />
                 </template>
               </Column>
               <Column field="creator" header="Кто добавил">
@@ -1405,15 +1405,15 @@ onMounted(async () => {
                     @update:modelValue="row.cashbox_id = $event ? Number($event) : null"
                   >
                     <template #selection="{ item }">
-                      <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+                      <CashboxCell :cashbox="item?.raw ?? item" size="sm" />
                     </template>
                     <template #item="{ props: itemProps, item }">
                       <VListItem v-bind="itemProps">
-                        <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+                        <CashboxCell :cashbox="item?.raw ?? item" size="sm" />
                       </VListItem>
                     </template>
                   </AppSelect>
-                  <CashboxBadge v-else :cashbox="row.cashbox" size="sm" />
+                  <CashboxCell v-else :cashbox="row.cashbox" size="sm" />
                 </template>
               </Column>
               <Column field="creator" header="Пользователь">

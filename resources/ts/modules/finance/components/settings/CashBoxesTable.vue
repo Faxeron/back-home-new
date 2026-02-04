@@ -264,10 +264,7 @@ const removeCashbox = async (row: CashBoxRow) => {
           <InputText v-model="filterModel.value" class="w-full" @input="filterCallback()" />
         </template>
         <template #body="{ data }">
-          <div class="cashbox-name-cell">
-            <CashboxBadge :cashbox="data" :show-name="false" size="sm" />
-            <span class="cashbox-name-text">{{ data.name ?? '—' }}</span>
-          </div>
+          {{ data.name ?? '\u2014' }}
         </template>
       </Column>
 
@@ -345,18 +342,14 @@ const removeCashbox = async (row: CashBoxRow) => {
             <template #selection="{ item }">
               <div class="logo-option">
                 <img v-if="item?.raw?.logo_url" :src="item.raw.logo_url" alt="" />
-                <span>{{ item?.title }}</span>
+                <span>{{ item?.raw?.name ?? item?.title }}</span>
               </div>
             </template>
             <template #item="{ item, props: itemProps }">
-              <VListItem v-bind="{ ...itemProps, title: '' }">
-                <template #prepend>
-                  <div class="logo-option">
-                    <img v-if="item?.raw?.logo_url" :src="item.raw.logo_url" alt="" />
-                  </div>
-                </template>
-                <VListItemTitle>{{ item?.title }}</VListItemTitle>
-              </VListItem>
+              <div v-bind="itemProps" class="logo-option w-full">
+                <img v-if="item?.raw?.logo_url" :src="item.raw.logo_url" alt="" />
+                <span>{{ item?.raw?.name ?? item?.title }}</span>
+              </div>
             </template>
           </VSelect>
           <div class="d-flex align-center gap-3">
@@ -392,19 +385,6 @@ const removeCashbox = async (row: CashBoxRow) => {
 </template>
 
 <style scoped>
-.cashbox-name-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.cashbox-name-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
 
 .logo-option {
   display: inline-flex;

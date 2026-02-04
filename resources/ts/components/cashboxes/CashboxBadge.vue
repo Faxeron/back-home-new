@@ -14,7 +14,7 @@ const props = defineProps<{
   size?: 'sm' | 'md'
 }>()
 
-const resolvedName = computed(() => props.cashbox?.name ?? props.name ?? '—')
+const resolvedName = computed(() => props.cashbox?.name ?? props.name ?? '\u2014')
 const resolvedLogo = computed(() => props.cashbox?.logo_url ?? props.logoUrl ?? null)
 const showName = computed(() => props.showName !== false)
 const sizeClass = computed(() => (props.size === 'sm' ? 'cashbox-card--sm' : 'cashbox-card--md'))
@@ -64,8 +64,8 @@ const initial = computed(() => {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(var(--v-theme-surface), 0.9), rgba(var(--v-theme-surface-variant), 0.9));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
 }
@@ -81,8 +81,8 @@ const initial = computed(() => {
 }
 
 .cashbox-card__logo {
-  max-width: 70%;
-  max-height: 70%;
+  max-width: 90%;
+  max-height: 90%;
   object-fit: contain;
 }
 

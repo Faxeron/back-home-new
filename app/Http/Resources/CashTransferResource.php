@@ -24,11 +24,30 @@ class CashTransferResource extends JsonResource
             'from_cashbox' => $this->whenLoaded('fromCashBox', fn () => [
                 'id' => $this->fromCashBox?->id,
                 'name' => $this->fromCashBox?->name,
+                'logo_url' => $this->cashboxLogoUrl($this->fromCashBox),
             ]),
             'to_cashbox' => $this->whenLoaded('toCashBox', fn () => [
                 'id' => $this->toCashBox?->id,
                 'name' => $this->toCashBox?->name,
+                'logo_url' => $this->cashboxLogoUrl($this->toCashBox),
             ]),
         ];
+    }
+
+    private function cashboxLogoUrl($cashbox): ?string
+    {
+        if (!$cashbox) {
+            return null;
+        }
+
+        if ($cashbox->logo_source === 'preset' && $cashbox->logoPreset?->file_path) {
+            return '/storage/' . ltrim($cashbox->logoPreset->file_path, '/');
+        }
+
+        if ($cashbox->logo_path) {
+            return '/storage/' . ltrim($cashbox->logo_path, '/');
+        }
+
+        return null;
     }
 }

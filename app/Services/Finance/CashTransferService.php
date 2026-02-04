@@ -13,7 +13,7 @@ class CashTransferService
         $page = max((int) ($filters['page'] ?? 1), 1);
 
         $query = CashTransfer::query()
-            ->with(['fromCashBox', 'toCashBox'])
+            ->with(['fromCashBox.logoPreset', 'toCashBox.logoPreset'])
             ->orderByDesc('created_at');
 
         foreach (['tenant_id', 'company_id', 'from_cashbox_id', 'to_cashbox_id'] as $field) {

@@ -24,7 +24,7 @@ class PayrollPayoutController extends Controller
         $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = PayrollPayout::query()
-            ->with(['user', 'cashbox', 'fund', 'item', 'items.accrual', 'items.contract'])
+            ->with(['user', 'cashbox.logoPreset', 'fund', 'item', 'items.accrual', 'items.contract'])
             ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
             ->orderByDesc('id');

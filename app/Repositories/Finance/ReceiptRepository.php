@@ -13,7 +13,7 @@ class ReceiptRepository
         $page = max((int)($filters['page'] ?? 1), 1);
 
         $query = Receipt::query()
-            ->with(['company', 'cashBox', 'counterparty', 'contract'])
+            ->with(['company', 'cashBox.logoPreset', 'counterparty', 'contract'])
             ->orderByDesc('payment_date')
             ->orderByDesc('created_at');
 

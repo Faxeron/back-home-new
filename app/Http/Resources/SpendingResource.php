@@ -37,6 +37,7 @@ class SpendingResource extends JsonResource
             'cashbox' => $this->whenLoaded('cashbox', fn () => [
                 'id' => $this->cashbox->id,
                 'name' => $this->cashbox->name,
+                'logo_url' => $this->cashboxLogoUrl($this->cashbox),
             ]),
             'fund' => $this->whenLoaded('fund', fn () => [
                 'id' => $this->fund->id,
@@ -66,5 +67,22 @@ class SpendingResource extends JsonResource
             'amount' => $normalized,
             'currency' => 'RUB',
         ];
+    }
+
+    private function cashboxLogoUrl($cashbox): ?string
+    {
+        if (!$cashbox) {
+            return null;
+        }
+
+        if ($cashbox->logo_source === 'preset' && $cashbox->logoPreset?->file_path) {
+            return '/storage/' . ltrim($cashbox->logoPreset->file_path, '/');
+        }
+
+        if ($cashbox->logo_path) {
+            return '/storage/' . ltrim($cashbox->logo_path, '/');
+        }
+
+        return null;
     }
 }

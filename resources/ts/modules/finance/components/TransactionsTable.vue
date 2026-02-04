@@ -11,7 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatSum, statusLines } from '@/utils/formatters/finance'
 import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
-import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
+import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 import type { Transaction } from '@/types/finance'
 
 type TransactionRow = Transaction & {
@@ -295,7 +295,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        <CashboxBadge :cashbox="data.cashbox" size="sm" />
+        <CashboxCell :cashbox="data.cashbox" size="sm" />
       </template>
     </Column>
 

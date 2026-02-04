@@ -4,7 +4,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { $api } from '@/utils/api'
 import { formatSum } from '@/utils/formatters/finance'
-import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
+import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 
 type CashboxBalance = {
   id: number
@@ -56,7 +56,7 @@ onMounted(loadBalances)
       >
         <Column field="name" header="Касса">
           <template #body="{ data }">
-            <CashboxBadge :cashbox="data" size="sm" />
+            <CashboxCell :cashbox="data" size="sm" />
           </template>
         </Column>
         <Column field="balance" header="Баланс" style="inline-size: 16ch;">

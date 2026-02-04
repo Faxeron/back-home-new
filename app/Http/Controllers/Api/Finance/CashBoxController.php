@@ -33,6 +33,7 @@ class CashBoxController extends Controller
                 $builder->whereNull('cashboxes.tenant_id')
                     ->orWhere('cashboxes.tenant_id', $tenantId);
             })
+            ->with('logoPreset')
             ->orderBy('cashboxes.name')
             ->get();
 
@@ -41,7 +42,7 @@ class CashBoxController extends Controller
                 'id' => $cashBox->id,
                 'name' => $cashBox->name,
                 'balance' => $this->financeService->getCashBoxBalance($cashBox->id),
-                'logo_url' => $cashBox->logo_path ? Storage::disk('public')->url($cashBox->logo_path) : null,
+                'logo_url' => $this->resolveLogoUrl($cashBox),
             ];
         });
 
@@ -66,6 +67,7 @@ class CashBoxController extends Controller
                 $builder->whereNull('cashboxes.tenant_id')
                     ->orWhere('cashboxes.tenant_id', $tenantId);
             })
+            ->with('logoPreset')
             ->first();
 
         if (!$cashBox) {
@@ -74,6 +76,22 @@ class CashBoxController extends Controller
 
         $balance = $this->financeService->getCashBoxBalance($cashBox->id);
 
-        return response()->json(['balance' => $balance]);
+        return response()->json([
+            'balance' => $balance,
+            'logo_url' => $this->resolveLogoUrl($cashBox),
+        ]);
+    }
+
+    private function resolveLogoUrl(CashBox $cashBox): ?string
+    {
+        if ($cashBox->logo_source === 'preset' && $cashBox->logoPreset?->file_path) {
+            return Storage::disk('public')->url($cashBox->logoPreset->file_path);
+        }
+
+        if ($cashBox->logo_path) {
+            return Storage::disk('public')->url($cashBox->logo_path);
+        }
+
+        return null;
     }
 }

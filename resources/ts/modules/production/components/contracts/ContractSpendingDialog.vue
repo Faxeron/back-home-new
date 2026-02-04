@@ -5,7 +5,7 @@ import type { Contract } from '@/types/finance'
 import { createContractSpending } from '@/modules/finance/api/spendings.api'
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue'
 import AppSelect from '@/@core/components/app-form-elements/AppSelect.vue'
-import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
+import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -158,11 +158,11 @@ watch(
           label="?????"
         >
           <template #selection="{ item }">
-            <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+            <CashboxCell :cashbox="item?.raw ?? item" size="sm" />
           </template>
           <template #item="{ props: itemProps, item }">
             <VListItem v-bind="itemProps">
-              <CashboxBadge :cashbox="item?.raw ?? item" size="sm" />
+              <CashboxCell :cashbox="item?.raw ?? item" size="sm" />
             </VListItem>
           </template>
         </AppSelect>

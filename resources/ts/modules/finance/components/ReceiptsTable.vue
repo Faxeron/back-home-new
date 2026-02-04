@@ -11,7 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import { RECEIPT_COLUMNS } from '@/modules/finance/config/receiptsTable.config'
-import CashboxBadge from '@/components/cashboxes/CashboxBadge.vue'
+import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 import type { Receipt } from '@/types/finance'
 
 type ReceiptRow = Receipt & {
@@ -172,7 +172,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        <CashboxBadge :cashbox="data.cashbox" size="sm" />
+        <CashboxCell :cashbox="data.cashbox" size="sm" />
       </template>
     </Column>
 

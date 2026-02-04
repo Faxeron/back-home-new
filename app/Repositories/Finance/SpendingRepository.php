@@ -13,7 +13,7 @@ class SpendingRepository
         $page = max((int)($filters['page'] ?? 1), 1);
 
         $query = Spending::query()
-            ->with(['company', 'cashBox', 'fund', 'item'])
+            ->with(['company', 'cashBox.logoPreset', 'fund', 'item'])
             ->orderByDesc('payment_date')
             ->orderByDesc('created_at');
 
