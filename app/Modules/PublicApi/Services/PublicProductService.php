@@ -30,7 +30,7 @@ final class PublicProductService
                 $query->where('products.category_id', (int) $filter->category);
             } else {
                 $query->whereHas('category', function ($builder) use ($filter) {
-                    $builder->where('name', 'like', $filter->category);
+                    $builder->where('name', 'like', '%' . $filter->category . '%');
                 });
             }
         }

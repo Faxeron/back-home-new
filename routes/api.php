@@ -72,7 +72,7 @@ Route::prefix('public')->group(function (): void {
     Route::get('companies', [PublicCompanyController::class, 'index']);
     Route::get('products', [PublicProductController::class, 'index']);
     Route::get('products/{slug}', [PublicProductController::class, 'show']);
-    Route::post('leads', [PublicLeadController::class, 'store']);
+    Route::post('leads', [PublicLeadController::class, 'store'])->middleware('throttle:30,1');
 });
 
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {

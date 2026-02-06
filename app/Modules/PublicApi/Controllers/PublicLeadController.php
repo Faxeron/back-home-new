@@ -18,6 +18,17 @@ class PublicLeadController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Honeypot for basic bot filtering. Real clients should not send these fields.
+        $honeypot = trim((string) $request->get('website', '')) !== '' || trim((string) $request->get('hp', '')) !== '';
+        if ($honeypot) {
+            return response()->json([
+                'data' => [
+                    'id' => 0,
+                    'status' => 'accepted',
+                ],
+            ], 201);
+        }
+
         $citySlug = trim((string) $request->get('city', ''));
         $citySlug = $citySlug === '' ? null : $citySlug;
 
@@ -39,6 +50,8 @@ class PublicLeadController extends Controller
             'product_id' => ['nullable', 'integer', 'min:1'],
             'page_url' => ['nullable', 'string', 'max:500'],
             'source' => ['nullable', 'string', 'max:64'],
+            'website' => ['nullable', 'string', 'max:255'],
+            'hp' => ['nullable', 'string', 'max:255'],
             'utm_source' => ['nullable', 'string', 'max:255'],
             'utm_medium' => ['nullable', 'string', 'max:255'],
             'utm_campaign' => ['nullable', 'string', 'max:255'],

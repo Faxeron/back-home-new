@@ -27,18 +27,38 @@ class EnsurePermission
         }
 
         if (!$this->hasPermissionTables()) {
-            return $next($request);
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $code = "{$resource}.{$action}";
-        $allowed = DB::connection('legacy_new')
+        $schema = Schema::connection('legacy_new');
+        $tenantId = (int) ($request->attributes->get('tenant_id') ?? $user->tenant_id ?? 0);
+
+        $query = DB::connection('legacy_new')
             ->table('role_users')
             ->join('roles', 'roles.id', '=', 'role_users.role_id')
             ->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
             ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
             ->where('role_users.user_id', $user->id)
-            ->where('permissions.code', $code)
-            ->exists();
+            ->where('permissions.code', $code);
+
+        // Tenant-aware pivots are optional (legacy schema differs across DBs).
+        if ($tenantId > 0 && $schema->hasColumn('role_users', 'tenant_id')) {
+            $query->where('role_users.tenant_id', $tenantId);
+        }
+        if ($tenantId > 0 && $schema->hasColumn('roles', 'tenant_id')) {
+            $query->where('roles.tenant_id', $tenantId);
+        }
+
+        // If scopes are configured, require a scope row for the resource.
+        if ($schema->hasTable('role_scopes')) {
+            $query->join('role_scopes', function ($join) use ($resource): void {
+                $join->on('role_scopes.role_id', '=', 'roles.id')
+                    ->where('role_scopes.resource', '=', $resource);
+            });
+        }
+
+        $allowed = $query->exists();
 
         if (!$allowed) {
             return response()->json(['message' => 'Forbidden'], 403);

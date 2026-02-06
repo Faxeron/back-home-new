@@ -92,12 +92,7 @@ class AuthController extends Controller
         }
 
         if (!Schema::connection('legacy_new')->hasTable('role_permissions') || !Schema::connection('legacy_new')->hasTable('permissions')) {
-            return [
-                [
-                    'action' => 'manage',
-                    'subject' => 'all',
-                ],
-            ];
+            return [];
         }
 
         PermissionRegistry::sync();
@@ -113,12 +108,7 @@ class AuthController extends Controller
             ->get();
 
         if ($rows->isEmpty()) {
-            return [
-                [
-                    'action' => 'manage',
-                    'subject' => 'all',
-                ],
-            ];
+            return [];
         }
 
         return $rows

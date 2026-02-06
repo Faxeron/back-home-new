@@ -43,6 +43,7 @@ final class PublicContextResolver
         $companyExists = Company::query()
             ->where('tenant_id', self::TENANT_ID)
             ->where('id', $companyId)
+            ->where('is_active', true)
             ->exists();
 
         if (!$companyExists) {
