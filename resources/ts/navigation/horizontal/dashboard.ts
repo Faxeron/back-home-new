@@ -9,6 +9,13 @@ export default [
         icon: { icon: 'tabler-layout-dashboard' },
       },
       {
+        title: 'NEW',
+        to: { path: '/dashboards/new' },
+        icon: { icon: 'tabler-report-money' },
+        action: 'view',
+        subject: 'finance',
+      },
+      {
         title: 'Analytics',
         to: 'dashboards-analytics',
         icon: { icon: 'tabler-chart-pie-2' },

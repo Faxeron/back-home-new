@@ -8,6 +8,12 @@
         to: { path: '/dashboards/all' },
       },
       {
+        title: 'NEW',
+        to: { path: '/dashboards/new' },
+        action: 'view',
+        subject: 'finance',
+      },
+      {
         title: 'Analytics',
         to: 'dashboards-analytics',
       },
@@ -28,7 +34,7 @@
         to: 'dashboards-logistics',
       },
     ],
-    badgeContent: '6',
+    badgeContent: '7',
     badgeClass: 'bg-error',
   },
   {
