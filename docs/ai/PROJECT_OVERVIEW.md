@@ -1,46 +1,46 @@
-# PROJECT OVERVIEW
+п»ї# PROJECT OVERVIEW
 
-## Кратко (RU)
-- ERP на Laravel 12 + Vue 3 (Vuexy/Vuetify + PrimeVue), целится в SaaS и multi-tenant модель.
-- Доменные модули: finance, products (catalog), estimates (сметы), production (contracts/installations), settings, knowledge base, ACL/roles.
-- Публичный API: отдельный модуль `app/Modules/PublicApi` (пока только города и карточки товаров).
-- Основная БД: доменные данные живут в connection `legacy_new`; default connection используется только для техслужебных вещей.
+## РљСЂР°С‚РєРѕ (RU)
+- ERP РЅР° Laravel 12 + Vue 3 (Vuexy/Vuetify + PrimeVue), С†РµР»РёС‚СЃСЏ РІ SaaS Рё multi-tenant РјРѕРґРµР»СЊ.
+- Р”РѕРјРµРЅРЅС‹Рµ РјРѕРґСѓР»Рё: finance, products (catalog), estimates (СЃРјРµС‚С‹), production (contracts/installations), settings, knowledge base, ACL/roles.
+- РџСѓР±Р»РёС‡РЅС‹Р№ API: РѕС‚РґРµР»СЊРЅС‹Р№ РјРѕРґСѓР»СЊ `app/Modules/PublicApi` (cities/companies/products/leads).
+- РћСЃРЅРѕРІРЅР°СЏ Р‘Р”: РґРѕРјРµРЅРЅС‹Рµ РґР°РЅРЅС‹Рµ Р¶РёРІСѓС‚ РІ connection `legacy_new`; default connection РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµС…СЃР»СѓР¶РµР±РЅС‹С… РІРµС‰РµР№.
 
-## Технологии
+## РўРµС…РЅРѕР»РѕРіРёРё
 - Backend: PHP 8.2+, Laravel 12; Domain/Services/Repositories; FormRequest + Resources; jobs/listeners.
 - Frontend: Vue 3 + Vite + TypeScript; Pinia; Vue Router (auto-router); Vuexy (Vuetify 3); PrimeVue 4.
 - Tooling: ESLint/Stylelint, vue-tsc, MSW.
 
-## Pricing (как сейчас)
-- Операционные цены (`price`, `price_sale`, `price_delivery`, `montaj`, `montaj_sebest`) читаются из `product_company_prices` через `PriceResolverService`.
-- В `products` остаются закупочные/вендорные поля (`price_vendor`, `price_vendor_min`, `price_zakup`) и legacy-операционные цены (пока еще пишутся).
-- Импорт прайса и редактирование товара пишут в `products`, затем синхронизируют `product_company_prices`.
+## Pricing (РєР°Рє СЃРµР№С‡Р°СЃ)
+- РћРїРµСЂР°С†РёРѕРЅРЅС‹Рµ С†РµРЅС‹ (`price`, `price_sale`, `price_delivery`, `montaj`, `montaj_sebest`) С‡РёС‚Р°СЋС‚СЃСЏ РёР· `product_company_prices` С‡РµСЂРµР· `PriceResolverService`.
+- Р’ `products` РѕСЃС‚Р°СЋС‚СЃСЏ Р·Р°РєСѓРїРѕС‡РЅС‹Рµ/РІРµРЅРґРѕСЂРЅС‹Рµ РїРѕР»СЏ (`price_vendor`, `price_vendor_min`, `price_zakup`) Рё legacy-РѕРїРµСЂР°С†РёРѕРЅРЅС‹Рµ С†РµРЅС‹ (РїРѕРєР° РµС‰Рµ РїРёС€СѓС‚СЃСЏ).
+- РРјРїРѕСЂС‚ РїСЂР°Р№СЃР° Рё СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ С‚РѕРІР°СЂР° РїРёС€СѓС‚ РІ `products`, Р·Р°С‚РµРј СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓСЋС‚ `product_company_prices`.
 
-## Snapshot документов
-- Сметы: источник истины — `estimate_items` (price/total фиксируются в момент создания позиции).
-- Договоры: `contract_items` создаются из `estimate_items` и являются слепком цены на момент создания договора.
-- `estimates.data` — legacy-кеш; используется только как fallback в анализе договора.
+## Snapshot РґРѕРєСѓРјРµРЅС‚РѕРІ
+- РЎРјРµС‚С‹: РёСЃС‚РѕС‡РЅРёРє РёСЃС‚РёРЅС‹ вЂ” `estimate_items` (price/total С„РёРєСЃРёСЂСѓСЋС‚СЃСЏ РІ РјРѕРјРµРЅС‚ СЃРѕР·РґР°РЅРёСЏ РїРѕР·РёС†РёРё).
+- Р”РѕРіРѕРІРѕСЂС‹: `contract_items` СЃРѕР·РґР°СЋС‚СЃСЏ РёР· `estimate_items` Рё СЏРІР»СЏСЋС‚СЃСЏ СЃР»РµРїРєРѕРј С†РµРЅС‹ РЅР° РјРѕРјРµРЅС‚ СЃРѕР·РґР°РЅРёСЏ РґРѕРіРѕРІРѕСЂР°.
+- `estimates.data` вЂ” legacy-РєРµС€; РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РєР°Рє fallback РІ Р°РЅР°Р»РёР·Рµ РґРѕРіРѕРІРѕСЂР°.
 
-## Tenant/Company модель
-- Большинство таблиц имеет `tenant_id` + `company_id`.
-- Контекст берется из пользователя (`tenant_id`, `default_company_id`/`company_id`).
-- Проверка членства: `user_company` + `EnsureCompanyContext`.
+## Tenant/Company РјРѕРґРµР»СЊ
+- Р‘РѕР»СЊС€РёРЅСЃС‚РІРѕ С‚Р°Р±Р»РёС† РёРјРµРµС‚ `tenant_id` + `company_id`.
+- РљРѕРЅС‚РµРєСЃС‚ Р±РµСЂРµС‚СЃСЏ РёР· РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (`tenant_id`, `default_company_id`/`company_id`).
+- РџСЂРѕРІРµСЂРєР° С‡Р»РµРЅСЃС‚РІР°: `user_company` + `EnsureCompanyContext`.
 
-## API (обзор)
+## API (РѕР±Р·РѕСЂ)
 - Auth: `POST /api/auth/login`.
 - Finance: `/api/finance/*`.
 - Catalog/Products: `/api/products/*` + `/api/products/pricebook/*`.
 - Estimates: `/api/estimates/*`, `/api/estimate-templates/*`.
 - Contracts: `/api/contracts/*`, `/api/contract-templates/*`.
 - Knowledge base: `/api/knowledge/*`.
-- Public API: `/api/public/cities`, `/api/public/products`.
+- Public API: `/api/public/cities`, `/api/public/companies`, `/api/public/products`, `/api/public/products/{slug}`, `/api/public/leads`.
 
-## Frontend структура
+## Frontend СЃС‚СЂСѓРєС‚СѓСЂР°
 - Module-first: `resources/ts/modules/<feature>/` (pages/components/composables/api/types/config).
 - Route wrappers: `resources/ts/pages/*`.
 - Shared: `resources/ts/@core/shared/*`, `resources/ts/utils/*`, `resources/ts/stores/*`.
 
 ## REALITY STATUS
-- Реально реализовано: finance, catalog, estimates, contracts/installations, payroll (rules/accruals/payouts), knowledge base, public API (cities/products), pricebook import/export.
-- Легаси: `estimates.data` как кеш, legacy price-поля в `products`, публичный API читает цены из `products`.
-- Не сделано: публичный API для компаний/детальной страницы товара/лидов; полноценный cutover цен на `product_company_prices` во всех модулях.
+- Р РµР°Р»СЊРЅРѕ СЂРµР°Р»РёР·РѕРІР°РЅРѕ: finance, catalog, estimates, contracts/installations, payroll (rules/accruals/payouts), knowledge base, public API (cities/companies/products/leads), pricebook import/export.
+- Р›РµРіР°СЃРё: `estimates.data` РєР°Рє РєРµС€, legacy price-РїРѕР»СЏ РІ `products`.
+- РќРµ СЃРґРµР»Р°РЅРѕ: РїРѕР»РЅРѕС†РµРЅРЅС‹Р№ cutover С†РµРЅ РЅР° `product_company_prices` РІРѕ РІСЃРµС… РјРѕРґСѓР»СЏС… + РєРѕРЅС‚СЂРѕР»СЊ РїРѕРєСЂС‹С‚РёСЏ РґР»СЏ public.

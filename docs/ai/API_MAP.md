@@ -1,14 +1,17 @@
-# API MAP
+п»ї# API MAP
 
 Base prefix
 - `/api`
 
-Public (без auth)
+Public (Р±РµР· auth)
 - POST `/api/auth/login`
 - GET `/api/estimate/{randomId}`
 - GET `/api/estimate/{randomId}mnt`
 - GET `/api/public/cities`
+- GET `/api/public/companies`
 - GET `/api/public/products`
+- GET `/api/public/products/{slug}`
+- POST `/api/public/leads`
 
 Finance (auth:sanctum + tenant.company)
 - GET `/api/finance/transactions`
@@ -126,6 +129,6 @@ Installations
 - PATCH `/api/installations/{contract}`
 
 ## REALITY STATUS
-- Реально реализовано: все маршруты перечислены в `routes/api.php` и совпадают с этим списком.
-- Легаси: `/api/finances/*` алиасы для старых клиентов.
-- Не сделано: публичные `/api/public/companies`, `/api/public/products/{slug}`, `/api/public/leads` (в планах API_MASTER_PLAN).
+- Р РµР°Р»СЊРЅРѕ СЂРµР°Р»РёР·РѕРІР°РЅРѕ: РІСЃРµ РјР°СЂС€СЂСѓС‚С‹ РїРµСЂРµС‡РёСЃР»РµРЅС‹ РІ `routes/api.php` Рё СЃРѕРІРїР°РґР°СЋС‚ СЃ СЌС‚РёРј СЃРїРёСЃРєРѕРј.
+- Р›РµРіР°СЃРё: `/api/finances/*` Р°Р»РёР°СЃС‹ РґР»СЏ СЃС‚Р°СЂС‹С… РєР»РёРµРЅС‚РѕРІ.
+- РќРµ СЃРґРµР»Р°РЅРѕ: РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РѕС‚РґРµР»СЊРЅС‹Р№ РїСѓР±Р»РёС‡РЅС‹Р№ API РґР»СЏ РєРѕРјРїР°РЅРёР№ РІРЅРµ tenant=1 (РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ СЃРµР№С‡Р°СЃ).

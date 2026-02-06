@@ -1,46 +1,49 @@
-# Public API Master Plan
+п»ї# Public API Master Plan
 
-## Цель
-Построить публичный API для сайта, не смешивая его с внутренним ERP API. Источник данных — ERP (БД `legacy_new`).
+## Р¦РµР»СЊ
+РџРѕСЃС‚СЂРѕРёС‚СЊ РїСѓР±Р»РёС‡РЅС‹Р№ API РґР»СЏ СЃР°Р№С‚Р°, РЅРµ СЃРјРµС€РёРІР°СЏ РµРіРѕ СЃ РІРЅСѓС‚СЂРµРЅРЅРёРј ERP API. РСЃС‚РѕС‡РЅРёРє РґР°РЅРЅС‹С… вЂ” ERP (Р‘Р” `legacy_new`).
 
-## Текущее состояние
-- Реализовано: `GET /api/public/cities`, `GET /api/public/products`.
-- Только `tenant_id=1`.
-- Прайс для public API читается из `products` (legacy-цены).
+## РўРµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
+- Р РµР°Р»РёР·РѕРІР°РЅРѕ: `GET /api/public/cities`, `GET /api/public/companies`, `GET /api/public/products`, `GET /api/public/products/{slug}`, `POST /api/public/leads`.
+- РўРѕР»СЊРєРѕ `tenant_id=1` (РїСѓР±Р»РёС‡РЅС‹Р№ СЃР°Р№С‚).
+- РџСЂР°Р№СЃ РґР»СЏ public API С‡РёС‚Р°РµС‚СЃСЏ РёР· `product_company_prices` (company-aware).
 
-## План (дальше)
-### Шаг 1. Анализ БД
-(см. секцию таблиц ниже)
+## РџР»Р°РЅ (РґР°Р»СЊС€Рµ)
+### РЁР°Рі 1. РђРЅР°Р»РёР· Р‘Р”
+(СЃРј. СЃРµРєС†РёСЋ С‚Р°Р±Р»РёС† РЅРёР¶Рµ)
 
-### Шаг 2. DTO (контракт для сайта)
+### РЁР°Рі 2. DTO (РєРѕРЅС‚СЂР°РєС‚ РґР»СЏ СЃР°Р№С‚Р°)
 - CityDTO, CompanyDTO, ProductCardDTO, ProductPageDTO.
 
-### Шаг 3. Public API Endpoints
-- `GET /api/public/cities` (сделано)
-- `GET /api/public/products` (сделано)
-- `GET /api/public/products/{slug}` (не сделано)
-- `GET /api/public/companies` (не сделано)
-- `POST /api/public/leads` (не сделано)
+### РЁР°Рі 3. Public API Endpoints
+- `GET /api/public/cities` (СЃРґРµР»Р°РЅРѕ)
+- `GET /api/public/companies` (СЃРґРµР»Р°РЅРѕ)
+- `GET /api/public/products` (СЃРґРµР»Р°РЅРѕ)
+- `GET /api/public/products/{slug}` (СЃРґРµР»Р°РЅРѕ)
+- `POST /api/public/leads` (СЃРґРµР»Р°РЅРѕ)
 
-### Шаг 4. Правила
-- Только `tenant_id=1`.
-- Только активные товары: `is_visible = 1` и `archived_at IS NULL`.
-- Кэширование ответов (Cache-Control).
+### РЁР°Рі 4. РџСЂР°РІРёР»Р°
+- РўРѕР»СЊРєРѕ `tenant_id=1`.
+- РўРѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹Рµ С‚РѕРІР°СЂС‹: `is_visible = 1` Рё `archived_at IS NULL`.
+- РћР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ РєРѕРЅС‚РµРєСЃС‚ `company_id` РёР»Рё `city` РґР»СЏ РІСЃРµС… product endpoints.
+- РљСЌС€РёСЂРѕРІР°РЅРёРµ РѕС‚РІРµС‚РѕРІ (Cache-Control + Cache::remember СЃ РєР»СЋС‡Р°РјРё, РІРєР»СЋС‡Р°СЋС‰РёРјРё company/city).
+- Р•СЃР»Рё РґР»СЏ company РЅРµС‚ С†РµРЅС‹, `price_sale = null` (price fields = null).
 
-### Шаг 5. Архитектура
-- Модуль: `app/Modules/PublicApi/*`.
+### РЁР°Рі 5. РђСЂС…РёС‚РµРєС‚СѓСЂР°
+- РњРѕРґСѓР»СЊ: `app/Modules/PublicApi/*`.
 
-### Шаг 6. Риски
-- Привязка `city -> company` логическая (FK нет).
-- `slug` может быть пустым в старых данных.
-- Публичные цены пока берутся из `products`, а не из `product_company_prices`.
+### РЁР°Рі 6. Р РёСЃРєРё
+- РџСЂРёРІСЏР·РєР° `city -> company` Р»РѕРіРёС‡РµСЃРєР°СЏ (FK РЅРµС‚).
+- `slug` РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј РІ СЃС‚Р°СЂС‹С… РґР°РЅРЅС‹С….
+- РџСѓР±Р»РёС‡РЅС‹Рµ С†РµРЅС‹ Р·Р°РІРёСЃСЏС‚ РѕС‚ РїРѕР»РЅРѕС‚С‹ `product_company_prices` (РЅСѓР¶РµРЅ РєРѕРЅС‚СЂРѕР»СЊ РїРѕРєСЂС‹С‚РёСЏ).
 
-## Таблицы (кратко)
+## РўР°Р±Р»РёС†С‹ (РєСЂР°С‚РєРѕ)
 - `cities`, `companies`, `products`, `product_descriptions`, `product_media`,
   `product_categories`, `product_subcategories`, `product_brands`, `product_types`, `product_kinds`, `product_units`,
-  `product_attribute_definitions`, `product_attribute_values`, `product_relations`.
+  `product_attribute_definitions`, `product_attribute_values`, `product_relations`,
+  `product_company_prices`, `public_leads`.
 
 ## REALITY STATUS
-- Реально реализовано: Public API модуль с cities/products.
-- Легаси: цены берутся из `products`.
-- Не сделано: companies, product-by-slug, leads, согласование pricing с `product_company_prices`.
+- Р РµР°Р»СЊРЅРѕ СЂРµР°Р»РёР·РѕРІР°РЅРѕ: cities/companies/products (list + slug), leads, company-aware pricing РёР· `product_company_prices`.
+- Р›РµРіР°СЃРё: legacy-С†РµРЅС‹ РІ `products` РѕСЃС‚Р°Р»РёСЃСЊ РІ Р‘Р”, РЅРѕ public API РёС… РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚.
+- РќРµ СЃРґРµР»Р°РЅРѕ: Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РїСЂРѕРІРµСЂРєР° РїРѕРєСЂС‹С‚РёСЏ `product_company_prices` РґР»СЏ public.
