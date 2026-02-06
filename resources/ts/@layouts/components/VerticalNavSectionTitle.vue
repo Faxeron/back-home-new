@@ -2,20 +2,60 @@
 import { layoutConfig } from '@layouts'
 import { can } from '@layouts/plugins/casl'
 import { useLayoutConfigStore } from '@layouts/stores/config'
-import type { NavSectionTitle } from '@layouts/types'
+import type { NavGroup, NavLink, NavSectionTitle, VerticalNavItems } from '@layouts/types'
 import { getDynamicI18nProps } from '@layouts/utils'
 import { computed } from 'vue'
 import { useCookie } from '@/@core/composable/useCookie'
 
 const props = defineProps<{
   item: NavSectionTitle
+  navItems?: VerticalNavItems
+  itemIndex?: number
 }>()
 
 const configStore = useLayoutConfigStore()
 const shallRenderIcon = configStore.isVerticalNavMini()
 const userData = useCookie<any>('userData')
 const isSuperAdmin = computed(() => userData.value?.role === 'superadmin')
-const canShow = computed(() => can(props.item.action, props.item.subject) && (!props.item.superadminOnly || isSuperAdmin.value))
+
+const canViewLink = (item: NavLink): boolean => {
+  const allowedByAcl = can(item.action, item.subject)
+  return allowedByAcl && (!item.superadminOnly || isSuperAdmin.value)
+}
+
+const canViewGroup = (item: NavGroup): boolean => {
+  const hasVisibleChild = item.children.some(child => 'children' in child ? canViewGroup(child) : canViewLink(child))
+  if (!hasVisibleChild)
+    return false
+
+  const allowedByAcl = item.action && item.subject ? can(item.action, item.subject) : true
+  return allowedByAcl && (!item.superadminOnly || isSuperAdmin.value)
+}
+
+const hasVisibleSectionItem = computed(() => {
+  if (!Array.isArray(props.navItems) || typeof props.itemIndex !== 'number')
+    return true
+
+  for (let index = props.itemIndex + 1; index < props.navItems.length; index++) {
+    const item = props.navItems[index]
+    if ('heading' in item)
+      break
+
+    const isVisible = 'children' in item ? canViewGroup(item) : canViewLink(item)
+    if (isVisible)
+      return true
+  }
+
+  return false
+})
+
+const canShow = computed(() => {
+  const allowedByAcl = props.item.action && props.item.subject
+    ? can(props.item.action, props.item.subject)
+    : hasVisibleSectionItem.value
+
+  return allowedByAcl && (!props.item.superadminOnly || isSuperAdmin.value)
+})
 </script>
 
 <template>

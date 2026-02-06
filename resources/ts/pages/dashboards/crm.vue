@@ -12,6 +12,13 @@ import CrmSalesByCountries from '@/views/dashboards/crm/CrmSalesByCountries.vue'
 import { companiesEndpoint, tenantsEndpoint } from '@/api/settings'
 import type { Company } from '@/types/finance'
 
+definePage({
+  meta: {
+    action: 'view',
+    subject: 'dashboard.total_sales',
+  },
+})
+
 const simpleStatisticsDemoCards = [
   {
     icon: 'tabler-credit-card',

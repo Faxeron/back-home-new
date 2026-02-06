@@ -1,6 +1,7 @@
 import { useAbility } from '@casl/vue'
 import type { RouteLocationNormalized } from 'vue-router'
 import type { NavGroup } from '@layouts/types'
+import { resolveResourceByPath } from '@/modules/acl/acl.config'
 
 /**
  * Returns ability result if ACL is configured or else just return true
@@ -49,6 +50,10 @@ export const canNavigate = (to: RouteLocationNormalized) => {
   // If the target route has specific permissions, check those first
   if (targetRoute?.meta?.action && targetRoute?.meta?.subject)
     return ability.can(targetRoute.meta.action, targetRoute.meta.subject)
+
+  const mappedResource = resolveResourceByPath(to.path)
+  if (mappedResource)
+    return ability.can('view', mappedResource)
 
   // If no specific permissions, fall back to checking if any parent route allows access
   // @ts-expect-error We should allow passing string | undefined to can because for admin ability we omit defining action & subject

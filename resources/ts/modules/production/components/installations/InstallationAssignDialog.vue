@@ -11,6 +11,7 @@ const props = defineProps<{
   users: UserOption[]
   loading?: boolean
   currentUserId?: number | null
+  canAssign?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -36,10 +37,12 @@ watch(
 )
 
 const isValid = computed(() => Boolean(formDate.value && formWorker.value))
+const isReadOnly = computed(() => props.canAssign === false)
 
 const close = () => emit('update:modelValue', false)
 
 const save = () => {
+  if (isReadOnly.value) return
   if (!props.row || !formWorker.value || !formDate.value) return
   emit('save', {
     contractId: props.row.contract_id,
@@ -63,6 +66,7 @@ const save = () => {
           label="Дата монтажа"
           :config="datePickerConfig"
           clearable
+          :disabled="isReadOnly"
         />
         <AppSelect
           v-model="formWorker"
@@ -72,6 +76,7 @@ const save = () => {
           item-value="id"
           :item-props="item => ({ title: item.raw.name || item.raw.email || `#${item.raw.id}` })"
           clearable
+          :disabled="isReadOnly"
         />
       </VCardText>
       <VCardActions class="justify-end gap-2">
@@ -79,7 +84,7 @@ const save = () => {
         <VBtn
           color="primary"
           :loading="loading"
-          :disabled="!isValid || loading"
+          :disabled="!isValid || loading || isReadOnly"
           @click="save"
         >
           Назначить

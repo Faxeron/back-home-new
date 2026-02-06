@@ -4,6 +4,7 @@ import ContractTemplateEditor from '@/modules/production/components/contracts/Co
 
 const route = useRoute()
 const templateId = Number(route.params.id)
+
 </script>
 
 <template>

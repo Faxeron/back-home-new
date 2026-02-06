@@ -5,5 +5,8 @@ import forms from './forms'
 import others from './others'
 import uiElements from './ui-elements'
 import type { VerticalNavItems } from '@layouts/types'
+import { applyNavPermissions } from '@/modules/acl/nav-permissions'
 
-export default [...dashboard, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others] as VerticalNavItems
+const items = [...dashboard, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others] as VerticalNavItems
+
+export default applyNavPermissions(items)

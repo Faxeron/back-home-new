@@ -1,5 +1,6 @@
 import type { RouteNamedMap, _RouterTyped } from 'unplugin-vue-router'
 import { canNavigate } from '@layouts/plugins/casl'
+import { useAppSnackbarStore } from '@/stores/appSnackbar'
 
 export const setupGuards = (router: _RouterTyped<RouteNamedMap & { [key: string]: any }>) => {
   // 👉 router.beforeEach
@@ -31,17 +32,18 @@ export const setupGuards = (router: _RouterTyped<RouteNamedMap & { [key: string]
     }
 
     if (!canNavigate(to) && to.matched.length) {
-      /* eslint-disable indent */
-      return isLoggedIn
-        ? { name: 'not-authorized' }
-        : {
-            name: 'login',
-            query: {
-              ...to.query,
-              to: to.fullPath !== '/' ? to.path : undefined,
-            },
-          }
-      /* eslint-enable indent */
+      if (isLoggedIn) {
+        useAppSnackbarStore().show('Нет доступа к разделу.', 'warning')
+        return false
+      }
+
+      return {
+        name: 'login',
+        query: {
+          ...to.query,
+          to: to.fullPath !== '/' ? to.path : undefined,
+        },
+      }
     }
   })
 }

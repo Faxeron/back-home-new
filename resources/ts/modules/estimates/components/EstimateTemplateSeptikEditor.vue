@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
@@ -16,11 +17,16 @@ const props = defineProps<{ templateId?: number | null }>()
 
 const router = useRouter()
 const route = useRoute()
+const ability = useAbility()
 
 const templateId = ref<number | null>(props.templateId ?? null)
 const saving = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
+const canCreate = computed(() => ability.can('create', 'estimate_templates'))
+const canEdit = computed(() => ability.can('edit', 'estimate_templates'))
+const canSave = computed(() => (templateId.value ? canEdit.value : canCreate.value))
+const isReadOnly = computed(() => !canSave.value)
 
 const form = reactive({
   title: '',
@@ -112,15 +118,18 @@ const addRowFromProduct = (product: Product) => {
 }
 
 const handleProductSelect = (event: { value: Product }) => {
+  if (isReadOnly.value) return
   addRowFromProduct(event.value)
   productSearch.value = null
 }
 
 const removeRow = (index: number) => {
+  if (isReadOnly.value) return
   items.value.splice(index, 1)
 }
 
 const saveTemplate = async () => {
+  if (!canSave.value) return
   if (!form.title.trim()) {
     errorMessage.value = 'Название обязательно.'
     return
@@ -186,6 +195,7 @@ onMounted(async () => {
         label="Сохранить"
         icon="pi pi-save"
         :loading="saving"
+        :disabled="isReadOnly"
         @click="saveTemplate"
       />
     </div>
@@ -196,7 +206,7 @@ onMounted(async () => {
         <div class="grid">
           <div class="col-12 md:col-6">
             <label class="text-sm text-muted">Название</label>
-            <InputText v-model="form.title" class="w-full" placeholder="Название связки" />
+            <InputText v-model="form.title" class="w-full" placeholder="Название связки" :disabled="isReadOnly" />
           </div>
           <div class="col-12 md:col-6">
             <label class="text-sm text-muted">Шаблоны материалов</label>
@@ -208,6 +218,7 @@ onMounted(async () => {
               placeholder="Выберите шаблоны"
               class="w-full"
               display="chip"
+              :disabled="isReadOnly"
             />
           </div>
         </div>
@@ -230,6 +241,7 @@ onMounted(async () => {
             forceSelection
             class="w-full"
             placeholder="Начните вводить название"
+            :disabled="isReadOnly"
             @complete="handleProductSearch"
             @item-select="handleProductSelect"
           />
@@ -252,6 +264,7 @@ onMounted(async () => {
                 text
                 severity="danger"
                 aria-label="Удалить позицию"
+                :disabled="isReadOnly"
                 @click="removeRow(index)"
               />
             </template>

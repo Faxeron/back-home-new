@@ -24,6 +24,7 @@
     children: [
       { title: 'Кассы', to: { path: '/settings/cash-boxes' } },
       { title: 'Компании', to: { path: '/settings/companies' } },
+      { title: 'Права и роли', to: { path: '/settings/roles-permissions' } },
       { title: 'Фонды расходов', to: { path: '/settings/spending-funds' } },
       { title: 'Статьи расходов', to: { path: '/settings/spending-items' } },
       { title: 'Статусы договоров', to: { path: '/settings/contract-statuses' } },

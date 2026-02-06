@@ -5,6 +5,7 @@ import EstimateTemplateMaterialEditor from '@/modules/estimates/components/Estim
 
 const route = useRoute()
 const templateId = computed(() => Number(route.params.id))
+
 </script>
 
 <template>

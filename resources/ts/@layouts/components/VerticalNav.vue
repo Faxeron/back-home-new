@@ -36,6 +36,18 @@ const resolveNavItemComponent = (item: NavLink | NavSectionTitle | NavGroup): un
   return VerticalNavLink
 }
 
+const resolveNavItemProps = (item: NavLink | NavSectionTitle | NavGroup, index: number) => {
+  if ('heading' in item) {
+    return {
+      item,
+      navItems: props.navItems,
+      itemIndex: index,
+    }
+  }
+
+  return { item }
+}
+
 /*
   ℹ️ Close overlay side when route is changed
   Close overlay vertical nav when link is clicked
@@ -135,7 +147,7 @@ const hideTitleAndIcon = configStore.isVerticalNavMini(isHovered)
           :is="resolveNavItemComponent(item)"
           v-for="(item, index) in navItems"
           :key="index"
-          :item="item"
+          v-bind="resolveNavItemProps(item, index)"
         />
       </PerfectScrollbar>
     </slot>

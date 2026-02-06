@@ -5,6 +5,7 @@ import EstimateTemplateSeptikEditor from '@/modules/estimates/components/Estimat
 
 const route = useRoute()
 const templateId = computed(() => Number(route.params.id))
+
 </script>
 
 <template>

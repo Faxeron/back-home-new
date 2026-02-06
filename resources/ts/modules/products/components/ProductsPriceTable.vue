@@ -32,6 +32,10 @@ const props = defineProps<{
   exporting?: boolean
   templating?: boolean
   importErrors?: string[]
+  canEdit?: boolean
+  canImport?: boolean
+  canExport?: boolean
+  canTemplate?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -147,6 +151,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <Button
+              v-if="canTemplate"
               :label="PRODUCT_PRICE_TABLE_LABELS.template"
               icon="pi pi-file-excel"
               size="small"
@@ -155,6 +160,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
               @click="emit('template')"
             />
             <Button
+              v-if="canExport"
               :label="PRODUCT_PRICE_TABLE_LABELS.export"
               icon="pi pi-download"
               size="small"
@@ -163,6 +169,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
               @click="emit('export')"
             />
             <Button
+              v-if="canImport"
               :label="PRODUCT_PRICE_TABLE_LABELS.import"
               icon="pi pi-upload"
               size="small"
@@ -230,14 +237,17 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <div class="flex items-center gap-2">
           <InputSwitch
             v-model="data.is_visible"
+            :disabled="!canEdit"
             @update:modelValue="emit('update-flag', { row: data, field: 'is_visible', value: $event })"
           />
           <InputSwitch
             v-model="data.is_top"
+            :disabled="!canEdit"
             @update:modelValue="emit('update-flag', { row: data, field: 'is_top', value: $event })"
           />
           <InputSwitch
             v-model="data.is_new"
+            :disabled="!canEdit"
             @update:modelValue="emit('update-flag', { row: data, field: 'is_new', value: $event })"
           />
         </div>
@@ -300,7 +310,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price')"
         />
       </template>
@@ -317,7 +327,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_sale"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price_sale')"
         />
       </template>
@@ -334,7 +344,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_vendor"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price_vendor')"
         />
       </template>
@@ -351,7 +361,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_vendor_min"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price_vendor_min')"
         />
       </template>
@@ -368,7 +378,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_zakup"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price_zakup')"
         />
       </template>
@@ -385,7 +395,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.price_delivery"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'price_delivery')"
         />
       </template>
@@ -402,7 +412,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.montaj"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'montaj')"
         />
       </template>
@@ -419,7 +429,7 @@ const updateNumberField = (row: Product, field: keyof Product) => {
         <InputNumber
           v-model="data.montaj_sebest"
           class="w-full price-input"
-          :disabled="data.is_global"
+          :disabled="!canEdit || data.is_global"
           @blur="updateNumberField(data, 'montaj_sebest')"
         />
       </template>

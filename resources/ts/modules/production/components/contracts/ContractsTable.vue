@@ -49,6 +49,10 @@ const props = defineProps<{
 
   canDelete: boolean
 
+  canEditStatus: boolean
+
+  canFinance: boolean
+
 }>()
 
 
@@ -502,6 +506,7 @@ const handleStatusToggle = (nextId: number) => {
           optionValue="id"
 
           class="w-full"
+          :disabled="!canEditStatus"
 
           @update:modelValue="
 
@@ -568,7 +573,7 @@ const handleStatusToggle = (nextId: number) => {
       <template #body="{ data }">
         <div class="flex flex-column gap-1">
           <div class="flex items-center gap-1">
-            <VTooltip location="top" content-class="text-body-2">
+            <VTooltip v-if="canFinance" location="top" content-class="text-body-2">
               <template #activator="{ props: tooltipProps }">
                 <Button
                   v-bind="tooltipProps"
@@ -579,7 +584,7 @@ const handleStatusToggle = (nextId: number) => {
               </template>
               <span>{{ TOOLTIP_LABELS.contract }}</span>
             </VTooltip>
-            <VTooltip location="top" content-class="text-body-2">
+            <VTooltip v-if="canFinance" location="top" content-class="text-body-2">
               <template #activator="{ props: tooltipProps }">
                 <Button
                   v-bind="tooltipProps"

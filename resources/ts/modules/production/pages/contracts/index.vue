@@ -14,8 +14,10 @@ import type { Contract } from '@/types/finance'
 const dictionaries = useDictionariesStore()
 const route = useRoute()
 const router = useRouter()
-const userData = useCookie<any>('userData')
-const isAdmin = computed(() => String(userData.value?.role ?? '').toLowerCase() === 'admin')
+const ability = useAbility()
+const canDeleteContract = computed(() => ability.can('delete', 'contracts'))
+const canEditContract = computed(() => ability.can('edit', 'contracts'))
+const canCreateFinance = computed(() => ability.can('create', 'finance'))
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
@@ -101,19 +103,23 @@ const handleAction = (payload: { action: string; row: Contract }) => {
     router.push({ path: '/operations/contracts/' + payload.row.id })
   }
   if (payload.action === 'receipt') {
+    if (!canCreateFinance.value) return
     selectedContract.value = payload.row
     receiptDialogOpen.value = true
   }
   if (payload.action === 'spending') {
+    if (!canCreateFinance.value) return
     selectedContract.value = payload.row
     spendingDialogOpen.value = true
   }
   if (payload.action === 'delete') {
+    if (!canDeleteContract.value) return
     requestDeleteContract(payload.row)
   }
 }
 
 const applyStatusUpdate = async ({ row, statusId: nextId }: { row: Contract; statusId: number | null }) => {
+  if (!canEditContract.value) return
   if (nextId === null || row.contract_status_id === nextId) return
   const previousId = row.contract_status_id ?? null
   const previousStatus = row.status ? { ...row.status } : undefined
@@ -177,7 +183,9 @@ onBeforeUnmount(() => {
     :scrollHeight="scrollHeight"
     :virtualScrollerOptions="virtualScrollerOptions"
     :statuses="dictionaries.contractStatuses"
-    :canDelete="isAdmin"
+    :canDelete="canDeleteContract"
+    :canEditStatus="canEditContract"
+    :canFinance="canCreateFinance"
     @status-change="applyStatusUpdate"
     @reset="reset"
     @action="handleAction"

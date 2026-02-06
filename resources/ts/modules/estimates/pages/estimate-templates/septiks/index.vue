@@ -3,6 +3,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useRouter } from 'vue-router'
+import { useAbility } from '@casl/vue'
 
 import DataTable from 'primevue/datatable'
 
@@ -27,6 +28,10 @@ import {
 
 
 const router = useRouter()
+const ability = useAbility()
+const canCreate = computed(() => ability.can('create', 'estimate_templates'))
+const canEdit = computed(() => ability.can('edit', 'estimate_templates'))
+const canDelete = computed(() => ability.can('delete', 'estimate_templates'))
 
 const tableRef = ref<any>(null)
 
@@ -97,6 +102,7 @@ const handleResize = () => {
 
 
 const handleCreate = () => {
+  if (!canCreate.value) return
 
   router.push({ path: '/estimate-templates/septiks/new' })
 
@@ -105,6 +111,7 @@ const handleCreate = () => {
 
 
 const handleEdit = (row: EstimateTemplateSeptik) => {
+  if (!canEdit.value) return
 
   router.push({ path: `/estimate-templates/septiks/${row.id}` })
 
@@ -113,6 +120,7 @@ const handleEdit = (row: EstimateTemplateSeptik) => {
 
 
 const handleDelete = async (row: EstimateTemplateSeptik) => {
+  if (!canDelete.value) return
 
   if (!row?.id) return
 
@@ -218,6 +226,7 @@ onBeforeUnmount(() => {
 
           <Button
 
+            v-if="canCreate"
             :label="TEMPLATE_SEPTIKS_LABELS.create"
 
             icon="pi pi-plus"
@@ -286,6 +295,7 @@ onBeforeUnmount(() => {
 
           <Button
 
+            v-if="canEdit"
             icon="pi pi-pencil"
 
             text
@@ -298,6 +308,7 @@ onBeforeUnmount(() => {
 
           <Button
 
+            v-if="canDelete"
             icon="pi pi-trash"
 
             text

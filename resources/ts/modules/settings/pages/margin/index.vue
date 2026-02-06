@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useAbility } from '@casl/vue'
 import { $api } from '@/utils/api'
 
 type MarginSettings = {
@@ -13,6 +14,8 @@ const errorMessage = ref('')
 const snackbarOpen = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref<'success' | 'error'>('success')
+const ability = useAbility()
+const canEdit = computed(() => ability.can('edit', 'settings.margin'))
 
 const form = reactive<MarginSettings>({
   red_max: 10,
@@ -43,6 +46,7 @@ const loadSettings = async () => {
 }
 
 const saveSettings = async () => {
+  if (!canEdit.value) return
   saving.value = true
   errorMessage.value = ''
   try {
@@ -84,6 +88,7 @@ onMounted(async () => {
             type="number"
             min="0"
             max="100"
+            :disabled="!canEdit"
           />
         </VCol>
         <VCol cols="12" md="6">
@@ -93,11 +98,12 @@ onMounted(async () => {
             type="number"
             min="0"
             max="100"
+            :disabled="!canEdit"
           />
         </VCol>
       </VRow>
       <div class="d-flex justify-end mt-4">
-        <VBtn color="primary" :loading="saving" @click="saveSettings">Сохранить</VBtn>
+        <VBtn color="primary" :loading="saving" :disabled="!canEdit" @click="saveSettings">Сохранить</VBtn>
       </div>
     </VCardText>
   </VCard>

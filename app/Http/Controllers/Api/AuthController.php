@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Support\Permissions\PermissionRegistry;
 
 class AuthController extends Controller
 {
@@ -31,8 +32,9 @@ class AuthController extends Controller
         }
 
         $role = 'admin';
+        $roleCodes = collect();
         if (Schema::connection('legacy_new')->hasTable('role_users') && Schema::connection('legacy_new')->hasTable('roles')) {
-            $roles = DB::connection('legacy_new')
+            $roleCodes = DB::connection('legacy_new')
                 ->table('role_users')
                 ->join('roles', 'roles.id', '=', 'role_users.role_id')
                 ->where('role_users.user_id', $user->id)
@@ -40,10 +42,16 @@ class AuthController extends Controller
                 ->map(fn ($code) => strtolower((string) $code))
                 ->unique();
 
-            if ($roles->contains('superadmin')) {
+            if ($roleCodes->contains('superadmin')) {
                 $role = 'superadmin';
-            } elseif ($roles->contains('admin')) {
+            } elseif ($roleCodes->contains('admin')) {
                 $role = 'admin';
+            } elseif ($roleCodes->contains('manager')) {
+                $role = 'manager';
+            } elseif ($roleCodes->contains('measurer')) {
+                $role = 'measurer';
+            } elseif ($roleCodes->contains('worker')) {
+                $role = 'worker';
             } else {
                 $role = 'user';
             }
@@ -60,12 +68,7 @@ class AuthController extends Controller
             'avatar' => null,
         ];
 
-        $abilityRules = [
-            [
-                'action' => 'manage',
-                'subject' => 'all',
-            ],
-        ];
+        $abilityRules = $this->resolveAbilityRules($user->id, $roleCodes);
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -74,5 +77,57 @@ class AuthController extends Controller
             'userData' => $userData,
             'userAbilityRules' => $abilityRules,
         ]);
+    }
+
+    private function resolveAbilityRules(int $userId, $roleCodes): array
+    {
+        $codes = collect($roleCodes)->map(fn ($code) => strtolower((string) $code));
+        if ($codes->contains('superadmin') || $codes->contains('admin')) {
+            return [
+                [
+                    'action' => 'manage',
+                    'subject' => 'all',
+                ],
+            ];
+        }
+
+        if (!Schema::connection('legacy_new')->hasTable('role_permissions') || !Schema::connection('legacy_new')->hasTable('permissions')) {
+            return [
+                [
+                    'action' => 'manage',
+                    'subject' => 'all',
+                ],
+            ];
+        }
+
+        PermissionRegistry::sync();
+
+        $rows = DB::connection('legacy_new')
+            ->table('role_users')
+            ->join('roles', 'roles.id', '=', 'role_users.role_id')
+            ->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
+            ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+            ->where('role_users.user_id', $userId)
+            ->select(['permissions.action', 'permissions.resource'])
+            ->distinct()
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [
+                [
+                    'action' => 'manage',
+                    'subject' => 'all',
+                ],
+            ];
+        }
+
+        return $rows
+            ->map(fn ($row) => [
+                'action' => $row->action,
+                'subject' => $row->resource,
+            ])
+            ->unique()
+            ->values()
+            ->all();
     }
 }

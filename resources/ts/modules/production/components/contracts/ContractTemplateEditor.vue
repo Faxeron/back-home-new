@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useContractTemplateEditor } from '@/modules/production/composables/useContractTemplateEditor'
 
@@ -7,6 +8,7 @@ const props = defineProps<{ templateId?: number | null }>()
 
 const route = useRoute()
 const router = useRouter()
+const ability = useAbility()
 
 const {
   templateId,
@@ -23,6 +25,11 @@ const {
   uploadTemplateFile,
 } = useContractTemplateEditor(props.templateId ?? null)
 
+const canCreate = computed(() => ability.can('create', 'contract_templates'))
+const canEdit = computed(() => ability.can('edit', 'contract_templates'))
+const canSave = computed(() => (templateId.value ? canEdit.value : canCreate.value))
+const isReadOnly = computed(() => !canSave.value)
+
 watch(
   () => route.params.id,
   async value => {
@@ -33,6 +40,7 @@ watch(
 )
 
 const handleSave = async () => {
+  if (!canSave.value) return
   const id = await saveTemplate()
   if (id && route.path.includes('/new')) {
     await router.replace({ path: `/operations/contracts/templates/${id}` })
@@ -40,6 +48,7 @@ const handleSave = async () => {
 }
 
 const handleTemplateFileSelect = async (value: File | File[] | null) => {
+  if (isReadOnly.value) return
   const file = Array.isArray(value) ? value[0] : value
   await uploadTemplateFile(file ?? null)
 }
@@ -55,6 +64,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
         color="primary"
         prepend-icon="tabler-device-floppy"
         :loading="saving"
+        :disabled="isReadOnly"
         @click="handleSave"
       >
         Сохранить
@@ -68,10 +78,10 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
         </div>
         <VRow>
           <VCol cols="12" md="6">
-            <VTextField v-model="form.name" label="Название" hide-details />
+          <VTextField v-model="form.name" label="Название" hide-details :disabled="isReadOnly" />
           </VCol>
           <VCol cols="12" md="6">
-            <VTextField v-model="form.short_name" label="Короткое название" hide-details />
+            <VTextField v-model="form.short_name" label="Короткое название" hide-details :disabled="isReadOnly" />
           </VCol>
           <VCol cols="12" md="6">
             <VSelect
@@ -85,6 +95,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               item-value="value"
               label="Тип договора"
               hide-details
+              :disabled="isReadOnly"
             />
           </VCol>
           <VCol cols="12" md="6">
@@ -94,7 +105,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               hide-details
               prepend-icon="tabler-upload"
               :loading="uploading"
-              :disabled="uploading"
+              :disabled="uploading || isReadOnly"
               @update:modelValue="handleTemplateFileSelect"
             />
           </VCol>
@@ -108,11 +119,12 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               hide-details
               clearable
               :loading="filesLoading"
+              :disabled="isReadOnly"
               no-data-text="Нет файлов"
             />
           </VCol>
           <VCol cols="12" md="6" class="d-flex align-center">
-            <VSwitch v-model="form.is_active" label="Активен" hide-details />
+            <VSwitch v-model="form.is_active" label="Активен" hide-details :disabled="isReadOnly" />
           </VCol>
         </VRow>
       </VCardText>
@@ -135,6 +147,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               :value="type.id"
               :label="type.name"
               hide-details
+              :disabled="isReadOnly"
             />
           </VCol>
         </VRow>
@@ -146,7 +159,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
         <div class="text-sm font-semibold mb-3">Предоплата</div>
         <VRow>
           <VCol cols="12">
-            <VRadioGroup v-model="form.advance_mode" inline>
+            <VRadioGroup v-model="form.advance_mode" inline :disabled="isReadOnly">
               <VRadio label="Нет" value="none" />
               <VRadio label="Процент" value="percent" />
               <VRadio label="По типам товаров" value="product_types" />
@@ -161,6 +174,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               label="Процент предоплаты"
               suffix="%"
               hide-details
+              :disabled="isReadOnly"
             />
           </VCol>
           <VCol v-if="form.advance_mode === 'product_types'" cols="12">
@@ -173,6 +187,7 @@ const handleTemplateFileSelect = async (value: File | File[] | null) => {
               multiple
               chips
               hide-details
+              :disabled="isReadOnly"
               no-data-text="Нет типов"
             />
           </VCol>

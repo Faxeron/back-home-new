@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -67,6 +68,17 @@ const route = useRoute()
 const router = useRouter()
 const userData = useCookie<any>('userData')
 const dictionaries = useDictionariesStore()
+const ability = useAbility()
+const canEditContract = computed(() => ability.can('edit', 'contracts'))
+const canDeleteContract = computed(() => ability.can('delete', 'contracts'))
+const canCreateContractDocs = computed(() => ability.can('create', 'contracts'))
+const canDeleteContractDocs = computed(() => ability.can('delete', 'contracts'))
+const canViewFinance = computed(() => ability.can('view', 'finance'))
+const canCreateFinance = computed(() => ability.can('create', 'finance'))
+const canDeleteFinance = computed(() => ability.can('delete', 'finance'))
+const canViewPayroll = computed(() => ability.can('view', 'payroll'))
+const canCreatePayroll = computed(() => ability.can('create', 'payroll'))
+const canEditPayroll = computed(() => ability.can('edit', 'payroll'))
 
 const contractId = computed(() => {
   const raw = route.params.id
@@ -387,7 +399,6 @@ const parseFileName = (contentDisposition?: string | null) => {
 }
 
 const statusColor = computed(() => contract.value?.status?.color ?? '#94a3b8')
-const isAdmin = computed(() => String(userData.value?.role ?? '').toLowerCase() === 'admin')
 const canRecalcPayroll = computed(() => {
   const status = contract.value?.status
   if (!status) return false
@@ -540,6 +551,7 @@ const syncEditForm = () => {
 }
 
 const startEdit = () => {
+  if (!canEditContract.value) return
   syncEditForm()
   editError.value = ''
   editMode.value = true
@@ -552,6 +564,7 @@ const cancelEdit = () => {
 }
 
 const saveEdit = async () => {
+  if (!canEditContract.value) return
   if (!contractId.value) return
   editSaving.value = true
   editError.value = ''
@@ -610,6 +623,10 @@ const loadDocuments = async () => {
 }
 
 const loadReceipts = async () => {
+  if (!canViewFinance.value) {
+    receipts.value = []
+    return
+  }
   if (!contractId.value) return
   receiptsLoading.value = true
   receiptsError.value = ''
@@ -645,6 +662,11 @@ const loadMarginSettings = async () => {
 }
 
 const loadSpendings = async () => {
+  if (!canViewFinance.value) {
+    spendings.value = []
+    spendingsDraft.value = []
+    return
+  }
   if (!contractId.value) return
   spendingsLoading.value = true
   spendingsError.value = ''
@@ -688,6 +710,10 @@ const loadAnalysis = async () => {
 }
 
 const loadPayroll = async () => {
+  if (!canViewPayroll.value) {
+    payrollRows.value = []
+    return
+  }
   if (!contractId.value) return
   payrollLoading.value = true
   payrollError.value = ''
@@ -702,6 +728,7 @@ const loadPayroll = async () => {
 }
 
 const saveManualPayroll = async () => {
+  if (!canCreatePayroll.value) return
   if (!contractId.value) return
   const amount = Number(payrollAmount.value ?? 0)
   if (!amount || Number.isNaN(amount)) {
@@ -734,6 +761,7 @@ const saveManualPayroll = async () => {
 }
 
 const recalcPayroll = async () => {
+  if (!canEditPayroll.value) return
   if (!contractId.value) return
   payrollRecalcLoading.value = true
   payrollError.value = ''
@@ -763,6 +791,7 @@ const ensureSpendingLookups = async () => {
 }
 
 const addSpendingRow = async () => {
+  if (!canCreateFinance.value) return
   await ensureSpendingLookups()
   const paymentMethodId = dictionaries.paymentMethods[0]?.id ?? null
   const draft: SpendingRow = {
@@ -783,6 +812,7 @@ const addSpendingRow = async () => {
 }
 
 const saveSpendings = async () => {
+  if (!canCreateFinance.value) return
   if (!contractId.value) return
   const newRows = spendingsDraft.value.filter(row => row.isNew)
   if (!newRows.length) return
@@ -838,6 +868,7 @@ const saveSpendings = async () => {
 }
 
 const requestDeleteSpending = (row: SpendingDraft) => {
+  if (!canDeleteFinance.value) return
   if (row.isNew) {
     spendingsDraft.value = spendingsDraft.value.filter(item => item !== row)
     return
@@ -847,6 +878,7 @@ const requestDeleteSpending = (row: SpendingDraft) => {
 }
 
 const deleteSpending = async () => {
+  if (!canDeleteFinance.value) return
   const target = pendingSpending.value
   if (!target?.id) return
   deletingSpending.value = true
@@ -868,6 +900,7 @@ const deleteSpending = async () => {
 }
 
 const generateDocx = async (documentId?: number | null) => {
+  if (!canCreateContractDocs.value) return
   if (!contractId.value) return
   generatingId.value = documentId ?? 0
   documentsError.value = ''
@@ -924,12 +957,14 @@ const downloadDocument = async (doc: ContractDocument) => {
 }
 
 const requestDeleteDocument = (doc: ContractDocument) => {
+  if (!canDeleteContractDocs.value) return
   if (!doc?.id) return
   pendingDocument.value = doc
   confirmDocumentDeleteOpen.value = true
 }
 
 const deleteDocument = async () => {
+  if (!canDeleteContractDocs.value) return
   if (!contractId.value || !pendingDocument.value?.id) return
   const documentId = pendingDocument.value.id
   deletingDocumentId.value = documentId
@@ -951,10 +986,12 @@ const deleteDocument = async () => {
 }
 
 const requestDeleteContract = () => {
+  if (!canDeleteContract.value) return
   confirmDeleteOpen.value = true
 }
 
 const deleteContract = async () => {
+  if (!canDeleteContract.value) return
   if (!contractId.value) return
   deleting.value = true
   errorMessage.value = ''
@@ -1015,7 +1052,7 @@ onMounted(async () => {
       </div>
       <div class="flex flex-wrap align-items-center gap-2">
         <Button
-          v-if="isAdmin"
+          v-if="canDeleteContract"
           label="Удалить"
           icon="pi pi-trash"
           severity="danger"
@@ -1040,11 +1077,11 @@ onMounted(async () => {
       <VTab value="card">Карточка</VTab>
       <VTab value="client">Клиент</VTab>
       <VTab value="documents">Документы</VTab>
-      <VTab value="payments">Оплаты</VTab>
-      <VTab value="spendings">Расходы</VTab>
+      <VTab v-if="canViewFinance" value="payments">Оплаты</VTab>
+      <VTab v-if="canViewFinance" value="spendings">Расходы</VTab>
       <VTab value="installation">Монтаж</VTab>
       <VTab value="analysis">Анализ</VTab>
-      <VTab value="payroll">З/П</VTab>
+      <VTab v-if="canViewPayroll" value="payroll">З/П</VTab>
       <VTab value="history">История</VTab>
     </VTabs>
     <VWindow v-model="activeTab">
@@ -1053,7 +1090,7 @@ onMounted(async () => {
           <template #content>
             <div class="flex justify-end gap-2 mb-3">
               <Button
-                v-if="!editMode"
+                v-if="!editMode && canEditContract"
                 icon="pi pi-pencil"
                 label="Редактировать"
                 outlined
@@ -1064,6 +1101,7 @@ onMounted(async () => {
                   icon="pi pi-check"
                   label="Сохранить"
                   :loading="editSaving"
+                  :disabled="!canEditContract"
                   @click="saveEdit"
                 />
                 <Button
@@ -1189,7 +1227,7 @@ onMounted(async () => {
                           label="Сформировать"
                           text
                           :loading="generatingId === row.id"
-                          :disabled="generatingId === row.id"
+                          :disabled="generatingId === row.id || !canCreateContractDocs"
                           @click="generateDocx(row.id)"
                         />
                         <Button
@@ -1201,7 +1239,7 @@ onMounted(async () => {
                           @click="downloadDocument(row)"
                         />
                         <Button
-                          v-if="isAdmin"
+                          v-if="canDeleteContractDocs"
                           icon="pi pi-trash"
                           label="Удалить"
                           text
@@ -1227,7 +1265,7 @@ onMounted(async () => {
         </Card>
       </VWindowItem>
 
-      <VWindowItem value="payments">
+      <VWindowItem v-if="canViewFinance" value="payments">
         <Card>
           <template #content>
             <div v-if="receiptsError" class="text-sm" style="color: #b91c1c;">
@@ -1287,7 +1325,7 @@ onMounted(async () => {
         </Card>
       </VWindowItem>
 
-      <VWindowItem value="spendings">
+      <VWindowItem v-if="canViewFinance" value="spendings">
         <Card>
           <template #content>
             <div v-if="spendingsError" class="text-sm" style="color: #b91c1c;">
@@ -1298,7 +1336,7 @@ onMounted(async () => {
                 <VBtn
                   color="primary"
                   prepend-icon="tabler-plus"
-                  :disabled="spendingsSaving"
+                  :disabled="spendingsSaving || !canCreateFinance"
                   @click="addSpendingRow"
                 >
                   Добавить расход
@@ -1307,7 +1345,7 @@ onMounted(async () => {
                   color="success"
                   prepend-icon="tabler-device-floppy"
                   :loading="spendingsSaving"
-                  :disabled="!hasNewSpendings"
+                  :disabled="!hasNewSpendings || !canCreateFinance"
                   @click="saveSpendings"
                 >
                   Сохранить
@@ -1422,7 +1460,7 @@ onMounted(async () => {
                   <span v-else>{{ row.creator?.name ?? row.creator?.email ?? '-' }}</span>
                 </template>
               </Column>
-              <Column v-if="isAdmin" header="" style="inline-size: 6ch;">
+              <Column v-if="canDeleteFinance" header="" style="inline-size: 6ch;">
                 <template #body="{ data: row }">
                   <Button
                     icon="pi pi-trash"
@@ -1545,7 +1583,7 @@ onMounted(async () => {
             </Card>
           </VWindowItem>
 
-          <VWindowItem value="payroll">
+          <VWindowItem v-if="canViewPayroll" value="payroll">
             <Card>
               <template #content>
                 <div v-if="payrollError" class="text-sm" style="color: #b91c1c;">
@@ -1554,7 +1592,7 @@ onMounted(async () => {
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div class="flex flex-wrap items-center gap-2">
                     <Button
-                      v-if="isAdmin"
+                      v-if="canEditPayroll"
                       label="Пересчитать"
                       icon="pi pi-refresh"
                       outlined
@@ -1628,7 +1666,7 @@ onMounted(async () => {
                 <div class="flex justify-end text-sm font-semibold">
                   Сумма: {{ formatMoney(payrollTotal) }}
                 </div>
-                <div v-if="isAdmin" class="mt-4">
+                <div v-if="canCreatePayroll" class="mt-4">
                   <div class="text-sm font-semibold mb-2">Ручное начисление</div>
                   <div class="flex flex-wrap items-end gap-2">
                     <AppSelect

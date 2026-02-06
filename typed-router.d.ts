@@ -167,6 +167,7 @@ declare module 'vue-router/auto-routes' {
     'settings-districts': RouteRecordInfo<'settings-districts', '/settings/districts', Record<never, never>, Record<never, never>>,
     'settings-margin': RouteRecordInfo<'settings-margin', '/settings/margin', Record<never, never>, Record<never, never>>,
     'settings-payroll': RouteRecordInfo<'settings-payroll', '/settings/payroll', Record<never, never>, Record<never, never>>,
+    'settings-roles-permissions': RouteRecordInfo<'settings-roles-permissions', '/settings/roles-permissions', Record<never, never>, Record<never, never>>,
     'settings-sale-types': RouteRecordInfo<'settings-sale-types', '/settings/sale-types', Record<never, never>, Record<never, never>>,
     'settings-spending-funds': RouteRecordInfo<'settings-spending-funds', '/settings/spending-funds', Record<never, never>, Record<never, never>>,
     'settings-spending-items': RouteRecordInfo<'settings-spending-items', '/settings/spending-items', Record<never, never>, Record<never, never>>,

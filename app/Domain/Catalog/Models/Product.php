@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -42,6 +43,55 @@ class Product extends Model
         'is_new' => 'bool',
         'archived_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $product): void {
+            $source = (string) ($product->slug ?: $product->name);
+            $product->slug = self::makeUniqueSlug($source, $product->tenant_id);
+        });
+
+        static::updating(function (self $product): void {
+            if ($product->isDirty('name')) {
+                $product->slug = self::makeUniqueSlug((string) $product->name, $product->tenant_id, $product->id);
+            }
+        });
+    }
+
+    private static function makeUniqueSlug(string $source, ?int $tenantId = null, ?int $excludeId = null): string
+    {
+        $base = Str::slug($source, '-', 'ru');
+        if ($base === '') {
+            $base = 'item';
+        }
+
+        $slug = $base;
+        $suffix = 2;
+
+        $query = self::query()
+            ->where('slug', $slug)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId));
+        if ($tenantId === null) {
+            $query->whereNull('tenant_id');
+        } else {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        while ($query->exists()) {
+            $slug = $base . '-' . $suffix;
+            $suffix++;
+            $query = self::query()
+                ->where('slug', $slug)
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId));
+            if ($tenantId === null) {
+                $query->whereNull('tenant_id');
+            } else {
+                $query->where('tenant_id', $tenantId);
+            }
+        }
+
+        return $slug;
+    }
 
     public function category(): BelongsTo
     {

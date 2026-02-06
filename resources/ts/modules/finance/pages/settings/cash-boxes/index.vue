@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useAbility } from '@casl/vue'
 import CashBoxesTable from '@/modules/finance/components/settings/CashBoxesTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
@@ -9,6 +10,10 @@ import type { CashBox } from '@/types/finance'
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
+const ability = useAbility()
+const canCreate = computed(() => ability.can('create', 'settings.cash_boxes'))
+const canEdit = computed(() => ability.can('edit', 'settings.cash_boxes'))
+const canDelete = computed(() => ability.can('delete', 'settings.cash_boxes'))
 
 const filterDefs: DictionaryFilterDef[] = [
   { key: 'id', kind: 'number', queryKey: 'id' },
@@ -71,6 +76,9 @@ onBeforeUnmount(() => {
     :totalRecords="totalRecords"
     :scrollHeight="scrollHeight"
     :virtualScrollerOptions="virtualScrollerOptions"
+    :canCreate="canCreate"
+    :canEdit="canEdit"
+    :canDelete="canDelete"
     @sort="handleSort"
     @reset-filters="resetFilters"
     @reload="resetData"

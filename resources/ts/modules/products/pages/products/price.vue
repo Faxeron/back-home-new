@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRouter } from 'vue-router'
 import ProductsPriceTable from '@/modules/products/components/ProductsPriceTable.vue'
 import { useProductFilters } from '@/modules/products/composables/useProductFilters'
@@ -22,6 +23,10 @@ const templateLoading = ref(false)
 const snackbarOpen = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref<'success' | 'error'>('success')
+const ability = useAbility()
+const canEdit = computed(() => ability.can('edit', 'products'))
+const canImport = computed(() => ability.can('create', 'pricebook'))
+const canExport = computed(() => ability.can('export', 'pricebook'))
 
 const showSnackbar = (text: string, color: 'success' | 'error' = 'success') => {
   snackbarText.value = text
@@ -127,6 +132,7 @@ const numericFields = new Set([
 ])
 
 const handleUpdateField = async (payload: { row: Product; field: keyof Product; value: any }) => {
+  if (!canEdit.value) return
   const { row, field, value } = payload
   if (row.is_global && numericFields.has(String(field))) {
     errorMessage.value = 'Глобальные товары нельзя менять в прайсе.'
@@ -141,6 +147,7 @@ const handleUpdateField = async (payload: { row: Product; field: keyof Product; 
 }
 
 const handleUpdateFlag = async (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {
+  if (!canEdit.value) return
   const { row, field, value } = payload
   if (row.is_global && numericFields.has(String(field))) {
     errorMessage.value = 'Глобальные товары нельзя менять в прайсе.'
@@ -203,18 +210,21 @@ const downloadFile = async (endpoint: string, fallbackName: string, setLoading: 
 }
 
 const handleExport = async () => {
+  if (!canExport.value) return
   await downloadFile('products/pricebook/export', 'pricebook_export.xlsx', value => {
     exportLoading.value = value
   })
 }
 
 const handleTemplate = async () => {
+  if (!canExport.value) return
   await downloadFile('products/pricebook/template', 'pricebook_template.xlsx', value => {
     templateLoading.value = value
   })
 }
 
 const handleImportClick = () => {
+  if (!canImport.value) return
   importInputRef.value?.click()
 }
 
@@ -228,6 +238,7 @@ const handleImportFile = async (event: Event) => {
 }
 
 const importPricebook = async (file: File) => {
+  if (!canImport.value) return
   importLoading.value = true
   errorMessage.value = ''
   importErrors.value = []
@@ -298,6 +309,10 @@ onBeforeUnmount(() => {
       :importing="importLoading"
       :exporting="exportLoading"
       :templating="templateLoading"
+      :canEdit="canEdit"
+      :canImport="canImport"
+      :canExport="canExport"
+      :canTemplate="canExport"
       @sort="handleSort"
       @reset="resetFilters"
       @open="openProduct"

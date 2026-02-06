@@ -22,6 +22,9 @@ const props = defineProps<{
   virtualScrollerOptions: Record<string, any>
   search: string
   dateRange: (Date | null)[]
+  canCreateEstimate: boolean
+  canCreateContract: boolean
+  canDeleteEstimate: boolean
 }>()
 
 const emit = defineEmits<{
@@ -91,6 +94,7 @@ const hasFilters = computed(() => !!props.search || (props.dateRange?.length ?? 
           <div class="flex items-center gap-2">
             <TableTotalLabel :label="ESTIMATE_LIST_LABELS.total" :value="totalLabel" />
             <Button
+              v-if="canCreateEstimate"
               :label="ESTIMATE_LIST_LABELS.create"
               icon="pi pi-plus"
               size="small"
@@ -168,6 +172,7 @@ const hasFilters = computed(() => !!props.search || (props.dateRange?.length ?? 
       <template #body="{ data }">
         <div class="flex items-center gap-1">
           <Button
+            v-if="canCreateContract"
             icon="pi pi-file-edit"
             text
             :disabled="Boolean(data.contract_id)"
@@ -188,6 +193,7 @@ const hasFilters = computed(() => !!props.search || (props.dateRange?.length ?? 
             @click="emit('open', data)"
           />
           <Button
+            v-if="canDeleteEstimate"
             icon="pi pi-trash"
             text
             severity="danger"

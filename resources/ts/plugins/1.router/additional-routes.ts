@@ -2,24 +2,74 @@ import type { RouteRecordRaw } from 'vue-router/auto'
 
 const emailRouteComponent = () => import('@/pages/apps/email/index.vue')
 
-// 👉 Redirects
+type AbilityRule = {
+  action?: string
+  subject?: string
+}
+
+type HomeCandidate = {
+  path: string
+  action: string
+  subject: string
+}
+
+const HOME_CANDIDATES: HomeCandidate[] = [
+  { path: '/dashboards/crm', action: 'view', subject: 'dashboard.total_sales' },
+  { path: '/estimates', action: 'view', subject: 'estimates' },
+  { path: '/operations/contracts', action: 'view', subject: 'contracts' },
+  { path: '/operations/measurements', action: 'view', subject: 'measurements' },
+  { path: '/operations/installations', action: 'view', subject: 'installations' },
+  { path: '/products', action: 'view', subject: 'products' },
+  { path: '/sales/knowledge', action: 'view', subject: 'knowledge' },
+  { path: '/settings/roles-permissions', action: 'view', subject: 'settings.roles' },
+]
+
+const hasAbility = (rules: AbilityRule[], action: string, subject: string): boolean => {
+  return rules.some(rule => {
+    const ruleAction = String(rule.action ?? '').toLowerCase()
+    const ruleSubject = String(rule.subject ?? '').toLowerCase()
+
+    if (ruleAction === 'manage' && ruleSubject === 'all')
+      return true
+
+    const actionAllowed = ruleAction === action || ruleAction === 'manage'
+    const subjectAllowed = ruleSubject === subject || ruleSubject === 'all'
+
+    return actionAllowed && subjectAllowed
+  })
+}
+
+const resolveHomePath = (rules: AbilityRule[]): string | null => {
+  for (const candidate of HOME_CANDIDATES) {
+    if (hasAbility(rules, candidate.action, candidate.subject))
+      return candidate.path
+  }
+
+  return null
+}
+
+// Redirects
 export const redirects: RouteRecordRaw[] = [
-  // ℹ️ We are redirecting to different pages based on role.
-  // NOTE: Role is just for UI purposes. ACL is based on abilities.
   {
     path: '/',
     name: 'index',
     redirect: to => {
-      // TODO: Get type from backend
+      const accessToken = useCookie<string | null | undefined>('accessToken')
       const userData = useCookie<Record<string, unknown> | null | undefined>('userData')
-      const userRole = userData.value?.role
+      const userAbilityRules = useCookie<AbilityRule[] | null | undefined>('userAbilityRules')
 
-      if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'manager' || userRole === 'worker' || userRole === 'measurer')
-        return { name: 'dashboards-crm' }
+      if (!accessToken.value || !userData.value)
+        return { name: 'login', query: to.query }
+
+      const homePath = resolveHomePath(userAbilityRules.value ?? [])
+      if (homePath)
+        return { path: homePath }
+
+      const userRole = typeof userData.value.role === 'string' ? userData.value.role : ''
       if (userRole === 'client')
         return { name: 'access-control' }
 
-      return { name: 'login', query: to.query }
+      return { name: 'not-authorized' }
     },
   },
   {

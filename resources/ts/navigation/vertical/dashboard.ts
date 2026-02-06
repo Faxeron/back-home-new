@@ -9,7 +9,7 @@
       },
       {
         title: 'CRM',
-        to: 'dashboards-crm',
+        to: { path: '/dashboards/crm' },
       },
       {
         title: 'Ecommerce',

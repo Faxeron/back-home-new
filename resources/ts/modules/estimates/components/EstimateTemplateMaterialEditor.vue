@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
@@ -16,11 +17,16 @@ const props = defineProps<{ templateId?: number | null }>()
 
 const router = useRouter()
 const route = useRoute()
+const ability = useAbility()
 
 const templateId = ref<number | null>(props.templateId ?? null)
 const saving = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
+const canCreate = computed(() => ability.can('create', 'estimate_templates'))
+const canEdit = computed(() => ability.can('edit', 'estimate_templates'))
+const canSave = computed(() => (templateId.value ? canEdit.value : canCreate.value))
+const isReadOnly = computed(() => !canSave.value)
 
 const form = reactive({
   title: '',
@@ -56,6 +62,7 @@ const loadTemplate = async () => {
 }
 
 const addRow = () => {
+  if (isReadOnly.value) return
   items.value.push({
     scu: '',
     count: 1,
@@ -65,6 +72,7 @@ const addRow = () => {
 }
 
 const removeRow = (index: number) => {
+  if (isReadOnly.value) return
   items.value.splice(index, 1)
 }
 
@@ -106,6 +114,7 @@ const addRowFromProduct = (product: Product) => {
 }
 
 const handleProductSelect = (event: { value: Product }) => {
+  if (isReadOnly.value) return
   addRowFromProduct(event.value)
   productSearch.value = null
 }
@@ -142,6 +151,7 @@ const syncProductByScu = async (item: EstimateTemplateMaterialItem) => {
 }
 
 const saveTemplate = async () => {
+  if (!canSave.value) return
   if (!form.title.trim()) {
     errorMessage.value = 'Название шаблона обязательно.'
     return
@@ -207,6 +217,7 @@ onMounted(async () => {
         label="Сохранить"
         icon="pi pi-save"
         :loading="saving"
+        :disabled="isReadOnly"
         @click="saveTemplate"
       />
     </div>
@@ -214,7 +225,7 @@ onMounted(async () => {
     <Card>
       <template #title>Название</template>
       <template #content>
-        <InputText v-model="form.title" class="w-full" placeholder="Название шаблона" />
+        <InputText v-model="form.title" class="w-full" placeholder="Название шаблона" :disabled="isReadOnly" />
       </template>
     </Card>
 
@@ -226,17 +237,18 @@ onMounted(async () => {
         </div>
         <div class="mb-3 flex flex-column gap-2">
           <span class="text-sm text-muted">Добавить товар по названию</span>
-          <AutoComplete
-            v-model="productSearch"
-            :suggestions="productSuggestions"
-            optionLabel="name"
-            :loading="productLoading"
-            forceSelection
-            class="w-full"
-            placeholder="Начните вводить название"
-            @complete="handleProductSearch"
-            @item-select="handleProductSelect"
-          />
+        <AutoComplete
+          v-model="productSearch"
+          :suggestions="productSuggestions"
+          optionLabel="name"
+          :loading="productLoading"
+          forceSelection
+          class="w-full"
+          placeholder="Начните вводить название"
+          :disabled="isReadOnly"
+          @complete="handleProductSearch"
+          @item-select="handleProductSelect"
+        />
         </div>
         <DataTable :value="items" class="p-datatable-sm" dataKey="scu" :loading="loading" stripedRows>
           <Column field="scu" header="SKU" style="inline-size: 20ch;">
@@ -260,6 +272,7 @@ onMounted(async () => {
                 buttonLayout="horizontal"
                 incrementButtonIcon="pi pi-plus"
                 decrementButtonIcon="pi pi-minus"
+                :disabled="isReadOnly"
               />
             </template>
           </Column>
@@ -270,6 +283,7 @@ onMounted(async () => {
                 text
                 severity="danger"
                 aria-label="Удалить строку"
+                :disabled="isReadOnly"
                 @click="removeRow(index)"
               />
             </template>
@@ -283,6 +297,7 @@ onMounted(async () => {
             label="Добавить строку"
             icon="pi pi-plus"
             text
+            :disabled="isReadOnly"
             @click="addRow"
           />
         </div>

@@ -20,6 +20,9 @@ const props = defineProps<{
   scrollHeight: string
   virtualScrollerOptions: Record<string, any>
   filters: any
+  canCreate?: boolean
+  canEdit?: boolean
+  canDelete?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -35,6 +38,9 @@ const filtersModel = computed({
 })
 
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))
+const canCreate = computed(() => props.canCreate !== false)
+const canEdit = computed(() => props.canEdit !== false)
+const canDelete = computed(() => props.canDelete !== false)
 
 const rows = computed<CashBoxRow[]>(() =>
   (props.rows || []).map(row => ({
@@ -54,6 +60,8 @@ const form = reactive({
   description: '',
   is_active: true,
 })
+const canSave = computed(() => (form.id ? canEdit.value : canCreate.value))
+const isReadOnly = computed(() => !canSave.value)
 
 const logoFile = ref<File | null>(null)
 const logoPreview = ref<string | null>(null)
@@ -75,12 +83,14 @@ const resetForm = () => {
 }
 
 const openCreate = () => {
+  if (!canCreate.value) return
   resetForm()
   loadLogoPresets()
   dialogOpen.value = true
 }
 
 const openEdit = (row: CashBoxRow) => {
+  if (!canEdit.value) return
   resetForm()
   form.id = row.id
   form.name = row.name ?? ''
@@ -135,6 +145,7 @@ watch(dialogOpen, value => {
 })
 
 const submit = async () => {
+  if (!canSave.value) return
   if (!form.name.trim()) {
     errorMessage.value = 'Укажите название кассы.'
     return
@@ -179,6 +190,7 @@ const submit = async () => {
 }
 
 const removeCashbox = async (row: CashBoxRow) => {
+  if (!canDelete.value) return
   if (!window.confirm('Удалить кассу?')) return
   deletingId.value = row.id
   try {
@@ -214,6 +226,7 @@ const removeCashbox = async (row: CashBoxRow) => {
           <TableTotalLabel label="Всего" :value="totalLabel" />
           <div class="flex items-center gap-2">
             <Button
+              v-if="canCreate"
               label="Создать кассу"
               icon="pi pi-plus"
               severity="success"
@@ -290,12 +303,14 @@ const removeCashbox = async (row: CashBoxRow) => {
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <Button
+              v-if="canEdit"
               icon="pi pi-pencil"
               text
               severity="info"
               @click="openEdit(data)"
             />
             <Button
+              v-if="canDelete"
               icon="pi pi-trash"
               text
               severity="danger"
@@ -321,9 +336,9 @@ const removeCashbox = async (row: CashBoxRow) => {
       <VCardText class="d-flex flex-column gap-4">
         <div v-if="errorMessage" class="text-sm text-error">{{ errorMessage }}</div>
 
-        <VTextField v-model="form.name" label="Название" hide-details />
-        <VTextarea v-model="form.description" label="Описание" rows="2" auto-grow hide-details />
-        <VSwitch v-model="form.is_active" label="Активна" inset />
+        <VTextField v-model="form.name" label="Название" hide-details :disabled="isReadOnly" />
+        <VTextarea v-model="form.description" label="Описание" rows="2" auto-grow hide-details :disabled="isReadOnly" />
+        <VSwitch v-model="form.is_active" label="Активна" inset :disabled="isReadOnly" />
 
         <div class="d-flex flex-column gap-2">
           <div class="text-sm font-medium">Логотип</div>
@@ -337,6 +352,7 @@ const removeCashbox = async (row: CashBoxRow) => {
             :loading="logoPresetsLoading"
             clearable
             hide-details
+            :disabled="isReadOnly"
             @update:modelValue="handlePresetChange"
           >
             <template #selection="{ item }">
@@ -364,7 +380,7 @@ const removeCashbox = async (row: CashBoxRow) => {
               accept="image/png"
               prepend-icon="tabler-upload"
               :model-value="logoFile"
-              :disabled="Boolean(logoPresetId)"
+              :disabled="Boolean(logoPresetId) || isReadOnly"
               @update:modelValue="handleLogoChange"
             />
           </div>
@@ -372,13 +388,13 @@ const removeCashbox = async (row: CashBoxRow) => {
             v-model="removeLogo"
             label="Удалить текущий логотип"
             inset
-            :disabled="!logoPreview"
+            :disabled="!logoPreview || isReadOnly"
           />
         </div>
       </VCardText>
       <VCardActions class="justify-end gap-2">
         <VBtn variant="text" @click="dialogOpen = false">Отмена</VBtn>
-        <VBtn color="primary" :loading="saving" @click="submit">Сохранить</VBtn>
+        <VBtn color="primary" :loading="saving" :disabled="isReadOnly" @click="submit">Сохранить</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>

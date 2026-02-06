@@ -27,6 +27,10 @@ const saving = ref(false)
 const detailLoading = ref(false)
 const uploadLoading = ref(false)
 const deletingId = ref<number | null>(null)
+const ability = useAbility()
+const canCreate = computed(() => ability.can('create', 'knowledge'))
+const canEdit = computed(() => ability.can('edit', 'knowledge'))
+const canDelete = computed(() => ability.can('delete', 'knowledge'))
 
 const listError = ref('')
 const formError = ref('')
@@ -53,6 +57,7 @@ const viewArticle = ref<KnowledgeArticle | null>(null)
 const viewAttachments = computed(() => viewArticle.value?.attachments ?? [])
 const viewTags = computed(() => viewArticle.value?.tags ?? [])
 const viewTopics = computed(() => viewArticle.value?.topics ?? [])
+const canSave = computed(() => (form.id ? canEdit.value : canCreate.value))
 
 const topicSelections = reactive<Record<string, string[]>>({})
 
@@ -196,11 +201,15 @@ const loadArticle = async (id: number) => {
 }
 
 const openCreate = () => {
+  if (!canCreate.value)
+    return
   resetForm()
   editorOpen.value = true
 }
 
 const openEdit = async (article: KnowledgeArticle) => {
+  if (!canEdit.value)
+    return
   resetForm()
   setFormFromArticle(article)
   editorOpen.value = true
@@ -298,6 +307,8 @@ const saveArticle = async () => {
 }
 
 const removeArticle = async (article: KnowledgeArticle) => {
+  if (!canDelete.value)
+    return
   if (!window.confirm('Удалить статью?'))
     return
 
@@ -313,6 +324,8 @@ const removeArticle = async (article: KnowledgeArticle) => {
 }
 
 const handleFileSelect = async (value: File | File[] | null) => {
+  if (!canEdit.value)
+    return
   if (!form.id)
     return
   const files = Array.isArray(value) ? value : value ? [value] : []
@@ -334,6 +347,8 @@ const handleFileSelect = async (value: File | File[] | null) => {
 }
 
 const handleAddLink = async () => {
+  if (!canEdit.value)
+    return
   if (!form.id)
     return
   if (!linkForm.url.trim()) {
@@ -359,6 +374,8 @@ const handleAddLink = async () => {
 }
 
 const handleRemoveAttachment = async (attachment: KnowledgeAttachment) => {
+  if (!canEdit.value)
+    return
   if (!window.confirm('Удалить вложение?'))
     return
   try {
@@ -427,7 +444,7 @@ const formatFileSize = (value?: number | null) => {
         <h2 class="text-h5 mb-1">База знаний</h2>
         <div class="text-sm text-muted">Статьи, документы и инструкции для менеджеров.</div>
       </div>
-      <VBtn color="primary" prepend-icon="tabler-plus" @click="openCreate">
+      <VBtn v-if="canCreate" color="primary" prepend-icon="tabler-plus" @click="openCreate">
         Новая статья
       </VBtn>
     </div>
@@ -547,7 +564,7 @@ const formatFileSize = (value?: number | null) => {
                 >
                   Открыть
                 </VBtn>
-                <VTooltip text="Редактировать">
+                <VTooltip v-if="canEdit" text="Редактировать">
                   <template #activator="{ props }">
                     <VBtn
                       v-bind="props"
@@ -557,7 +574,7 @@ const formatFileSize = (value?: number | null) => {
                     />
                   </template>
                 </VTooltip>
-                <VTooltip text="Удалить">
+                <VTooltip v-if="canDelete" text="Удалить">
                   <template #activator="{ props }">
                     <VBtn
                       v-bind="props"
@@ -657,7 +674,7 @@ const formatFileSize = (value?: number | null) => {
               multiple
               hide-details
               :loading="uploadLoading"
-              :disabled="uploadLoading"
+              :disabled="uploadLoading || !canEdit"
               @update:modelValue="handleFileSelect"
             />
 
@@ -673,16 +690,17 @@ const formatFileSize = (value?: number | null) => {
                   item-value="value"
                   label="Тип"
                   hide-details
+                  :disabled="!canEdit"
                 />
               </VCol>
               <VCol cols="12" md="5">
-                <VTextField v-model="linkForm.url" label="URL" hide-details />
+                <VTextField v-model="linkForm.url" label="URL" hide-details :disabled="!canEdit" />
               </VCol>
               <VCol cols="12" md="3">
-                <VTextField v-model="linkForm.title" label="Название" hide-details />
+                <VTextField v-model="linkForm.title" label="Название" hide-details :disabled="!canEdit" />
               </VCol>
               <VCol cols="12" md="1" class="d-flex align-center">
-                <VBtn icon="tabler-plus" :loading="uploadLoading" @click="handleAddLink" />
+                <VBtn icon="tabler-plus" :loading="uploadLoading" :disabled="!canEdit" @click="handleAddLink" />
               </VCol>
             </VRow>
 
@@ -730,6 +748,7 @@ const formatFileSize = (value?: number | null) => {
                       icon="tabler-trash"
                       variant="text"
                       color="error"
+                      v-if="canEdit"
                       @click="handleRemoveAttachment(attachment)"
                     />
                   </div>
@@ -741,7 +760,7 @@ const formatFileSize = (value?: number | null) => {
       </VCardText>
       <VCardActions class="justify-end gap-2">
         <VBtn variant="text" @click="closeEditor">Отмена</VBtn>
-        <VBtn color="primary" :loading="saving" @click="saveArticle">Сохранить</VBtn>
+        <VBtn color="primary" :loading="saving" :disabled="!canSave" @click="saveArticle">Сохранить</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>
@@ -844,7 +863,7 @@ const formatFileSize = (value?: number | null) => {
       </VCardText>
       <VCardActions class="justify-end gap-2">
         <VBtn variant="text" @click="closeView">Закрыть</VBtn>
-        <VBtn color="primary" prepend-icon="tabler-edit" @click="editFromView">Редактировать</VBtn>
+        <VBtn v-if="canEdit" color="primary" prepend-icon="tabler-edit" @click="editFromView">Редактировать</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>

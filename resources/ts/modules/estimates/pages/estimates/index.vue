@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import EstimatesTable from '@/modules/estimates/components/EstimatesTable.vue'
 import CreateContractsDialog from '@/modules/estimates/components/CreateContractsDialog.vue'
@@ -10,9 +10,13 @@ import { deleteEstimate } from '@/modules/estimates/api/estimate.api'
 import type { Estimate } from '@/modules/estimates/types/estimates.types'
 
 const router = useRouter()
+const ability = useAbility()
 const tableRef = ref<any>(null)
 const createContractsOpen = ref(false)
 const selectedEstimate = ref<Estimate | null>(null)
+const canCreateEstimate = computed(() => ability.can('create', 'estimates'))
+const canCreateContract = computed(() => ability.can('create', 'contracts'))
+const canDeleteEstimate = computed(() => ability.can('delete', 'estimates'))
 
 const {
   search,
@@ -46,6 +50,7 @@ const handleOpen = (row: Estimate) => {
 }
 
 const handleCreate = () => {
+  if (!canCreateEstimate.value) return
   router.push({ path: '/estimates/new' })
 }
 
@@ -62,6 +67,7 @@ const handleDelete = async (row: Estimate) => {
 }
 
 const handleCreateContract = (row: Estimate) => {
+  if (!canCreateContract.value) return
   selectedEstimate.value = row
   createContractsOpen.value = true
 }
@@ -94,6 +100,9 @@ watch([search, dateRange], () => {
     :totalRecords="totalRecords"
     :scrollHeight="scrollHeight"
     :virtualScrollerOptions="virtualScrollerOptions"
+    :can-create-estimate="canCreateEstimate"
+    :can-create-contract="canCreateContract"
+    :can-delete-estimate="canDeleteEstimate"
     @reset="handleReset"
     @open="handleOpen"
     @open-contract="handleOpenContract"

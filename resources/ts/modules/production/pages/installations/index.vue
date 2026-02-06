@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useCookie } from '@/@core/composable/useCookie'
 import { $api } from '@/utils/api'
 import { useTableScrollHeight } from '@/composables/useTableScrollHeight'
@@ -26,6 +27,8 @@ const { isLeftSidebarOpen } = useResponsiveLeftSidebar()
 
 const userData = useCookie<any>('userData')
 const currentUserId = computed(() => Number(userData.value?.id ?? 0) || null)
+const ability = useAbility()
+const canAssign = computed(() => ability.can('assign', 'installations'))
 
 const {
   rows,
@@ -71,11 +74,13 @@ const loadUsers = async () => {
 }
 
 const openAssign = (row: InstallationRow) => {
+  if (!canAssign.value) return
   selectedRow.value = row
   assignDialog.value = true
 }
 
 const handleAssign = async (payload: { contractId: number; work_done_date: string; worker_id: number }) => {
+  if (!canAssign.value) return
   saving.value = true
   try {
     await assign(payload.contractId, {
@@ -250,6 +255,7 @@ onMounted(async () => {
                 :totalRecords="total"
                 :scrollHeight="scrollHeight"
                 :virtualScrollerOptions="virtualScrollerOptions"
+                :canAssign="canAssign"
                 @assign="openAssign"
               />
             </VWindowItem>
@@ -265,6 +271,7 @@ onMounted(async () => {
     :users="users"
     :loading="saving || usersLoading"
     :current-user-id="currentUserId"
+    :canAssign="canAssign"
     @save="handleAssign"
   />
 </template>

@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { $api } from '@/utils/api'
 import { useAppSnackbarStore } from '@/stores/appSnackbar'
 import DataTable from 'primevue/datatable'
@@ -89,6 +90,16 @@ const funds = ref<SpendingFundOption[]>([])
 const spendingItems = ref<SpendingItemOption[]>([])
 
 const appSnackbar = useAppSnackbarStore()
+const ability = useAbility()
+const canCreateSettingsPayroll = computed(() => ability.can('create', 'settings.payroll'))
+const canEditSettingsPayroll = computed(() => ability.can('edit', 'settings.payroll'))
+const canDeleteSettingsPayroll = computed(() => ability.can('delete', 'settings.payroll'))
+const canViewPayroll = computed(() => ability.can('view', 'payroll'))
+const canCreatePayroll = computed(() => ability.can('create', 'payroll'))
+const canDeletePayroll = computed(() => ability.can('delete', 'payroll'))
+const canManageRules = computed(() => canCreateSettingsPayroll.value || canEditSettingsPayroll.value)
+const canEditRule = (row: PayrollRuleRow) =>
+  row.id ? canEditSettingsPayroll.value : canCreateSettingsPayroll.value
 
 const showSnackbar = (text: string, color: 'success' | 'error' = 'success') => {
   appSnackbar.show(text, color)
@@ -197,6 +208,10 @@ const loadRules = async () => {
 }
 
 const loadAccruals = async () => {
+  if (!canViewPayroll.value) {
+    accruals.value = []
+    return
+  }
   accrualsLoading.value = true
   accrualsError.value = ''
   try {
@@ -246,6 +261,10 @@ const loadSpendingItems = async () => {
 }
 
 const loadPayoutAccruals = async () => {
+  if (!canViewPayroll.value) {
+    payoutAccruals.value = []
+    return
+  }
   payoutAccrualsLoading.value = true
   payoutError.value = ''
   try {
@@ -273,6 +292,10 @@ const loadPayoutAccruals = async () => {
 }
 
 const loadPayouts = async () => {
+  if (!canViewPayroll.value) {
+    payouts.value = []
+    return
+  }
   payoutsLoading.value = true
   try {
     const response: any = await $api('settings/payroll-payouts', {
@@ -289,6 +312,7 @@ const loadPayouts = async () => {
 }
 
 const addRuleRow = () => {
+  if (!canCreateSettingsPayroll.value) return
   rules.value.unshift({
     user_id: null,
     document_type: 'combined',
@@ -300,6 +324,8 @@ const addRuleRow = () => {
 }
 
 const saveRule = async (row: PayrollRuleRow, options: { silent?: boolean } = {}) => {
+  const canSaveRow = row.id ? canEditSettingsPayroll.value : canCreateSettingsPayroll.value
+  if (!canSaveRow) return
   if (!row.user_id) {
     if (!options.silent) showSnackbar('Выберите менеджера.', 'error')
     return
@@ -342,6 +368,7 @@ const saveRule = async (row: PayrollRuleRow, options: { silent?: boolean } = {})
 }
 
 const saveAllRules = async () => {
+  if (!canManageRules.value) return
   if (!rules.value.length) {
     showSnackbar('Нет правил для сохранения.', 'error')
     return
@@ -361,6 +388,7 @@ const saveAllRules = async () => {
 }
 
 const deleteRule = async (row: PayrollRuleRow) => {
+  if (row.id && !canDeleteSettingsPayroll.value) return
   if (!row.id) {
     rules.value = rules.value.filter(item => item !== row)
     return
@@ -393,6 +421,7 @@ const payoutTotal = computed(() =>
 )
 
 const submitPayout = async () => {
+  if (!canCreatePayroll.value) return
   payoutError.value = ''
 
   if (!payoutUserId.value) {
@@ -457,6 +486,7 @@ const submitPayout = async () => {
 }
 
 const deletePayout = async (row: PayrollPayoutRow) => {
+  if (!canDeletePayroll.value) return
   if (!row.id) return
   try {
     await $api(`settings/payroll-payouts/${row.id}`, { method: 'DELETE' })
@@ -493,8 +523,10 @@ watch(payoutUserId, async () => {
     payouts.value = []
     return
   }
-  await loadPayoutAccruals()
-  await loadPayouts()
+  if (canViewPayroll.value) {
+    await loadPayoutAccruals()
+    await loadPayouts()
+  }
 })
 
 watch(spendingItemOptions, () => {
@@ -508,12 +540,16 @@ watch(paymentMethods, () => {
 onMounted(async () => {
   await loadUsers()
   await loadRules()
-  await loadAccruals()
-  await loadCashboxes()
-  await loadPaymentMethods()
-  await loadFunds()
-  await loadSpendingItems()
-  ensurePayoutDefaults()
+  if (canViewPayroll.value) {
+    await loadAccruals()
+  }
+  if (canViewPayroll.value || canCreatePayroll.value) {
+    await loadCashboxes()
+    await loadPaymentMethods()
+    await loadFunds()
+    await loadSpendingItems()
+    ensurePayoutDefaults()
+  }
 })
 </script>
 
@@ -523,15 +559,15 @@ onMounted(async () => {
     <VCardText>
       <VTabs v-model="activeTab" class="mb-4">
         <VTab value="rules">Правила менеджеров</VTab>
-        <VTab value="accruals">Начисления</VTab>
-        <VTab value="payouts">Выплаты</VTab>
+        <VTab v-if="canViewPayroll" value="accruals">Начисления</VTab>
+        <VTab v-if="canViewPayroll" value="payouts">Выплаты</VTab>
       </VTabs>
 
       <VWindow v-model="activeTab">
         <VWindowItem value="rules">
           <div class="flex flex-wrap items-center gap-2 mb-3">
-            <VBtn color="primary" @click="addRuleRow">Добавить правило</VBtn>
-            <VBtn color="success" :loading="rulesSavingAll" @click="saveAllRules">Сохранить все</VBtn>
+            <VBtn color="primary" :disabled="!canCreateSettingsPayroll" @click="addRuleRow">Добавить правило</VBtn>
+            <VBtn color="success" :loading="rulesSavingAll" :disabled="!canManageRules" @click="saveAllRules">Сохранить все</VBtn>
           </div>
           <div v-if="rulesLoading" class="text-sm text-muted">Загрузка...</div>
           <div v-else class="payroll-rules-table">
@@ -549,37 +585,45 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="row in rules" :key="row.id ?? `new-${row.user_id}`">
                   <td style="min-width: 260px;">
-                    <VAutocomplete
-                      v-model="row.user_id"
-                      :items="users"
-                      item-title="name"
-                      item-value="id"
-                      :loading="usersLoading"
-                      label="Менеджер"
-                      hide-details
-                    />
+                  <VAutocomplete
+                    v-model="row.user_id"
+                    :items="users"
+                    item-title="name"
+                    item-value="id"
+                    :loading="usersLoading"
+                    label="Менеджер"
+                    :disabled="!canEditRule(row)"
+                    hide-details
+                  />
                   </td>
                   <td style="min-width: 200px;">
-                    <VSelect
-                      v-model="row.document_type"
-                      :items="documentTypeOptions"
-                      item-title="title"
-                      item-value="value"
-                      label="Документ"
-                      hide-details
-                    />
+                  <VSelect
+                    v-model="row.document_type"
+                    :items="documentTypeOptions"
+                    item-title="title"
+                    item-value="value"
+                    label="Документ"
+                    :disabled="!canEditRule(row)"
+                    hide-details
+                  />
                   </td>
                   <td style="min-width: 140px;">
-                    <VTextField v-model.number="row.fixed_amount" type="number" label="Фикс" hide-details />
+                    <VTextField v-model.number="row.fixed_amount" type="number" label="Фикс" hide-details :disabled="!canEditRule(row)" />
                   </td>
                   <td style="min-width: 160px;">
-                    <VTextField v-model.number="row.margin_percent" type="number" label="% от маржи" hide-details />
+                    <VTextField v-model.number="row.margin_percent" type="number" label="% от маржи" hide-details :disabled="!canEditRule(row)" />
                   </td>
                   <td style="width: 90px;">
-                    <VSwitch v-model="row.is_active" inset hide-details />
+                    <VSwitch v-model="row.is_active" inset hide-details :disabled="!canEditRule(row)" />
                   </td>
                   <td style="width: 56px;">
-                    <VBtn variant="text" color="error" icon="tabler-trash" @click="deleteRule(row)" />
+                    <VBtn
+                      variant="text"
+                      color="error"
+                      icon="tabler-trash"
+                      :disabled="row.id ? !canDeleteSettingsPayroll : !canCreateSettingsPayroll"
+                      @click="deleteRule(row)"
+                    />
                   </td>
                 </tr>
                 <tr v-if="!rules.length">
@@ -590,7 +634,7 @@ onMounted(async () => {
           </div>
         </VWindowItem>
 
-        <VWindowItem value="accruals">
+        <VWindowItem v-if="canViewPayroll" value="accruals">
           <div v-if="accrualsError" class="text-sm" style="color: #b91c1c;">
             {{ accrualsError }}
           </div>
@@ -653,32 +697,34 @@ onMounted(async () => {
           </div>
         </VWindowItem>
 
-        <VWindowItem value="payouts">
+        <VWindowItem v-if="canViewPayroll" value="payouts">
           <VRow class="payroll-payouts-row">
             <VCol cols="12" md="4">
-              <VAutocomplete
-                v-model="payoutUserId"
-                :items="users"
-                item-title="name"
-                item-value="id"
-                :loading="usersLoading"
-                label="Менеджер"
-                placeholder="Выберите менеджера"
-                hide-details
-                class="payroll-label-fix"
-              />
+            <VAutocomplete
+              v-model="payoutUserId"
+              :items="users"
+              item-title="name"
+              item-value="id"
+              :loading="usersLoading"
+              label="Менеджер"
+              placeholder="Выберите менеджера"
+              :disabled="!canCreatePayroll"
+              hide-details
+              class="payroll-label-fix"
+            />
             </VCol>
             <VCol cols="12" md="4">
-              <VSelect
-                v-model="payoutCashboxId"
-                :items="cashboxes"
-                item-title="name"
-                item-value="id"
-                label="Касса"
-                placeholder="Выберите кассу"
-                hide-details
-                class="payroll-label-fix"
-              >
+            <VSelect
+              v-model="payoutCashboxId"
+              :items="cashboxes"
+              item-title="name"
+              item-value="id"
+              label="Касса"
+              placeholder="Выберите кассу"
+              :disabled="!canCreatePayroll"
+              hide-details
+              class="payroll-label-fix"
+            >
                 <template #selection="{ item }">
                   <CashboxCell :cashbox="item?.raw ?? item" size="sm" />
                 </template>
@@ -690,52 +736,55 @@ onMounted(async () => {
               </VSelect>
             </VCol>
             <VCol cols="12" md="4">
-              <VSelect
-                v-model="payoutPaymentMethodId"
-                :items="paymentMethods"
-                item-title="name"
-                item-value="id"
-                label="Способ оплаты"
-                placeholder="Выберите способ оплаты"
-                hide-details
-                class="payroll-label-fix"
-              />
+            <VSelect
+              v-model="payoutPaymentMethodId"
+              :items="paymentMethods"
+              item-title="name"
+              item-value="id"
+              label="Способ оплаты"
+              placeholder="Выберите способ оплаты"
+              :disabled="!canCreatePayroll"
+              hide-details
+              class="payroll-label-fix"
+            />
             </VCol>
             <VCol cols="12" md="4">
-              <VSelect
-                v-model="payoutFundId"
-                :items="fundOptions"
-                item-title="name"
-                item-value="id"
-                label="Фонд"
-                hide-details
-                disabled
-                class="payroll-label-fix"
-              />
+            <VSelect
+              v-model="payoutFundId"
+              :items="fundOptions"
+              item-title="name"
+              item-value="id"
+              label="Фонд"
+              hide-details
+              disabled
+              class="payroll-label-fix"
+            />
             </VCol>
             <VCol cols="12" md="4">
-              <VSelect
-                v-model="payoutItemId"
-                :items="spendingItemOptions"
-                item-title="name"
-                item-value="id"
-                label="Статья"
-                placeholder="Выберите статью"
-                hide-details
-                class="payroll-label-fix"
-              />
+            <VSelect
+              v-model="payoutItemId"
+              :items="spendingItemOptions"
+              item-title="name"
+              item-value="id"
+              label="Статья"
+              placeholder="Выберите статью"
+              :disabled="!canCreatePayroll"
+              hide-details
+              class="payroll-label-fix"
+            />
             </VCol>
             <VCol cols="12" md="4">
-              <VTextField
-                v-model="payoutDate"
-                type="date"
-                label="Дата выплаты"
-                hide-details
-                class="payroll-label-fix"
-              />
+            <VTextField
+              v-model="payoutDate"
+              type="date"
+              label="Дата выплаты"
+              :disabled="!canCreatePayroll"
+              hide-details
+              class="payroll-label-fix"
+            />
             </VCol>
             <VCol cols="12">
-              <VTextField v-model="payoutComment" label="Комментарий" hide-details class="payroll-label-fix" />
+              <VTextField v-model="payoutComment" label="Комментарий" hide-details class="payroll-label-fix" :disabled="!canCreatePayroll" />
             </VCol>
           </VRow>
 
@@ -749,7 +798,7 @@ onMounted(async () => {
           </VAlert>
 
           <div class="flex flex-wrap items-center gap-3 mt-4">
-            <VBtn color="success" :loading="payoutSubmitting" @click="submitPayout">Сформировать выплату</VBtn>
+          <VBtn color="success" :loading="payoutSubmitting" :disabled="!canCreatePayroll" @click="submitPayout">Сформировать выплату</VBtn>
             <div class="text-sm text-muted">
               К выплате: {{ formatMoney(payoutTotal) }}
             </div>
@@ -764,7 +813,7 @@ onMounted(async () => {
           >
             <Column header="" style="inline-size: 4ch;">
               <template #body="{ data: row }">
-                <VCheckbox v-model="row.selected" hide-details />
+                <VCheckbox v-model="row.selected" hide-details :disabled="!canCreatePayroll" />
               </template>
             </Column>
             <Column field="created_at" header="Дата" style="inline-size: 18ch;">
@@ -804,7 +853,7 @@ onMounted(async () => {
                   type="number"
                   min="0"
                   hide-details
-                  :disabled="remainingFor(row) === 0"
+                  :disabled="remainingFor(row) === 0 || !canCreatePayroll"
                 />
               </template>
             </Column>
@@ -844,7 +893,7 @@ onMounted(async () => {
             </Column>
             <Column header="Действия" style="inline-size: 10ch;">
               <template #body="{ data: row }">
-                <VBtn variant="text" color="error" icon="tabler-trash" @click="deletePayout(row)" />
+                <VBtn v-if="canDeletePayroll" variant="text" color="error" icon="tabler-trash" @click="deletePayout(row)" />
               </template>
             </Column>
             <template #empty>

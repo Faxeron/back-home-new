@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useAbility } from '@casl/vue'
 import { useRouter } from 'vue-router'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -17,9 +18,13 @@ import {
 } from '@/modules/production/config/contractTemplates.config'
 
 const router = useRouter()
+const ability = useAbility()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const search = ref('')
+const canCreate = computed(() => ability.can('create', 'contract_templates'))
+const canEdit = computed(() => ability.can('edit', 'contract_templates'))
+const canDelete = computed(() => ability.can('delete', 'contract_templates'))
 
 const params = computed(() => ({
   q: search.value || undefined,
@@ -50,14 +55,17 @@ const updateScrollHeight = () => {
 const handleResize = () => updateScrollHeight()
 
 const handleCreate = () => {
+  if (!canCreate.value) return
   router.push({ path: '/operations/contracts/templates/new' })
 }
 
 const handleEdit = (row: ContractTemplate) => {
+  if (!canEdit.value) return
   router.push({ path: `/operations/contracts/templates/${row.id}` })
 }
 
 const handleDelete = async (row: ContractTemplate) => {
+  if (!canDelete.value) return
   if (!row?.id) return
   if (!window.confirm(CONTRACT_TEMPLATE_LABELS.confirmDelete)) return
   await deleteContractTemplate(row.id)
@@ -107,6 +115,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center gap-2">
           <TableTotalLabel :label="CONTRACT_TEMPLATE_LABELS.total" :value="totalLabel" />
           <Button
+            v-if="canCreate"
             :label="CONTRACT_TEMPLATE_LABELS.create"
             icon="pi pi-plus"
             size="small"
@@ -150,12 +159,14 @@ onBeforeUnmount(() => {
       <template #body="{ data: row }">
         <div class="flex items-center gap-1">
           <Button
+            v-if="canEdit"
             icon="pi pi-pencil"
             text
             :aria-label="CONTRACT_TEMPLATE_LABELS.editAria"
             @click="handleEdit(row)"
           />
           <Button
+            v-if="canDelete"
             icon="pi pi-trash"
             text
             severity="danger"

@@ -13,6 +13,7 @@ const props = defineProps<{
   totalRecords: number
   scrollHeight: string
   virtualScrollerOptions: Record<string, any>
+  canAssign?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -100,7 +101,7 @@ const hasRows = computed(() => props.rows?.length > 0)
     <Column header="" style="inline-size: 16ch;">
       <template #body="{ data }">
         <Button
-          v-if="data.can_edit"
+          v-if="data.can_edit && canAssign"
           label="Назначить дату"
           size="small"
           outlined

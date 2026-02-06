@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useAbility } from '@casl/vue'
 import TransactionsTable from '@/modules/finance/components/TransactionsTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import { useTransactionFilters } from '@/modules/finance/composables/useTransactionFilters'
@@ -9,8 +10,8 @@ import { $api } from '@/utils/api'
 import type { Transaction } from '@/types/finance'
 
 const dictionaries = useDictionariesStore()
-const userData = useCookie<any>('userData')
-const isAdmin = computed(() => String(userData.value?.role ?? '').toLowerCase() === 'admin')
+const ability = useAbility()
+const canDelete = computed(() => ability.can('delete', 'finance'))
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
@@ -115,7 +116,7 @@ onBeforeUnmount(() => {
     :totalRecords="totalRecords"
     :scrollHeight="scrollHeight"
     :virtualScrollerOptions="virtualScrollerOptions"
-    :canDelete="isAdmin"
+    :canDelete="canDelete"
     @sort="handleSort"
     @reset-filters="resetFilters"
     @delete="requestDeleteTransaction"
