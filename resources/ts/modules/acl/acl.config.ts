@@ -7,6 +7,7 @@ export const ACL_RESOURCE_PATHS: AclResourcePath[] = [
   { resource: 'contract_templates', paths: ['/operations/contracts/templates'] },
   { resource: 'contracts', paths: ['/operations/contracts'] },
   { resource: 'dashboard.total_sales', paths: ['/dashboards/crm', '/dashboards/all'] },
+  { resource: 'dashboard.employee', paths: ['/dashboards/employee'] },
   { resource: 'estimate_templates', paths: ['/estimate-templates'] },
   { resource: 'estimates', paths: ['/estimates'] },
   { resource: 'measurements', paths: ['/operations/measurements'] },

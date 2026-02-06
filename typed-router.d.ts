@@ -72,6 +72,7 @@ declare module 'vue-router/auto-routes' {
     'dashboards-analytics': RouteRecordInfo<'dashboards-analytics', '/dashboards/analytics', Record<never, never>, Record<never, never>>,
     'dashboards-crm': RouteRecordInfo<'dashboards-crm', '/dashboards/crm', Record<never, never>, Record<never, never>>,
     'dashboards-ecommerce': RouteRecordInfo<'dashboards-ecommerce', '/dashboards/ecommerce', Record<never, never>, Record<never, never>>,
+    'dashboards-employee': RouteRecordInfo<'dashboards-employee', '/dashboards/employee', Record<never, never>, Record<never, never>>,
     'dashboards-new': RouteRecordInfo<'dashboards-new', '/dashboards/new', Record<never, never>, Record<never, never>>,
     'estimate-random-id': RouteRecordInfo<'estimate-random-id', '/estimate/:randomId', { randomId: ParamValue<true> }, { randomId: ParamValue<false> }>,
     'estimate-templates-materials': RouteRecordInfo<'estimate-templates-materials', '/estimate-templates/materials', Record<never, never>, Record<never, never>>,

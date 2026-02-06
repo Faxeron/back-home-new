@@ -22,6 +22,7 @@ class PermissionRegistry
         'estimate_templates' => 'Шаблоны смет',
         'contracts' => 'Договоры',
         'dashboard.total_sales' => 'Дашборд: Total Sales',
+        'dashboard.employee' => 'Дашборд: Сотрудник',
         'contract_templates' => 'Шаблоны договоров',
         'measurements' => 'Замеры',
         'installations' => 'Монтажи',

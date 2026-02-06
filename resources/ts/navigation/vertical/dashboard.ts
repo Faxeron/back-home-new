@@ -14,6 +14,12 @@
         subject: 'finance',
       },
       {
+        title: 'Сотрудник',
+        to: { path: '/dashboards/employee' },
+        action: 'view',
+        subject: 'dashboard.employee',
+      },
+      {
         title: 'Analytics',
         to: 'dashboards-analytics',
       },
@@ -34,7 +40,7 @@
         to: 'dashboards-logistics',
       },
     ],
-    badgeContent: '7',
+    badgeContent: '8',
     badgeClass: 'bg-error',
   },
   {
