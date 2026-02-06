@@ -20,17 +20,17 @@ class City extends Model
     {
         static::creating(function (self $city): void {
             $source = (string) ($city->slug ?: $city->name);
-            $city->slug = self::makeUniqueSlug($source);
+            $city->slug = self::makeUniqueSlug($source, $city->tenant_id);
         });
 
         static::updating(function (self $city): void {
             if ($city->isDirty('name')) {
-                $city->slug = self::makeUniqueSlug((string) $city->name, $city->id);
+                $city->slug = self::makeUniqueSlug((string) $city->name, $city->tenant_id, $city->id);
             }
         });
     }
 
-    private static function makeUniqueSlug(string $source, ?int $excludeId = null): string
+    private static function makeUniqueSlug(string $source, ?int $tenantId = null, ?int $excludeId = null): string
     {
         $base = Str::slug($source, '-', 'ru');
         if ($base === '') {
@@ -40,12 +40,26 @@ class City extends Model
         $slug = $base;
         $suffix = 2;
 
-        while (self::query()
+        $query = self::query()
             ->where('slug', $slug)
-            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
-            ->exists()) {
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId));
+        if ($tenantId === null) {
+            $query->whereNull('tenant_id');
+        } else {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        while ($query->exists()) {
             $slug = $base . '-' . $suffix;
             $suffix++;
+            $query = self::query()
+                ->where('slug', $slug)
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId));
+            if ($tenantId === null) {
+                $query->whereNull('tenant_id');
+            } else {
+                $query->where('tenant_id', $tenantId);
+            }
         }
 
         return $slug;
