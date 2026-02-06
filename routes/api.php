@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\Knowledge\KnowledgeTagController;
 use App\Http\Controllers\Api\Knowledge\KnowledgeTopicController;
 use App\Modules\PublicApi\Controllers\PublicCityController;
 use App\Modules\PublicApi\Controllers\PublicCompanyController;
+use App\Modules\PublicApi\Controllers\PublicLeadController;
 use App\Modules\PublicApi\Controllers\PublicProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,6 +72,7 @@ Route::prefix('public')->group(function (): void {
     Route::get('companies', [PublicCompanyController::class, 'index']);
     Route::get('products', [PublicProductController::class, 'index']);
     Route::get('products/{slug}', [PublicProductController::class, 'show']);
+    Route::post('leads', [PublicLeadController::class, 'store']);
 });
 
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
