@@ -95,9 +95,5 @@
 - РЎРѕР·РґР°РЅРёРµ СЃРјРµС‚С‹ вЂ” С†РµРЅР° РїРѕРґС‚СЏРіРёРІР°РµС‚СЃСЏ Рё С„РёРєСЃРёСЂСѓРµС‚СЃСЏ РІ `estimate_items`.
 - РџРµСЂРµСЃС‡РµС‚/СЃРѕС…СЂР°РЅРµРЅРёРµ СЃРјРµС‚С‹ вЂ” РЅРµ Р»РѕРјР°РµС‚СЃСЏ.
 
-## Legacy зависимости после Фазы 2 (dual-write)
-- Чтение цен для UI/ресурсов: `app/Http/Resources/ProductResource.php` (price поля берутся из products).
-- Каталоги/прайсы: `app/Services/Catalog/PricebookService.php` экспорт читает из products.
-- Сметы: `app/Services/Estimates/EstimateTemplateService.php` берет `product.price_sale ?? product.price`.
-- Договоры/анализ: `app/Http/Controllers/Api/ContractController.php` использует `product.price_delivery` (и snapshot fallback).
-- Публичный API (если используется): читает цены из products.
+## Legacy ??????????? (????? CHUNK 4)
+- Fallback ? `PriceResolverService` ??? ?????????? ?????? ? `product_company_prices` (?? cutover).

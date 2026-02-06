@@ -18,6 +18,7 @@ use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\ValueObjects\Money;
 use App\Domain\Finance\Models\FinanceAuditLog;
 use App\Services\Finance\PayrollService;
+use App\Services\Pricing\PriceResolverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -139,8 +140,9 @@ class ContractController extends Controller
         $plannedTotals = [];
         $clientTotals = [];
         $plannedDirectTotal = 0.0;
+        $items = $model->items ?? collect();
 
-        foreach ($model->items as $item) {
+        foreach ($items as $item) {
             $product = $item->product;
             if (!$product) {
                 continue;
@@ -149,7 +151,6 @@ class ContractController extends Controller
             $qty = (float) ($item->qty ?? 0);
             $typeId = (int) ($product->product_type_id ?? 0);
             $clientCost = (float) ($item->total ?? 0);
-            $cost = (float) ($product->price_zakup ?? 0) * $qty;
 
             $this->applyClientAmountByType(
                 $clientTotals,
@@ -158,33 +159,48 @@ class ContractController extends Controller
                 $product->name ?? null,
                 $clientCost
             );
-
-            if ($typeId === 3) {
-                $this->addAnalysisAmount($plannedTotals, 'ЗП монтажник', $cost);
-                $plannedDirectTotal += $cost;
-            } elseif ($typeId === 5) {
-                $category = $this->mapTransportCategory($product->name ?? $product->kind?->name ?? null);
-                $this->addAnalysisAmount($plannedTotals, $category, $cost);
-                $plannedDirectTotal += $cost;
-            } elseif ($typeId === 1) {
-                $this->addAnalysisAmount($plannedTotals, 'Материалы', $cost);
-                $plannedDirectTotal += $cost;
-            } else {
-                $category = $this->mapProductCategory($product->kind?->name ?? null);
-                $this->addAnalysisAmount($plannedTotals, $category, $cost);
-                $plannedDirectTotal += $cost;
-            }
-
-            $delivery = (float) ($product->price_delivery ?? 0);
-            if ($typeId === 2 && $delivery > 0) {
-                $deliveryCost = $delivery * $qty;
-                $this->addAnalysisAmount($plannedTotals, 'Доставка до города', $deliveryCost);
-                $plannedDirectTotal += $deliveryCost;
-            }
         }
 
-        if (empty($plannedTotals)) {
-            $this->applyEstimateSnapshotPlan($model, $plannedTotals, $plannedDirectTotal, $clientTotals);
+        $appliedSnapshot = $this->applyEstimateSnapshotPlan(
+            $model,
+            $plannedTotals,
+            $plannedDirectTotal,
+            $clientTotals,
+            $items->isEmpty()
+        );
+
+        if (!$appliedSnapshot) {
+            $priceResolver = app(PriceResolverService::class);
+            $deliveryCache = [];
+
+            foreach ($items as $item) {
+                $product = $item->product;
+                if (!$product) {
+                    continue;
+                }
+
+                $qty = (float) ($item->qty ?? 0);
+                $typeId = (int) ($product->product_type_id ?? 0);
+                $priceZakup = (float) ($product->price_zakup ?? 0);
+                $priceDelivery = $this->resolveDeliveryPrice(
+                    $priceResolver,
+                    $tenantId,
+                    $companyId,
+                    (int) $product->id,
+                    $deliveryCache
+                );
+
+                $this->applyPlannedCostByType(
+                    $plannedTotals,
+                    $plannedDirectTotal,
+                    $typeId,
+                    $product->kind?->name ?? null,
+                    $product->name ?? null,
+                    $qty,
+                    $priceZakup,
+                    $priceDelivery
+                );
+            }
         }
 
         $contractTotal = (float) ($model->total_amount ?? 0);
@@ -318,62 +334,26 @@ class ContractController extends Controller
         Contract $contract,
         array &$plannedTotals,
         float &$plannedDirectTotal,
-        array &$clientTotals
-    ): void
+        array &$clientTotals,
+        bool $applyClientTotals = true
+    ): bool
     {
         $estimateId = $contract->estimate_id ?? null;
         if (!$estimateId) {
-            return;
+            return false;
         }
 
         $estimate = Estimate::query()
-            ->with(['items.product.kind'])
             ->where('id', $estimateId)
             ->first();
 
         if (!$estimate) {
-            return;
-        }
-
-        if ($estimate->items->isNotEmpty()) {
-            foreach ($estimate->items as $item) {
-                $product = $item->product;
-                if (!$product) {
-                    continue;
-                }
-
-                $qty = (float) ($item->qty ?? 0);
-                $typeId = (int) ($product->product_type_id ?? 0);
-                $priceZakup = (float) ($product->price_zakup ?? 0);
-                $priceDelivery = (float) ($product->price_delivery ?? 0);
-                $clientCost = (float) ($item->total ?? 0);
-
-                $this->applyPlannedCostByType(
-                    $plannedTotals,
-                    $plannedDirectTotal,
-                    $typeId,
-                    $product->kind?->name ?? null,
-                    $product->name ?? null,
-                    $qty,
-                    $priceZakup,
-                    $priceDelivery
-                );
-
-                $this->applyClientAmountByType(
-                    $clientTotals,
-                    $typeId,
-                    $product->kind?->name ?? null,
-                    $product->name ?? null,
-                    $clientCost
-                );
-            }
-
-            return;
+            return false;
         }
 
         $snapshot = $estimate->data ?? [];
-        if (!is_array($snapshot)) {
-            return;
+        if (!is_array($snapshot) || $snapshot === []) {
+            return false;
         }
 
         $productIds = [];
@@ -394,6 +374,7 @@ class ContractController extends Controller
                 ->all();
         }
 
+        $applied = false;
         foreach ($snapshot as $row) {
             $productData = $row['product'] ?? [];
             $productId = $productData['id'] ?? null;
@@ -411,9 +392,6 @@ class ContractController extends Controller
             }
 
             $priceDelivery = $this->parseSnapshotNumber($productData['price_delivery'] ?? $productData['delivery_price'] ?? null);
-            if ($priceDelivery <= 0 && $product) {
-                $priceDelivery = (float) ($product->price_delivery ?? 0);
-            }
 
             $priceClient = $this->parseSnapshotNumber($productData['price_sale'] ?? $productData['price'] ?? null);
             if ($priceClient <= 0) {
@@ -432,14 +410,19 @@ class ContractController extends Controller
                 $priceDelivery
             );
 
-            $this->applyClientAmountByType(
-                $clientTotals,
-                $typeId,
-                $kindName,
-                $productData['name'] ?? $product?->name ?? null,
-                $clientCost
-            );
+            if ($applyClientTotals) {
+                $this->applyClientAmountByType(
+                    $clientTotals,
+                    $typeId,
+                    $kindName,
+                    $productData['name'] ?? $product?->name ?? null,
+                    $clientCost
+                );
+            }
+            $applied = true;
         }
+
+        return $applied;
     }
 
     private function applyClientAmountByType(
@@ -502,6 +485,29 @@ class ContractController extends Controller
             $this->addAnalysisAmount($plannedTotals, 'Доставка до города', $deliveryCost);
             $plannedDirectTotal += $deliveryCost;
         }
+    }
+
+    private function resolveDeliveryPrice(
+        PriceResolverService $priceResolver,
+        int $tenantId,
+        int $companyId,
+        int $productId,
+        array &$cache
+    ): float {
+        if (array_key_exists($productId, $cache)) {
+            return $cache[$productId];
+        }
+
+        try {
+            $price = $priceResolver->getPrices($tenantId, $companyId, $productId);
+            $value = (float) ($price->price_delivery ?? 0);
+        } catch (\Throwable $exception) {
+            $value = 0.0;
+        }
+
+        $cache[$productId] = $value;
+
+        return $value;
     }
 
     private function parseSnapshotNumber(mixed $value): float
