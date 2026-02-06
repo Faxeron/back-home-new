@@ -11,6 +11,7 @@ use App\Http\Resources\TransactionResource;
 use App\Domain\Finance\DTO\TransactionFilterDTO;
 use App\Services\Finance\FinanceService;
 use App\Services\Finance\TransactionService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,49 @@ class TransactionController extends Controller
                 'per_page' => $transactions->perPage(),
                 'total' => $transactions->total(),
                 'last_page' => $transactions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        /** @var Carbon|null $from */
+        $from = $request->date('date_from');
+        /** @var Carbon|null $to */
+        $to = $request->date('date_to');
+
+        $from = $from ? $from->copy()->startOfDay() : now()->startOfMonth();
+        $to = $to ? $to->copy()->endOfDay() : now()->endOfMonth();
+
+        $row = Transaction::query()
+            ->leftJoin('transaction_types as tt', 'tt.id', '=', 'transactions.transaction_type_id')
+            ->where('transactions.tenant_id', $tenantId)
+            ->where('transactions.company_id', $companyId)
+            ->whereBetween('transactions.created_at', [$from, $to])
+            ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign > 0 THEN transactions.sum ELSE 0 END), 0) as incomes_sum')
+            ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign < 0 THEN transactions.sum ELSE 0 END), 0) as expenses_sum')
+            ->selectRaw('COUNT(*) as transactions_count')
+            ->first();
+
+        $incomes = (float) ($row?->incomes_sum ?? 0);
+        $expenses = (float) ($row?->expenses_sum ?? 0);
+
+        return response()->json([
+            'data' => [
+                'date_from' => $from->toDateString(),
+                'date_to' => $to->toDateString(),
+                'currency' => 'RUB',
+                'incomes_sum' => $incomes,
+                'expenses_sum' => $expenses,
+                'net_sum' => $incomes - $expenses,
+                'transactions_count' => (int) ($row?->transactions_count ?? 0),
             ],
         ]);
     }

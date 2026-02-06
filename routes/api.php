@@ -78,6 +78,7 @@ Route::prefix('public')->group(function (): void {
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::prefix('finance')->group(function (): void {
         Route::get('transactions', [TransactionController::class, 'index'])->middleware('permission:view,finance');
+        Route::get('transactions/summary', [TransactionController::class, 'summary'])->middleware('permission:view,finance');
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy'])->middleware('permission:delete,finance');
 
         Route::get('cashboxes', [FinanceCashBoxController::class, 'index'])->middleware('permission:view,finance');

@@ -24,27 +24,34 @@ const transactionsError = ref('')
 const transactionsTotal = ref<number | null>(null)
 const transactionsFilter = ref<'all' | 'income' | 'expense'>('all')
 
+const monthSummaryLoading = ref(false)
+const monthSummaryError = ref('')
+const monthIncomes = ref<number>(0)
+const monthExpenses = ref<number>(0)
+
 const updatedAt = ref<Date | null>(null)
 
 const cashboxesTotal = computed(() =>
   cashboxes.value.reduce((sum, row) => sum + (Number(row.balance ?? 0) || 0), 0),
 )
 
-const recentIncomes = computed(() => {
-  return transactions.value.reduce((sum, row) => {
-    const sign = Number(row.transaction_type?.sign ?? 0)
-    if (sign <= 0) return sum
-    return sum + (Number((row.sum as any)?.amount ?? row.sum ?? 0) || 0)
-  }, 0)
-})
+const loadMonthSummary = async () => {
+  monthSummaryLoading.value = true
+  monthSummaryError.value = ''
+  try {
+    const response: any = await $api('finance/transactions/summary')
+    const data = response?.data ?? {}
 
-const recentExpenses = computed(() => {
-  return transactions.value.reduce((sum, row) => {
-    const sign = Number(row.transaction_type?.sign ?? 0)
-    if (sign >= 0) return sum
-    return sum + (Number((row.sum as any)?.amount ?? row.sum ?? 0) || 0)
-  }, 0)
-})
+    monthIncomes.value = Number(data?.incomes_sum ?? 0) || 0
+    monthExpenses.value = Number(data?.expenses_sum ?? 0) || 0
+  } catch (error: any) {
+    monthSummaryError.value = error?.response?.data?.message ?? 'Не удалось загрузить итоги за месяц.'
+    monthIncomes.value = 0
+    monthExpenses.value = 0
+  } finally {
+    monthSummaryLoading.value = false
+  }
+}
 
 const loadCashboxes = async () => {
   cashboxesLoading.value = true
@@ -103,7 +110,7 @@ const setTransactionsFilter = async (val: 'all' | 'income' | 'expense') => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([loadCashboxes(), loadRecentTransactions()])
+  await Promise.all([loadCashboxes(), loadRecentTransactions(), loadMonthSummary()])
   updatedAt.value = new Date()
 }
 
@@ -145,6 +152,18 @@ onMounted(refreshAll)
     </VCol>
 
     <VCol
+      v-if="monthSummaryError"
+      cols="12"
+    >
+      <VAlert
+        type="warning"
+        variant="tonal"
+      >
+        {{ monthSummaryError }}
+      </VAlert>
+    </VCol>
+
+    <VCol
       cols="12"
       md="4"
     >
@@ -161,10 +180,10 @@ onMounted(refreshAll)
       md="4"
     >
       <CardStatisticsVerticalSimple
-        title="Приходы (последние 10)"
+        title="Приходы (текущий месяц)"
         icon="tabler-arrow-down-right"
         color="success"
-        :stats="`${formatSum(recentIncomes)} RUB`"
+        :stats="monthSummaryLoading ? '—' : `${formatSum(monthIncomes)} RUB`"
       />
     </VCol>
 
@@ -173,10 +192,10 @@ onMounted(refreshAll)
       md="4"
     >
       <CardStatisticsVerticalSimple
-        title="Расходы (последние 10)"
+        title="Расходы (текущий месяц)"
         icon="tabler-arrow-up-right"
         color="error"
-        :stats="`${formatSum(recentExpenses)} RUB`"
+        :stats="monthSummaryLoading ? '—' : `${formatSum(monthExpenses)} RUB`"
       />
     </VCol>
 
