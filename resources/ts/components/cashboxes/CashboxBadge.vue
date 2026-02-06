@@ -17,7 +17,7 @@ const props = defineProps<{
 const resolvedName = computed(() => props.cashbox?.name ?? props.name ?? '\u2014')
 const resolvedLogo = computed(() => props.cashbox?.logo_url ?? props.logoUrl ?? null)
 const showName = computed(() => props.showName !== false)
-const sizeClass = computed(() => (props.size === 'sm' ? 'cashbox-card--sm' : 'cashbox-card--md'))
+const logoSize = computed(() => (props.size === 'sm' ? 22 : 28))
 const initial = computed(() => {
   const value = resolvedName.value?.trim()
   return value ? value[0].toUpperCase() : ''
@@ -32,15 +32,27 @@ watch(resolvedLogo, () => {
 
 <template>
   <span class="cashbox-badge">
-    <span class="cashbox-card" :class="sizeClass" aria-hidden="true">
+    <span
+      class="cashbox-logo"
+      :style="{ width: `${logoSize}px`, height: `${logoSize}px` }"
+      aria-hidden="true"
+    >
       <img
         v-if="resolvedLogo && !logoFailed"
         :src="resolvedLogo"
         :alt="resolvedName"
-        class="cashbox-card__logo"
+        class="cashbox-logo__img"
         @error="logoFailed = true"
       />
-      <span v-else class="cashbox-card__fallback">{{ initial }}</span>
+      <VAvatar
+        v-else
+        :size="logoSize"
+        color="secondary"
+        rounded="sm"
+        class="cashbox-logo__fallback"
+      >
+        <span class="cashbox-logo__initial">{{ initial }}</span>
+      </VAvatar>
     </span>
     <span v-if="showName" class="cashbox-badge__name">{{ resolvedName }}</span>
   </span>
@@ -66,36 +78,29 @@ watch(resolvedLogo, () => {
   font-weight: 500;
 }
 
-.cashbox-card {
+.cashbox-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.cashbox-card--md {
-  width: 52px;
-  height: 34px;
-}
-
-.cashbox-card--sm {
-  width: 42px;
-  height: 28px;
-}
-
-.cashbox-card__logo {
-  max-width: 90%;
-  max-height: 90%;
+.cashbox-logo__img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  border-radius: 6px;
 }
 
-.cashbox-card__fallback {
+.cashbox-logo__fallback {
+  width: 100%;
+  height: 100%;
+  font-weight: 700;
+}
+
+.cashbox-logo__initial {
   font-weight: 700;
   font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 </style>

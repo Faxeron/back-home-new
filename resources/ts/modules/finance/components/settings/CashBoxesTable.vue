@@ -413,6 +413,6 @@ const removeCashbox = async (row: CashBoxRow) => {
   height: 18px;
   object-fit: contain;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
+  background: transparent;
 }
 </style>
