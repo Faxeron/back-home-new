@@ -9,6 +9,7 @@
 - Цены берутся только из `product_company_prices`.
 - Если для компании нет цены, все price fields = null (включая `price_sale`).
 - Кэш: серверный Cache::remember с ключом, включающим `company_id`/`city`.
+- Для отладки можно отключить серверный кэш: `?no_cache=1` (Cache-Control: no-store).
 
 ## Ошибки
 - `400` — отсутствует `company_id`/`city` или некорректные значения.

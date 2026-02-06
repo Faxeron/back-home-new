@@ -57,7 +57,7 @@ final class ProductPageTransformer
         $priceSale = $hasCompanyPrice ? ($product->pcp_price_sale ?? $product->pcp_price) : null;
         $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
         $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
-        $currency = $hasCompanyPrice ? $product->pcp_currency : null;
+        $currency = $product->pcp_currency ?: 'RUB';
 
         return new ProductPageDTO(
             id: (int) $product->id,

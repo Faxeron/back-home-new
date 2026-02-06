@@ -17,7 +17,7 @@ final class ProductCardTransformer
         $priceSale = $hasCompanyPrice ? ($product->pcp_price_sale ?? $product->pcp_price) : null;
         $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
         $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
-        $currency = $hasCompanyPrice ? $product->pcp_currency : null;
+        $currency = $product->pcp_currency ?: 'RUB';
         $oldPrice = ($hasCompanyPrice && $product->pcp_price_sale !== null) ? $product->pcp_price : null;
 
         $images = [];

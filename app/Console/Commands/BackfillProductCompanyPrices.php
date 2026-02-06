@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductCompanyPrice;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 
 class BackfillProductCompanyPrices extends Command
 {
@@ -37,6 +38,18 @@ class BackfillProductCompanyPrices extends Command
             $this->warn('Dry-run mode: no writes will be performed.');
         }
 
+        $productModel = new Product();
+        $schema = Schema::connection($productModel->getConnectionName());
+        $hasLegacyPriceCols = $schema->hasColumn('products', 'price')
+            && $schema->hasColumn('products', 'price_sale')
+            && $schema->hasColumn('products', 'price_delivery')
+            && $schema->hasColumn('products', 'montaj')
+            && $schema->hasColumn('products', 'montaj_sebest');
+
+        if ($hasLegacyPriceCols) {
+            $this->warn('Detected legacy operational price columns on products; will copy into product_company_prices for missing rows.');
+        }
+
         foreach ($companies as $companyId) {
             $this->newLine();
             $this->info("Processing company_id={$companyId}...");
@@ -45,13 +58,23 @@ class BackfillProductCompanyPrices extends Command
             $skipped = 0;
 
             Product::query()
-                ->select([
+                ->select(array_values(array_filter([
                     'id',
                     'tenant_id',
                     'company_id',
-                ])
+                    $hasLegacyPriceCols ? 'price' : null,
+                    $hasLegacyPriceCols ? 'price_sale' : null,
+                    $hasLegacyPriceCols ? 'price_delivery' : null,
+                    $hasLegacyPriceCols ? 'montaj' : null,
+                    $hasLegacyPriceCols ? 'montaj_sebest' : null,
+                ])))
                 ->where('tenant_id', $tenantId)
-                ->where('company_id', $companyId)
+                ->whereNull('archived_at')
+                ->where('is_visible', true)
+                ->where(function ($builder) use ($companyId): void {
+                    $builder->where('company_id', $companyId)
+                        ->orWhere('is_global', true);
+                })
                 ->orderBy('id')
                 ->chunkById(500, function ($products) use ($tenantId, $companyId, $dryRun, &$created, &$skipped): void {
                     if ($products->isEmpty()) {
@@ -79,10 +102,23 @@ class BackfillProductCompanyPrices extends Command
                             $created++;
                         }
 
+                        // If legacy columns exist (before cutover), preserve old prices into the new table.
+                        $legacy = [];
+                        foreach (['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest'] as $field) {
+                            if (isset($product->{$field})) {
+                                $legacy[$field] = $product->{$field};
+                            }
+                        }
+
                         $rows[] = [
                             'tenant_id' => $tenantId,
                             'company_id' => $companyId,
                             'product_id' => $productId,
+                            'price' => $legacy['price'] ?? null,
+                            'price_sale' => $legacy['price_sale'] ?? null,
+                            'price_delivery' => $legacy['price_delivery'] ?? null,
+                            'montaj' => $legacy['montaj'] ?? null,
+                            'montaj_sebest' => $legacy['montaj_sebest'] ?? null,
                             'currency' => 'RUB',
                             'is_active' => 1,
                             'created_at' => $now,

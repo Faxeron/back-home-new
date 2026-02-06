@@ -34,6 +34,7 @@ class PublicProductController extends Controller
 
         $companyId = (int) $context['company_id'];
         $citySlug = $filters->city;
+        $noCache = $request->boolean('no_cache');
 
         $cacheKey = sprintf(
             'public:products:list:company:%d:city:%s:page:%d:per:%d:category:%s',
@@ -44,7 +45,7 @@ class PublicProductController extends Controller
             $filters->category ?? 'none'
         );
 
-        $payload = Cache::remember($cacheKey, now()->addSeconds(300), function () use ($filters, $companyId) {
+        $buildPayload = function () use ($filters, $companyId) {
             $products = $this->productService->paginateProducts($filters, $companyId);
 
             $cityMap = $this->productService->getCityMapForCompanyIds([$companyId]);
@@ -63,9 +64,15 @@ class PublicProductController extends Controller
                     'last_page' => $products->lastPage(),
                 ],
             ];
-        });
+        };
 
-        return response()->json($payload)->header('Cache-Control', 'public, max-age=300');
+        $payload = $noCache
+            ? $buildPayload()
+            : Cache::remember($cacheKey, now()->addSeconds(300), $buildPayload);
+
+        return response()
+            ->json($payload)
+            ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=300');
     }
 
     public function show(Request $request, string $slug): JsonResponse
@@ -85,15 +92,20 @@ class PublicProductController extends Controller
 
         $resolvedCompanyId = (int) $context['company_id'];
         $cacheKey = 'public:product:slug:' . $slug . ':company:' . $resolvedCompanyId . ':city:' . ($citySlug ?? 'none');
+        $noCache = $request->boolean('no_cache');
 
-        $payload = Cache::remember($cacheKey, now()->addSeconds(300), function () use ($slug, $resolvedCompanyId) {
+        $buildPayload = function () use ($slug, $resolvedCompanyId) {
             $product = $this->productService->findBySlug($slug, $resolvedCompanyId);
             if (!$product) {
                 return null;
             }
 
             return $this->pageTransformer->toDTO($product, $resolvedCompanyId)->toArray();
-        });
+        };
+
+        $payload = $noCache
+            ? $buildPayload()
+            : Cache::remember($cacheKey, now()->addSeconds(300), $buildPayload);
 
         if ($payload === null) {
             return response()->json([
@@ -103,7 +115,7 @@ class PublicProductController extends Controller
 
         return response()->json([
             'data' => $payload,
-        ])->header('Cache-Control', 'public, max-age=300');
+        ])->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=300');
     }
 
 }
