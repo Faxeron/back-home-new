@@ -30,25 +30,32 @@ const sorted = computed(() =>
     .sort((a, b) => (Number(b.balance ?? 0) || 0) - (Number(a.balance ?? 0) || 0)),
 )
 
+const topForChart = computed(() => sorted.value.slice(0, 8))
+
 const chartHeight = computed(() => {
   // Keep it readable: each bar ~36px, with a sensible min/max.
-  const bars = Math.max(3, sorted.value.length || 0)
+  const bars = Math.max(3, topForChart.value.length || 0)
   return Math.min(420, Math.max(220, bars * 36))
 })
 
 const chartSeries = computed(() => [
   {
-    data: sorted.value.map(r => Number(r.balance ?? 0) || 0),
+    data: topForChart.value.map(r => Number(r.balance ?? 0) || 0),
   },
 ])
 
+const chartKey = computed(() =>
+  topForChart.value
+    .map(r => `${r.id}:${Number(r.balance ?? 0) || 0}`)
+    .join('|'),
+)
+
 const chartOptions = computed(() => {
   const base: any = getBarChartConfig(theme.current.value)
-  const categories = sorted.value.map(r => r.name ?? `#${r.id}`)
+  const categories = topForChart.value.map(r => r.name ?? `#${r.id}`)
 
   return {
     ...base,
-    colors: [theme.current.value.colors.primary],
     xaxis: {
       ...(base.xaxis ?? {}),
       categories,
@@ -122,12 +129,22 @@ const percentOfTotal = (value: unknown) => {
           cols="12"
           md="7"
         >
-          <VueApexCharts
-            type="bar"
-            :height="chartHeight"
-            :options="chartOptions"
-            :series="chartSeries"
-          />
+          <div v-if="topForChart.length > 0">
+            <VueApexCharts
+              :key="chartKey"
+              type="bar"
+              :height="chartHeight"
+              :options="chartOptions"
+              :series="chartSeries"
+            />
+          </div>
+          <div
+            v-else
+            class="text-medium-emphasis text-sm d-flex align-center justify-center"
+            style="min-height: 220px;"
+          >
+            Нет данных для графика.
+          </div>
         </VCol>
 
         <VCol
@@ -176,4 +193,3 @@ const percentOfTotal = (value: unknown) => {
   --v-card-list-gap: 14px;
 }
 </style>
-

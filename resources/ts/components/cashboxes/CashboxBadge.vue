@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 type CashboxLike = {
   name?: string | null
@@ -22,16 +22,23 @@ const initial = computed(() => {
   const value = resolvedName.value?.trim()
   return value ? value[0].toUpperCase() : ''
 })
+
+const logoFailed = ref(false)
+watch(resolvedLogo, () => {
+  // If logo URL changed, allow a new attempt.
+  logoFailed.value = false
+})
 </script>
 
 <template>
   <span class="cashbox-badge">
     <span class="cashbox-card" :class="sizeClass" aria-hidden="true">
       <img
-        v-if="resolvedLogo"
+        v-if="resolvedLogo && !logoFailed"
         :src="resolvedLogo"
         :alt="resolvedName"
         class="cashbox-card__logo"
+        @error="logoFailed = true"
       />
       <span v-else class="cashbox-card__fallback">{{ initial }}</span>
     </span>
