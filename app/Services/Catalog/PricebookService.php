@@ -9,6 +9,7 @@ use App\Domain\Catalog\Models\ProductAttributeDefinition;
 use App\Domain\Catalog\Models\ProductAttributeValue;
 use App\Domain\Catalog\Models\ProductBrand;
 use App\Domain\Catalog\Models\ProductCategory;
+use App\Domain\Catalog\Models\ProductCompanyPrice;
 use App\Domain\Catalog\Models\ProductDescription;
 use App\Domain\Catalog\Models\ProductKind;
 use App\Domain\Catalog\Models\ProductMedia;
@@ -1068,6 +1069,13 @@ private function findDefinition(Collection $definitions, string $name, ?int $pro
             ->orderBy('scu')
             ->get();
 
+        $priceMap = ProductCompanyPrice::query()
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->whereIn('product_id', $products->pluck('id')->all())
+            ->get()
+            ->keyBy('product_id');
+
         $relationGroups = $products->pluck('relations')->flatten(1)->groupBy('product_id');
 
         $productRows = [];
@@ -1084,6 +1092,9 @@ private function findDefinition(Collection $definitions, string $name, ?int $pro
                 ->unique()
                 ->implode(', ');
 
+            $priceRow = $priceMap->get($product->id);
+            $workPriceRow = $workProduct ? $priceMap->get($workProduct->id) : null;
+
             $productRows[] = [
                 'UPDATE',
                 $product->scu,
@@ -1097,21 +1108,21 @@ private function findDefinition(Collection $definitions, string $name, ?int $pro
                 $product->is_visible ? 1 : 0,
                 $product->is_top ? 1 : 0,
                 $product->is_new ? 1 : 0,
-                $product->price,
-                $product->price_sale,
+                $priceRow?->price,
+                $priceRow?->price_sale,
                 $product->price_vendor,
                 $product->price_vendor_min,
                 $product->price_zakup,
-                $product->price_delivery,
-                $product->montaj,
-                $product->montaj_sebest,
+                $priceRow?->price_delivery,
+                $priceRow?->montaj,
+                $priceRow?->montaj_sebest,
                 $relatedScu,
                 $workProduct?->scu,
                 $workProduct?->name,
                 $workProduct?->product_type_id,
                 $workProduct?->category_id,
-                $workProduct?->price,
-                $workProduct?->price_sale,
+                $workPriceRow?->price,
+                $workPriceRow?->price_sale,
                 $workProduct?->price_vendor,
                 $workProduct?->price_vendor_min,
                 $workProduct?->price_zakup,
