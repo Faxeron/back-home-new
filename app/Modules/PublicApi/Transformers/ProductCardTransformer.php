@@ -18,7 +18,13 @@ final class ProductCardTransformer
         $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
         $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
         $currency = $product->pcp_currency ?: 'RUB';
-        $oldPrice = ($hasCompanyPrice && $product->pcp_price_sale !== null) ? $product->pcp_price : null;
+        // old_price is only meaningful when a base price exists and sale is lower than base.
+        $oldPrice = null;
+        if ($hasCompanyPrice && $product->pcp_price !== null && $product->pcp_price_sale !== null) {
+            $base = (float) $product->pcp_price;
+            $sale = (float) $product->pcp_price_sale;
+            $oldPrice = $sale < $base ? $base : null;
+        }
 
         $images = [];
         if ($product->relationLoaded('media')) {

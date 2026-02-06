@@ -11,5 +11,5 @@
 
 ## REALITY STATUS
 - Реально реализовано: перечисленные проблемы подтверждаются текущим кодом/схемой.
-- Легаси: `estimates.data` и price-поля в `products`.
+- Легаси: `estimates.data` (слепок) и период миграции цен из `products` в `product_company_prices` (колонки операционных цен в `products` уже удалены миграцией `2026_02_06_000004_drop_operational_prices_from_products`).
 - Не сделано: планировщик snapshots и общий контроль покрытия `product_company_prices`.

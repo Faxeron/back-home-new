@@ -11,6 +11,25 @@
 - Кэш: серверный Cache::remember с ключом, включающим `company_id`/`city`.
 - Для отладки можно отключить серверный кэш: `?no_cache=1` (Cache-Control: no-store).
 
+## Диагностика NULL-цен (обязательная проверка при интеграции)
+Если на витрине появляется "Цена по запросу", это означает ровно одно: API вернул `null` в `price`/`price_sale` (фронт это не "придумывает").
+
+Есть 2 разные причины на стороне ERP:
+1) В `product_company_prices` нет строки для нужного `product_id` + `company_id` (или строка есть, но `is_active=0`).
+2) Строка есть, но оба поля `price` и `price_sale` равны `NULL` (например, сделали backfill структуры без фактических значений).
+
+Чек-лист (tenant=1, companies=1,2):
+```bash
+php artisan pricing:report-missing-company-prices --tenant=1 --companies=1,2 --limit=20
+php artisan pricing:report-null-company-prices --tenant=1 --companies=1,2 --limit=20
+```
+
+Если `missing ... > 0`:
+- нужно создать строки в `product_company_prices` для этих товаров (обычно через импорт прайса в ERP).
+
+Если `... price and price_sale are NULL > 0`:
+- значит цены не были загружены/перенесены, и сайт корректно показывает "Цена по запросу".
+
 ## Ошибки
 - `400` — отсутствует `company_id`/`city` или некорректные значения.
 - `404` — товар не найден (product by slug).

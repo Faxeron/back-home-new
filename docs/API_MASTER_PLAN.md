@@ -45,5 +45,5 @@
 
 ## REALITY STATUS
 - Реально реализовано: cities/companies/products (list + slug), leads, company-aware pricing из `product_company_prices`.
-- Легаси: legacy-цены в `products` остались в БД, но public API их не использует.
-- Не сделано: автоматическая проверка покрытия `product_company_prices` для public.
+- Легаси: ранее операционные цены хранились в `products`, но миграцией `2026_02_06_000004_drop_operational_prices_from_products` эти колонки удалены. Public API использует только `product_company_prices`.
+- Не сделано: автоматическая проверка покрытия `product_company_prices` и наличия ненулевых цен для public (пока только artisan-команды).
