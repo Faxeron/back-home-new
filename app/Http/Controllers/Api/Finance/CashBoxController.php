@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Finance\FinanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class CashBoxController extends Controller
 {
@@ -85,13 +84,20 @@ class CashBoxController extends Controller
     private function resolveLogoUrl(CashBox $cashBox): ?string
     {
         if ($cashBox->logo_source === 'preset' && $cashBox->logoPreset?->file_path) {
-            return Storage::disk('public')->url($cashBox->logoPreset->file_path);
+            return $this->publicStorageUrl($cashBox->logoPreset->file_path);
         }
 
         if ($cashBox->logo_path) {
-            return Storage::disk('public')->url($cashBox->logo_path);
+            return $this->publicStorageUrl($cashBox->logo_path);
         }
 
         return null;
+    }
+
+    private function publicStorageUrl(string $path): string
+    {
+        // Return a stable, host-agnostic URL. Frontend resolves it using API origin.
+        $normalized = ltrim($path, '/');
+        return '/storage/' . $normalized;
     }
 }

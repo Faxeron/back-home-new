@@ -17,14 +17,45 @@ const props = defineProps<{
 const resolvedName = computed(() => props.cashbox?.name ?? props.name ?? '\u2014')
 const resolvedLogo = computed(() => props.cashbox?.logo_url ?? props.logoUrl ?? null)
 const showName = computed(() => props.showName !== false)
-const logoSize = computed(() => (props.size === 'sm' ? 22 : 28))
+const logoSize = computed(() => (props.size === 'sm' ? 24 : 32))
 const initial = computed(() => {
   const value = resolvedName.value?.trim()
   return value ? value[0].toUpperCase() : ''
 })
 
+const safeLogoUrl = computed(() => {
+  const raw = resolvedLogo.value
+  if (!raw) return null
+
+  const value = String(raw).trim()
+  if (!value) return null
+
+  // If API base is absolute, use its origin to resolve /storage/* URLs correctly.
+  const apiBase = String(import.meta.env.VITE_API_BASE_URL || '/api')
+  const apiIsAbsolute = /^https?:\/\//i.test(apiBase)
+
+  try {
+    if (value.startsWith('/') && apiIsAbsolute) {
+      const apiUrl = new URL(apiBase)
+      const origin = `${apiUrl.protocol}//${apiUrl.host}`
+      return `${origin}${value}`
+    }
+
+    // If logo is http on a https page, upgrade scheme to avoid mixed-content blocking.
+    const url = new URL(value)
+    if (window.location.protocol === 'https:' && url.protocol === 'http:') {
+      url.protocol = 'https:'
+      return url.toString()
+    }
+
+    return value
+  } catch {
+    return value
+  }
+})
+
 const logoFailed = ref(false)
-watch(resolvedLogo, () => {
+watch(safeLogoUrl, () => {
   // If logo URL changed, allow a new attempt.
   logoFailed.value = false
 })
@@ -38,8 +69,8 @@ watch(resolvedLogo, () => {
       aria-hidden="true"
     >
       <img
-        v-if="resolvedLogo && !logoFailed"
-        :src="resolvedLogo"
+        v-if="safeLogoUrl && !logoFailed"
+        :src="safeLogoUrl"
         :alt="resolvedName"
         class="cashbox-logo__img"
         @error="logoFailed = true"

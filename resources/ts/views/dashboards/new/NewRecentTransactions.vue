@@ -8,11 +8,18 @@ const props = defineProps<{
   loading?: boolean
   error?: string
   total?: number | null
+  filter?: 'all' | 'income' | 'expense'
 }>()
 
 const emit = defineEmits<{
   (e: 'refresh'): void
+  (e: 'update:filter', value: 'all' | 'income' | 'expense'): void
 }>()
+
+const activeFilter = computed({
+  get: () => props.filter ?? 'all',
+  set: value => emit('update:filter', value),
+})
 
 const subtitle = computed(() => {
   const total = typeof props.total === 'number' ? props.total : null
@@ -52,6 +59,22 @@ const signedSum = (row: Transaction) => {
 
       <template #append>
         <div class="d-flex align-center gap-2">
+          <VBtn
+            size="small"
+            :variant="activeFilter === 'income' ? 'flat' : 'tonal'"
+            color="success"
+            @click="activeFilter = activeFilter === 'income' ? 'all' : 'income'"
+          >
+            Приходы
+          </VBtn>
+          <VBtn
+            size="small"
+            :variant="activeFilter === 'expense' ? 'flat' : 'tonal'"
+            color="error"
+            @click="activeFilter = activeFilter === 'expense' ? 'all' : 'expense'"
+          >
+            Расходы
+          </VBtn>
           <VBtn
             size="small"
             variant="tonal"
@@ -152,4 +175,3 @@ const signedSum = (row: Transaction) => {
   --v-card-list-gap: 16px;
 }
 </style>
-

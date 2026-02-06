@@ -22,6 +22,7 @@ const transactions = ref<Transaction[]>([])
 const transactionsLoading = ref(false)
 const transactionsError = ref('')
 const transactionsTotal = ref<number | null>(null)
+const transactionsFilter = ref<'all' | 'income' | 'expense'>('all')
 
 const updatedAt = ref<Date | null>(null)
 
@@ -63,14 +64,25 @@ const loadRecentTransactions = async () => {
   transactionsLoading.value = true
   transactionsError.value = ''
   try {
+    const sign = transactionsFilter.value === 'income'
+      ? 1
+      : transactionsFilter.value === 'expense'
+        ? -1
+        : null
+
+    const query: any = {
+      page: 1,
+      per_page: 10,
+      include: TRANSACTION_TABLE.include,
+      sort: 'created_at',
+      direction: 'desc',
+    }
+
+    if (sign !== null)
+      query.sign = sign
+
     const response: any = await $api('finance/transactions', {
-      query: {
-        page: 1,
-        per_page: 10,
-        include: TRANSACTION_TABLE.include,
-        sort: 'created_at',
-        direction: 'desc',
-      },
+      query,
     })
 
     transactions.value = response?.data ?? []
@@ -82,6 +94,12 @@ const loadRecentTransactions = async () => {
   } finally {
     transactionsLoading.value = false
   }
+}
+
+const setTransactionsFilter = async (val: 'all' | 'income' | 'expense') => {
+  if (transactionsFilter.value === val) return
+  transactionsFilter.value = val
+  await loadRecentTransactions()
 }
 
 const refreshAll = async () => {
@@ -182,11 +200,12 @@ onMounted(refreshAll)
       <NewRecentTransactions
         :rows="transactions"
         :total="transactionsTotal"
+        :filter="transactionsFilter"
         :loading="transactionsLoading"
         :error="transactionsError"
+        @update:filter="setTransactionsFilter"
         @refresh="loadRecentTransactions"
       />
     </VCol>
   </VRow>
 </template>
-

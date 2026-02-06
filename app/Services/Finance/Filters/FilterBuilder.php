@@ -60,6 +60,23 @@ class FilterBuilder
             });
         }
 
+        if ($f->transactionSign !== null) {
+            if (!$joinedTransactionTypes) {
+                $query->leftJoin('transaction_types as tt', 'tt.id', '=', 'transactions.transaction_type_id');
+                $joinedTransactionTypes = true;
+            }
+
+            // `sign` is used for "incomes vs expenses" filtering.
+            // positive -> tt.sign > 0, negative -> tt.sign < 0, zero -> tt.sign = 0
+            if ($f->transactionSign > 0) {
+                $query->where('tt.sign', '>', 0);
+            } elseif ($f->transactionSign < 0) {
+                $query->where('tt.sign', '<', 0);
+            } else {
+                $query->where('tt.sign', '=', 0);
+            }
+        }
+
         if ($f->paymentMethodId) {
             $query->where('transactions.payment_method_id', $f->paymentMethodId);
         }
