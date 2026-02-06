@@ -43,9 +43,9 @@ class ReportMissingCompanyPrices extends Command
             }
 
             $baseQuery = Product::query()
-                ->where('tenant_id', $tenantId)
-                ->where('company_id', $companyId)
-                ->whereNull('archived_at');
+                ->where('products.tenant_id', $tenantId)
+                ->where('products.company_id', $companyId)
+                ->whereNull('products.archived_at');
 
             $total = (clone $baseQuery)->count();
 
