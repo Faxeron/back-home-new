@@ -4,6 +4,11 @@ export default [
     icon: { icon: 'tabler-smart-home' },
     children: [
       {
+        title: 'ВСЕ',
+        to: { path: '/dashboards/all' },
+        icon: { icon: 'tabler-layout-dashboard' },
+      },
+      {
         title: 'Analytics',
         to: 'dashboards-analytics',
         icon: { icon: 'tabler-chart-pie-2' },

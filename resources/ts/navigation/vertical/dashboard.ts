@@ -4,6 +4,10 @@
     icon: { icon: 'tabler-smart-home' },
     children: [
       {
+        title: 'ВСЕ',
+        to: { path: '/dashboards/all' },
+      },
+      {
         title: 'Analytics',
         to: 'dashboards-analytics',
       },
@@ -24,7 +28,7 @@
         to: 'dashboards-logistics',
       },
     ],
-    badgeContent: '5',
+    badgeContent: '6',
     badgeClass: 'bg-error',
   },
   {
