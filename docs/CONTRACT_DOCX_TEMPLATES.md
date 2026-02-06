@@ -1,112 +1,59 @@
-# DOCX С€Р°Р±Р»РѕРЅС‹ РґРѕРіРѕРІРѕСЂРѕРІ
+# DOCX шаблоны договоров
 
-## РҐСЂР°РЅРµРЅРёРµ С„Р°Р№Р»РѕРІ
-- РЁР°Р±Р»РѕРЅС‹ (DOCX) С…СЂР°РЅРёРј РІ `storage/app/contracts/templates/tenant_{tenant_id}/company_{company_id}/`.
-- РџСѓС‚СЊ РґРѕ С€Р°Р±Р»РѕРЅР° С…СЂР°РЅРёС‚СЃСЏ РІ `contract_templates.docx_template_path`.
-- РЎРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅС‹Рµ РґРѕРіРѕРІРѕСЂС‹: `storage/app/contracts/documents/tenant_{tenant_id}/company_{company_id}/contract_{id}/`.
+Хранение файлов
+- Шаблоны (DOCX): `storage/app/contracts/templates/tenant_{tenant_id}/company_{company_id}/`.
+- Путь к шаблону: `contract_templates.docx_template_path`.
+- Сгенерированные документы: `storage/app/contracts/documents/tenant_{tenant_id}/company_{company_id}/contract_{id}/`.
 
-## Р¤РѕСЂРјР°С‚ РїР»РµР№СЃС…РѕР»РґРµСЂРѕРІ
-РСЃРїРѕР»СЊР·СѓРµРј С„РѕСЂРјР°С‚ PhpWord: `${placeholder}`.
+Формат плейсхолдеров
+- PhpWord: `${placeholder}`.
+- Пример:
+  `${contract_number} от ${contract_date}`
 
-РџСЂРёРјРµСЂ:
-```
-Р”РћР“РћР’РћР  в„– ${contract_number} РѕС‚ ${contract_date}
-```
+Таблица позиций (items)
+- Плейсхолдеры: `${item_index}`, `${item_scu}`, `${item_name}`, `${item_qty}`, `${item_unit}`, `${item_price}`, `${item_sum}`, `${item_group}`.
+- Клонирование: `cloneRow('item_name', N)`.
+- В конце добавляется строка «Итого».
+- Алиасы суммы: `${item_sum}`, `${item_total}`, `${item_amount}`.
 
-## РўР°Р±Р»РёС†Р° РїРѕР·РёС†РёР№ (items)
-Р’ С€Р°Р±Р»РѕРЅРµ СѓРєР°Р¶РёС‚Рµ РїР»РµР№СЃС…РѕР»РґРµСЂС‹:
-`${item_index}`, `${item_scu}`, `${item_name}`, `${item_qty}`, `${item_unit}`, `${item_price}`, `${item_sum}`, `${item_group}`.
-
-РўР°Р±Р»РёС†Р° РєР»РѕРЅРёСЂСѓРµС‚СЃСЏ С‡РµСЂРµР· `cloneRow('item_name', N)`.
-Р’ РєРѕРЅС†Рµ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РґРѕР±Р°РІР»СЏРµС‚СЃСЏ СЃС‚СЂРѕРєР° `РС‚РѕРіРѕ` СЃ СЃСѓРјРјРѕР№ РІ РєРѕР»РѕРЅРєРµ `РЎСѓРјРјР°`.
-
-Р”Р»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё РґРѕСЃС‚СѓРїРЅС‹ Р°Р»РёР°СЃС‹ СЃСѓРјРјС‹:
-`${item_sum}`, `${item_total}`, `${item_amount}`.
-
-## РћР±С‰РёРµ РїР»РµР№СЃС…РѕР»РґРµСЂС‹
+Общие плейсхолдеры
 - `${contract_id}`
-- `${contract_number}`
+- `${contract_number}` / `${contract_number_base}` / `${contract_number_suffix}`
+- `${document_type}`
 - `${contract_date}`
 - `${installation_date}`
-- `${work_start_date}`
-- `${work_end_date}`
-- `${city}`
-- `${site_address}`
+- `${work_start_date}` / `${work_end_date}`
+- `${city}` / `${site_address}`
 - `${sale_type}`
-- `${template_name}`
-- `${template_short_name}`
+- `${template_name}` / `${template_short_name}`
 - `${items_count}`
-- `${total_sum}` (С„РѕСЂРјР°С‚ `1 234.56`)
-- `${total_sum_raw}` (СЃС‹СЂРѕР№ `1234.56`)
-- `${total_sum_words}` (СЃСѓРјРјР° РїСЂРѕРїРёСЃСЊСЋ)
+- `${total_sum}` / `${total_sum_raw}` / `${total_sum_words}`
 
-## РЎСѓРјРјС‹ РїРѕ РєР°С‚РµРіРѕСЂРёСЏРј (product_types)
-- `${total_products}` вЂ” С‚РѕРІР°СЂС‹
-- `${total_materials}` вЂ” РјР°С‚РµСЂРёР°Р»С‹
-- `${total_works}` вЂ” СЂР°Р±РѕС‚С‹
-- `${total_services}` вЂ” СѓСЃР»СѓРіРё
-- `${total_transport}` вЂ” С‚СЂР°РЅСЃРїРѕСЂС‚
-- `${total_subcontracts}` вЂ” СЃСѓР±РїРѕРґСЂСЏРґ
+Суммы по категориям (product_types)
+- `${total_products}`, `${total_materials}`, `${total_works}`, `${total_services}`, `${total_transport}`, `${total_subcontracts}`
 
-## РђРІР°РЅСЃ Рё РѕСЃС‚Р°С‚РѕРє
-- `${advance_sum}`
-- `${advance_sum_raw}`
-- `${advance_sum_words}`
-- `${remaining_sum}`
-- `${remaining_sum_raw}`
-- `${remaining_sum_words}`
+Аванс и остаток
+- `${advance_sum}` / `${advance_sum_raw}` / `${advance_sum_words}`
+- `${remaining_sum}` / `${remaining_sum_raw}` / `${remaining_sum_words}`
 
-## РљР»РёРµРЅС‚ (РєРѕРЅС‚СЂР°РіРµРЅС‚)
-РћР±С‰РёРµ:
-- `${client_type}` (individual/company)
-- `${client_name}`
-- `${client_short_name}` (Р¤Р°РјРёР»РёСЏ Р.Рћ. РґР»СЏ С„РёР·Р»РёС†Р°)
-- `${client_phone}`
-- `${client_email}`
+Клиент (контрагент)
+- Общие: `${client_type}`, `${client_name}`, `${client_short_name}`, `${client_phone}`, `${client_email}`
+- Физлицо: `${client_first_name}`, `${client_last_name}`, `${client_patronymic}`, `${client_full_name}`,
+  `${client_passport_*}`, `${client_passport_issued_at}`
+- Юрлицо: `${client_legal_name}`, `${client_short_name}`, `${client_inn}`, `${client_kpp}`, `${client_ogrn}`,
+  `${client_legal_address}`, `${client_postal_address}`, `${client_director_name}`, `${client_accountant_name}`,
+  `${client_bank_*}`
 
-Р¤РёР·Р»РёС†Рѕ:
-- `${client_first_name}`
-- `${client_last_name}`
-- `${client_patronymic}`
-- `${client_full_name}`
-- `${client_passport_series}`
-- `${client_passport_number}`
-- `${client_passport_code}`
-- `${client_passport_whom}`
-- `${client_passport_issued_at}`
-- `${client_passport_issued_by}`
-- `${client_passport_address}`
+Продавец (наша компания)
+- `${seller_name}`, `${seller_short_name}`, `${seller_inn}`, `${seller_kpp}`, `${seller_ogrn}`,
+  `${seller_legal_address}`, `${seller_postal_address}`, `${seller_director_name}`, `${seller_accountant_name}`,
+  `${seller_bank_*}`
 
-Р®СЂР»РёС†Рѕ:
-- `${client_legal_name}`
-- `${client_short_name}`
-- `${client_inn}`
-- `${client_kpp}`
-- `${client_ogrn}`
-- `${client_legal_address}`
-- `${client_postal_address}`
-- `${client_director_name}`
-- `${client_accountant_name}`
-- `${client_bank_name}`
-- `${client_bik}`
-- `${client_account_number}`
-- `${client_correspondent_account}`
+Примечания
+- Формат дат: `ДД.ММ.ГГГГ`.
+- Адрес объекта: `${site_address}`.
 
-## РџСЂРѕРґР°РІРµС† (РЅР°С€Р° РєРѕРјРїР°РЅРёСЏ)
-- `${seller_name}`
-- `${seller_short_name}`
-- `${seller_inn}`
-- `${seller_kpp}`
-- `${seller_ogrn}`
-- `${seller_legal_address}`
-- `${seller_postal_address}`
-- `${seller_director_name}`
-- `${seller_accountant_name}`
-- `${seller_bank_name}`
-- `${seller_bik}`
-- `${seller_account_number}`
-- `${seller_correspondent_account}`
-
-## РџСЂРёРјРµС‡Р°РЅРёСЏ
-- Р”Р»СЏ Р°РґСЂРµСЃР° РѕР±СЉРµРєС‚Р° РёСЃРїРѕР»СЊР·СѓР№С‚Рµ `${site_address}` (Р±С‹РІС€РёР№ `${kooperativ}`).
-- Р¤РѕСЂРјР°С‚ РґР°С‚ РІ DOCX: `Р”Р”.РњРњ.Р“Р“Р“Р“`.
+## REALITY STATUS
+- Реально реализовано: генерация через `ContractDocumentService` + PhpWord TemplateProcessor.
+- Легаси: часть шаблонов может использовать старые плейсхолдеры.
+- Не сделано: валидация шаблонов на полный набор плейсхолдеров.

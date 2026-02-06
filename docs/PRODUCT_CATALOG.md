@@ -1,42 +1,44 @@
 # Product catalog (pages + data tables)
 
-Pages
-- /products: product list with table view + card view.
-- /products/price: price table with inline edits.
-- /products/:id: product card (tabs for main data, prices, descriptions, attributes, media, relations).
+Pages (route wrappers)
+- `/products` — список товаров (таблица + карточки).
+- `/products/price` — таблица цен.
+- `/products/{id}` — карточка товара (табами).
+- `/products/categories`, `/products/subcategories`, `/products/brands` — справочники каталога.
+- `/products/templates` — шаблоны/связи (UI раздел каталога).
+- `/products/estimates` — связанный каталог/сметные настройки (UI раздел каталога).
 
 UI tables
-- Products table columns: id, name, scu, kind, category, brand, is_visible, updated_at, open card action.
-- Price table columns: id, scu, flags (is_visible/is_top/is_new), category, subcategory, brand, name, price, price_sale, price_vendor, price_vendor_min, price_zakup, price_delivery, montaj, montaj_sebest, open card action.
+- Products table: id, name, scu, kind, category, brand, is_visible, updated_at, action to open card.
+- Price table: id, scu, flags (is_visible/is_top/is_new), category/subcategory/brand, name,
+  price, price_sale, price_vendor, price_vendor_min, price_zakup, price_delivery, montaj, montaj_sebest.
 
 Behavior
-- Inline edits save on blur via PATCH /api/products/{id}.
-- Flags save immediately on toggle.
-- Card view uses auto-load on scroll (IntersectionObserver).
-- Default sort: sort_order ASC, then scu ASC.
-- Filters: search, brand_id, category_id, sub_category_id.
+- Inline edits save via PATCH `/api/products/{id}`.
+- Операционные цены в API возвращаются из `product_company_prices` (через `PriceResolverService`).
+- Вендор/закуп остаются в `products`.
 
-Frontend entry points
-- resources/ts/pages/products/index.vue
-- resources/ts/pages/products/price.vue
-- resources/ts/pages/products/[id].vue
-- resources/ts/components/tables/products/ProductsTable.vue
-- resources/ts/components/tables/products/ProductsPriceTable.vue
-- resources/ts/composables/useProductFilters.ts
-- resources/ts/composables/useProductLookups.ts
-- resources/ts/api/products.ts
-- resources/ts/types/products.ts
+Frontend entry points (module-first)
+- `resources/ts/modules/products/pages/products/index.vue`
+- `resources/ts/modules/products/pages/products/price.vue`
+- `resources/ts/modules/products/pages/products/[id].vue`
+- `resources/ts/modules/products/components/ProductsTable.vue`
+- `resources/ts/modules/products/components/ProductsPriceTable.vue`
+- `resources/ts/modules/products/composables/useProductFilters.ts`
+- `resources/ts/modules/products/composables/useProductLookups.ts`
+- `resources/ts/modules/products/api/products.api.ts`
+- `resources/ts/modules/products/types/products.types.ts`
 
 Catalog schema additions
-- product_units: code, name, timestamps.
-- product_descriptions: product_id (unique), description_short, description_long, dignities, constructive, avito1, avito2 + meta columns.
-- product_attribute_definitions: name, value_type, product_type_id (nullable), product_kind_id (nullable) + meta columns.
-- product_attribute_values: product_id, attribute_id, value_string, value_number + meta columns.
-- product_media: product_id, type, url, sort_order + meta columns.
-- product_relations: product_id, related_product_id, relation_type + meta columns.
-- product_kinds: name + meta columns.
-- products: unit_id, product_kind_id, work_kind (installation_linked/work_standalone), is_visible, is_top, is_new, price_vendor_min, price_delivery, sort_order.
+- `product_units`, `product_descriptions`, `product_attribute_definitions`, `product_attribute_values`,
+  `product_media`, `product_relations`, `product_kinds`.
+- `product_company_prices` — операционные цены по (tenant_id, company_id, product_id).
 
 Work kinds
-- installation_linked: installation work linked via product_relations (INSTALLATION_WORK); price_zakup is synced from parent product montaj_sebest.
-- work_standalone: standalone work; price_zakup is edited directly.
+- `installation_linked`: монтажная работа связана через `product_relations` (INSTALLATION_WORK).
+- `work_standalone`: самостоятельная работа, цена закупа редактируется напрямую.
+
+## REALITY STATUS
+- Реально реализовано: модульные страницы каталога, pricebook import/export, `product_company_prices` + PriceResolver.
+- Легаси: поля операционных цен в `products` сохраняются и синхронизируются в `product_company_prices`.
+- Не сделано: полный отказ от чтения legacy price-полей в сервисах вне каталога.

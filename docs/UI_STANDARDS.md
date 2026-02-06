@@ -31,3 +31,8 @@ Phone input (global)
   - Digits-only, trimmed to 11 digits (`+7` + 10 digits).
   - Max length: 16 characters (including spaces and +).
 - Do not use plain `VTextField`/`AppTextField` for phone numbers.
+
+## REALITY STATUS
+- Реально реализовано: Vuexy (Vuetify) для форм и PrimeVue DataTable через `BaseDataTable.vue`.
+- Легаси: отдельные таблицы/формы могут быть вне стандарта и требуют выравнивания.
+- Не сделано: централизованные визуальные стандарты таблиц (см. CRM_TABLE_STANDARD TODO).

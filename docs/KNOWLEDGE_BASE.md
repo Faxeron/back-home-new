@@ -1,26 +1,22 @@
-# Knowledge Base (Р‘Р°Р·Р° Р·РЅР°РЅРёР№)
+# Knowledge Base (База знаний)
 
 Overview
-- Module purpose: internal knowledge base for managers (articles, attachments, links).
-- Access: all authenticated users within tenant/company.
-- UI entry: `РџСЂРѕРґР°Р¶Рё в†’ Р‘Р°Р·Р° Р·РЅР°РЅРёР№` (`/sales/knowledge`).
+- Внутренняя база знаний для менеджеров (статьи, теги, темы, вложения).
+- Доступ: авторизованные пользователи в tenant/company.
+- UI: `/sales/knowledge`.
 
 Data model (legacy_new)
-- `knowledge_articles`: article header + HTML body.
-- `knowledge_topics`: topic dictionary (type + name).
-- `knowledge_tags`: tag dictionary.
-- `knowledge_article_topics`: article в†” topic pivot.
-- `knowledge_article_tags`: article в†” tag pivot.
-- `knowledge_attachments`: files/links attached to articles.
+- `knowledge_articles`, `knowledge_topics`, `knowledge_tags`.
+- Пивоты: `knowledge_article_topics`, `knowledge_article_tags`.
+- `knowledge_attachments` — файлы/ссылки.
 
 Topics (types)
 - `brand`, `product`, `category`, `process`, `installation`, `warranty`, `claim`, `algorithm`, `other`.
-- Stored in `knowledge_topics.type`, grouped in UI.
 
 Attachments
 - Types: `file`, `link`, `video`.
-- Files stored on disk: `storage/app/public/knowledge-base/tenant_{id}/company_{id}/article_{id}/...`
-- Download endpoint: `/api/knowledge/attachments/{id}/download`.
+- Files: `storage/app/public/knowledge-base/tenant_{id}/company_{id}/article_{id}/...`.
+- Download: `/api/knowledge/attachments/{id}/download`.
 
 API (auth:sanctum, tenant.company)
 - `GET /api/knowledge/articles` (filters: `q`, `tag_ids`, `topic_ids`, `topic_type`, `published`)
@@ -32,14 +28,15 @@ API (auth:sanctum, tenant.company)
 - `POST /api/knowledge/tags`
 - `GET /api/knowledge/topics`
 - `POST /api/knowledge/topics`
-- `POST /api/knowledge/articles/{id}/attachments` (multipart for files)
+- `POST /api/knowledge/articles/{id}/attachments`
 - `DELETE /api/knowledge/attachments/{id}`
 - `GET /api/knowledge/attachments/{id}/download`
 
-Search
-- Server-side search runs over article title/body, tags, topics, and attachment metadata.
-
 Frontend module
 - Module root: `resources/ts/modules/knowledge`
-- Main UI: `resources/ts/modules/knowledge/pages/knowledge/index.vue`
-- Public wrapper: `resources/ts/pages/sales/knowledge/index.vue`
+- Wrapper: `resources/ts/pages/sales/knowledge/index.vue`
+
+## REALITY STATUS
+- Реально реализовано: статьи/темы/теги/вложения, upload в public disk.
+- Легаси: отсутствует публичный доступ, только внутренний контур.
+- Не сделано: расширенный поиск по связям и метаданным вложений.

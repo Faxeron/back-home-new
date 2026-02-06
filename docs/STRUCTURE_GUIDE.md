@@ -76,3 +76,8 @@ Route wrappers by domain
 - finance: `resources/ts/pages/finance/*`
 - settings: `resources/ts/pages/settings/*`
 - production: `resources/ts/pages/operations/*`
+
+## REALITY STATUS
+- Реально реализовано: module-first структура в `resources/ts/modules`, тонкие route wrappers в `resources/ts/pages`.
+- Легаси: отдельные старые компоненты/конфиги вне модулей встречаются точечно.
+- Не сделано: единый контракт фильтров для всех таблиц (см. TODO в CRM_TABLE_STRUCTURE).

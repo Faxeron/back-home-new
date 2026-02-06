@@ -12,3 +12,8 @@ Rules
 
 Why
 - Vue auto-router builds a single route tree from the filesystem. A file and a folder with the same name create a conflict, so the layout and routes become unstable.
+
+## REALITY STATUS
+- Реально реализовано: авто-роутер используется, route wrappers лежат в `resources/ts/pages`.
+- Легаси: точечные страницы могут использовать `definePage()` для переопределения пути.
+- Не сделано: автоматическая проверка конфликтов путей (только ручная дисциплина).

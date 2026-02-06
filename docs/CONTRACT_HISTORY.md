@@ -1,20 +1,20 @@
 # Contract History
 
 Endpoint
-- `GET /api/contracts/{contract}/history`
+- GET `/api/contracts/{contract}/history`
 
 Sources
 - `contract_status_changes`
 - `finance_audit_logs` filtered by `payload->contract_id`
 
 Actions (finance_audit_logs)
-- `contract.created` вАФ contract created (draft)
-- `contract.updated` вАФ contract details updated
-- `contract_receipt.created` вАФ receipt added
-- `spending.created` вАФ spending added
-- `spending.deleted` вАФ spending deleted
-- `contract_document.created` вАФ document generated
-- `contract_document.deleted` вАФ document deleted
+- `contract.created` Ч договор создан (черновик)
+- `contract.updated` Ч обновлены данные договора
+- `contract_receipt.created` Ч приход по договору
+- `spending.created` Ч расход
+- `spending.deleted` Ч удаление расхода
+- `contract_document.created` Ч сформирован документ
+- `contract_document.deleted` Ч удален документ
 
 UI fields
 - Date (`created_at`)
@@ -22,4 +22,9 @@ UI fields
 - User (`user.name` / `user.email`)
 
 Deduplication
-- History items are deduped by `created_at + title + user_id` before sorting.
+- »стори€ дедуплицируетс€ по `created_at + title + user_id`.
+
+## REALITY STATUS
+- –еально реализовано: aggregation из `contract_status_changes` и `finance_audit_logs`.
+- Ћегаси: формат title дл€ некоторых legacy action может отличатьс€.
+- Ќе сделано: расширенный аудит (например, изменени€ позиций договора).

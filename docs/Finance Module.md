@@ -1,64 +1,44 @@
 # Finance Module (current)
 
-РљРѕРјРјРµРЅС‚Р°СЂРёР№ РґР»СЏ СЂР°Р·СЂР°Р±РѕС‚С‡РёРєР° (RU)
-- Р—РґРµСЃСЊ РѕРїРёСЃР°РЅР° С‚РµРєСѓС‰Р°СЏ СЃС…РµРјР° Рё API. РљР°РЅРѕРЅ вЂ” `cashboxes`/`cashbox_id`; РїСЂРё РёР·РјРµРЅРµРЅРёСЏС… legacy-Р°Р»РёР°СЃРѕРІ СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓР№ FormRequest Рё СЂРµСЃСѓСЂСЃС‹.
-- Р’ API Р¶РёРІСѓС‚ legacy-Р°Р»РёР°СЃС‹ `/api/finances/*`; С„СЂРѕРЅС‚/Р±СЌРє РёСЃРїРѕР»СЊР·СѓСЋС‚ `cashbox_id`.
-- РўРёРїС‹ С‚СЂР°РЅР·Р°РєС†РёР№ Р±РµСЂСѓС‚СЃСЏ РёР· `transaction_types.sign`, РїРѕСЌС‚РѕРјСѓ enum РІ РєРѕРґРµ вЂ” С‚РѕР»СЊРєРѕ РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Р№.
-- РЎРµСЂРІРёСЃ `FinanceService` РѕС‚РІРµС‡Р°РµС‚ Р·Р° Р±РёР·РЅРµСЃ-Р»РѕРіРёРєСѓ Рё Р±Р°Р»Р°РЅСЃС‹; СЃРµСЂРІРёСЃС‹ `*Service` вЂ” Р·Р° СЃРїРёСЃРєРё/CRUD.
+Назначение
+- Финансовый контур: транзакции, приходы, расходы, переводы, кассы, справочники.
+- Канон именования: `cashboxes` / `cashbox_id`.
+- Все финансовые эффекты создаются через `FinanceService`.
 
-- Core tables: `transactions`, `receipts`, `spendings`, `cash_transfers`, `cashbox_history`, `cashboxes`, `cashbox_company`, `cashbox_balance_snapshots`, `payment_methods`, `transaction_types`.
-- Naming: canonical is `cashbox_id` + `cashboxes`.
-- Transaction types: `INCOME` +1, `OUTCOME` -1, `TRANSFER_IN` +1, `TRANSFER_OUT` -1, `ADVANCE` +1, `REFUND` +1, `DIRECTOR_LOAN` +1, `DIRECTOR_WITHDRAWAL` -1 (sign is read from `transaction_types.sign`).
-- Services:
-  - `App\Services\Finance\FinanceService` handles contract receipts, director loan receipts, spendings, director withdrawals, and cash transfers; it runs inside `DB::connection('legacy_new')->transaction()`, writes `cashbox_history`, and prevents negative balances for negative-sign transactions.
-  - `TransactionService`, `ReceiptService`, `SpendingService`, `CashTransferService` handle list/pagination + CRUD helpers with filters/includes.
-- DTOs/Resources: Finance flows return `ReceiptDTO`, `SpendingDTO`, `CashTransferDTO`, `TransactionDTO`; list endpoints return `ReceiptResource`, `SpendingResource`, `TransactionResource`, `CashTransferResource`.
-- Snapshot job: `CashBoxBalanceSnapshotJob` stores balances in `cashbox_balance_snapshots` (by `cashbox_id`).
+Core tables (legacy_new)
+- `transactions`, `receipts`, `spendings`, `cash_transfers`.
+- `cashboxes`, `cashbox_company`, `cashbox_history`, `cashbox_balance_snapshots`.
+- `transaction_types`, `payment_methods`, `spending_funds`, `spending_items`.
+- `finance_allocations` — распределение платежей/расходов по договорам.
+
+Services
+- `App\Services\Finance\FinanceService` — бизнес-логика движения денег, история касс, проверки баланса.
+- `TransactionService`, `ReceiptService`, `SpendingService`, `CashTransferService` — листинг/CRUD и фильтры.
+
+DTO/Resources
+- DTO: `ReceiptDTO`, `SpendingDTO`, `CashTransferDTO`, `TransactionDTO`.
+- Resources: `ReceiptResource`, `SpendingResource`, `CashTransferResource`, `TransactionResource`.
 
 API (prefix `/api/finance`)
-- GET `transactions` (filters + include).
+- GET `transactions`, DELETE `transactions/{id}`.
 - GET `cashboxes`, GET `cashboxes/{cashBoxId}/balance`.
 - GET `transaction-types`, GET `payment-methods`, GET `funds`, GET `spending-items`, GET `counterparties`.
-- Receipts: GET `receipts`, POST `receipts/contract`, POST `receipts/director-loan`.
-- Spendings: GET `spendings`, POST `spendings`.
-- Director withdrawal: POST `director-withdrawal`.
-- Transfers: GET `cash-transfers`, POST `cash-transfers`.
-- Back-compat list aliases: `/api/finances/transactions`, `/api/finances/receipts`, `/api/finances/spendings`.
+- GET `receipts`, POST `receipts/contract`, POST `receipts/director-loan`.
+- GET `spendings`, POST `spendings`, DELETE `spendings/{id}`.
+- POST `director-withdrawal`.
+- GET/POST `cash-transfers`.
+- Legacy aliases: `/api/finances/transactions|receipts|spendings`.
 
-Filtering/includes (lists)
-- Common params: `page`, `per_page`, `sort`, `direction`, `date_from`, `date_to`, `search`.
-- Cashbox filter accepts `cashbox_id`.
-- `include` allows related data:
-  - transactions: `cashbox`, `company`, `counterparty`, `contract`, `transactionType`, `paymentMethod`
-  - receipts: `cashbox`, `company`, `counterparty`, `contract`, `transaction`
-  - spendings: `cashbox`, `company`, `counterparty`, `contract`, `item`, `fund`, `transaction`, `spentToUser`
-
-Requests/validation
-- FormRequests under `App\Http\Requests\Finance\*` enforce `sum > 0`, cashbox existence, `from != to`, and date formats. Table is `legacy_new.cashboxes`.
+Filtering/includes
+- Общие параметры: `page`, `per_page`, `sort`, `direction`, `date_from`, `date_to`, `search`.
+- `include` раскрывает связи (см. IncludeRegistry и `docs/filterRules.txt`).
 
 Sequence (simplified)
-1) Controller validates FormRequest and injects tenant/company/user ids.
-2) Calls `FinanceService` method in a `legacy_new` transaction.
-3) Service creates domain records, calls `completeTransaction`, writes `cashbox_history`, emits `FinancialActionLogged`.
-4) DTO/Resource returned.
+1) Controller валидирует FormRequest и подставляет tenant/company/user.
+2) `FinanceService` выполняет операцию в транзакции `legacy_new`.
+3) Пишет `cashbox_history`, создаёт доменные записи, эмитит события.
 
-Sequence (transferBetweenCashBoxes)
-```
-Controller
- -> FormRequest.validate()
- -> FinanceService.transferBetweenCashBoxes()
-     -> DB::connection('legacy_new')->transaction()
-     -> assert sum>0, boxes exist, same tenant/company, from!=to
-     -> lock cashbox rows
-     -> create transaction_out
-     -> completeTransaction (balance check, history)
-     -> create transaction_in
-     -> completeTransaction (balance check, history)
-     -> create cash_transfer record
-     -> emit FinancialActionLogged
- -> return DTO/Resource
-```
-
-
-## ?????
-????????: `docs/finance/CASHBOXES.md`
+## REALITY STATUS
+- Реально реализовано: FinanceService как single-writer, кассы и история, finance_allocations.
+- Легаси: алиасы `/api/finances/*`, некоторые поля/таблицы наследованы из legacy.
+- Не сделано: планировщик `CashBoxBalanceSnapshotJob` (снапшоты не пишутся без cron/queue).

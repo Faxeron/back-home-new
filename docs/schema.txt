@@ -1,78 +1,42 @@
-Schema snapshot (current)
+Schema snapshot (as-built)
 
 Notes
-- Default connection is not used; auth/system tables live in `legacy_new`.
-- Primary domain data lives in `legacy_new`.
-- Canonical SQL dump: `database/schema/legacy_new-schema.sql`.
-- Meta migration adds tenant_id/company_id + created_at/updated_at + created_by/updated_by on most domain tables.
-- Cashbox naming is canonical: `cashboxes`, `cashbox_company`, `cashbox_id`, `from_cashbox_id`, `to_cashbox_id`.
-- Sanctum tokens are stored in `legacy_new` (`personal_access_tokens` migration 2025_12_12_000002).
+- Доменные данные живут в connection `legacy_new`.
+- Канонический SQL дамп: `database/schema/legacy_new-schema.sql`.
+- Большинство таблиц имеет meta поля: tenant_id, company_id, created_at/updated_at, created_by/updated_by.
 
 Core auth/system (legacy_new)
-- users: id PK; tenant_id FK->tenants; company_id FK->companies; name; email UNIQUE; email_verified_at; password; remember_token; created_at/updated_at; created_by/updated_by.
-- password_reset_tokens: email PK; token; created_at; tenant_id default 1; created_by/updated_by; updated_at.
-- sessions: id PK; user_id; ip_address; user_agent; payload; last_activity; tenant_id default 1; created_at/updated_at; created_by/updated_by.
-- cache, cache_locks: key PK; value/owner; expiration; tenant_id default 1; created_at/updated_at; created_by/updated_by.
-- jobs, job_batches, failed_jobs: queue/payload metadata + tenant/company + audit columns.
-- migrations: id PK; migration; batch.
-- personal_access_tokens (legacy_new): id PK; tokenable_type/id; name; token UNIQUE; abilities; last_used_at; expires_at; timestamps.
-
-Tenancy/roles (legacy_new)
-- tenants: id PK; name; code UNIQUE; owner_user_id FK->users; is_active; timestamps; tenant_id; created_by/updated_by.
-- roles: id PK; name; code UNIQUE; is_active; timestamps; tenant_id; created_by/updated_by.
-- role_users: id PK; role_id FK->roles; user_id FK->users; UNIQUE(role_id,user_id); timestamps; tenant_id; company_id; created_by/updated_by.
-- user_profiles: id PK; user_id UNIQUE FK->users; first_name; last_name; phone; position; avatar; timestamps; tenant_id; company_id; created_by/updated_by.
-- user_company: id PK; user_id FK->users; company_id FK->companies; role nullable; UNIQUE(user_id,company_id); timestamps.
+- users, personal_access_tokens, roles, role_users, permissions, role_permissions, role_scopes, user_profiles, user_company, tenants.
 
 Reference/settings (legacy_new)
-- companies: id PK; name; code UNIQUE; address; phone; email; is_active; tenant_id; created_at; created_by; updated_at; updated_by.
-- cities: id PK; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- cities_districts: id PK; city_id FK->cities; name; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- sale_types: id PK; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- contract_statuses: id PK; name; code UNIQUE; color; sort_order; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- payroll_settings: id PK; tenant_id; company_id; manager_fixed; manager_percent; measurer_fixed; measurer_percent; created_at; updated_at.
-- margin_settings: id PK; tenant_id; company_id; red_max; orange_max; created_at; updated_at.
+- companies, cities, cities_districts, sale_types, contract_statuses.
+- spending_funds, spending_items.
+- payroll_rules, margin_settings.
 
 CRM/contracts (legacy_new)
-- counterparties: id PK; type; name; phone; email; address; comment; is_active; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- counterparty_individuals: id PK; counterparty_id FK->counterparties; personal + passport fields; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- counterparty_companies: id PK; counterparty_id FK->counterparties; legal/bank fields; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- contracts: id PK; company_id; counterparty_id; contract_status_id; system_status_code; title; total_amount; paid_amount; is_completed; contract_date; work_done_date; plus legacy fields (old_*); tenant_id; created_at; created_by; updated_at; updated_by.
+- counterparties, counterparty_individuals, counterparty_companies.
+- contracts, contract_items, contract_documents, contract_templates, contract_status_changes.
 
 Finance (legacy_new)
-- transaction_types: id PK; code UNIQUE; name; sign; is_active; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- payment_methods: id PK; code UNIQUE; name; is_active; sort_order; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- cashboxes: id PK; tenant_id; company_id; name; description; is_active; created_at/updated_at; created_by/updated_by.
-- cashbox_company: id PK; tenant_id; company_id; cashbox_id FK->cashboxes; UNIQUE(cashbox_id, company_id); created_at/updated_at; created_by/updated_by.
-- transactions: id PK; tenant_id; company_id; is_paid/date_is_paid; is_completed/date_is_completed; sum; cashbox_id FK->cashboxes; transaction_type_id; payment_method_id; notes; counterparty_id; contract_id; related_id self-FK; created_at/updated_at; created_by/updated_by. (client_id nullable via 2025_12_01_000001).
-- receipts: id PK; tenant_id; company_id; cashbox_id FK->cashboxes; transaction_id; contract_id; sum; description; payment_date default current_date; counterparty_id; created_at/updated_at; created_by/updated_by.
-- spendings: id PK; tenant_id; company_id; old_id UNIQUE; cashbox_id; transaction_id; spending_item_id; spending_type_id/name; fond_id; contract_id; sum; description; counterparty_id; spent_to_user_id; payment_date; created_at/updated_at; created_by/updated_by.
-- cash_transfers: id PK; tenant_id; company_id; from_cashbox_id; to_cashbox_id; sum; description; transaction_out_id; transaction_in_id; created_at/updated_at; created_by/updated_by.
-- advances: id PK; tenant_id; company_id; user_id; cashbox_id; transaction_id; amount; balance; created_at/updated_at; created_by/updated_by.
-- cashbox_history: id PK; cashbox_id; transaction_id; balance_after; created_at/updated_at; index (cashbox_id, created_at).
-- cashbox_balance_snapshots: id PK; tenant_id; company_id; cashbox_id; balance; calculated_at; created_at/updated_at; index (cashbox_id, calculated_at).
-- spending_funds: id PK; tenant_id; company_id; id_old UNIQUE; name; description; is_active; created_at/updated_at; created_by/updated_by.
-- spending_items: id PK; tenant_id; company_id; old_id UNIQUE; name; description; fond_id FK->spending_funds; is_active; created_at/updated_at; created_by/updated_by.
+- transactions, receipts, spendings, cash_transfers.
+- cashboxes, cashbox_company, cashbox_history, cashbox_balance_snapshots.
+- transaction_types, payment_methods.
+- finance_allocations.
+- payroll_accruals, payroll_payouts, payroll_payout_items.
 
-Catalog / estimates (legacy_new)
-- products: id PK; tenant_id; company_id; name; product_type_id; product_kind_id; unit_id; spending_item_id FK->spending_items; scu; sort_order; category_id; sub_category_id; brand_id; is_visible/is_top/is_new; price, price_sale, price_vendor, price_vendor_min, price_zakup, price_delivery, montaj, montaj_sebest; created_at/updated_at; created_by/updated_by.
-- product_categories, product_subcategories, product_brands: cloned + meta columns.
-- product_types: id PK; code UNIQUE; name; tenant_id; company_id; created_at; created_by; updated_at; updated_by.
-- product_kinds: id PK; tenant_id; company_id; name; created_at/updated_at; created_by/updated_by.
-- product_units: id PK; code UNIQUE; name; created_at/updated_at.
-- product_descriptions: id PK; tenant_id; company_id; product_id UNIQUE FK->products; description_short; description_long; dignities; constructive; avito1; avito2; created_at/updated_at; created_by/updated_by.
-- product_attribute_definitions: id PK; tenant_id; company_id; name; value_type; product_type_id FK->product_types nullable; product_kind_id FK->product_kinds nullable; created_at/updated_at; created_by/updated_by.
-- product_attribute_values: id PK; tenant_id; company_id; product_id FK->products; attribute_id FK->product_attribute_definitions; value_string/value_number; created_at/updated_at; created_by/updated_by.
-- product_media: id PK; tenant_id; company_id; product_id FK->products; type; url; sort_order; created_at/updated_at; created_by/updated_by.
-- product_relations: id PK; tenant_id; company_id; product_id FK->products; related_product_id FK->products; relation_type; created_at/updated_at; created_by/updated_by.
-- estimates: id PK; tenant_id; company_id; client_name; client_phone; site_address; data; link; random_id; lead_id; amo_lead_id; link_montaj; client_id; sms_sent; created_at/updated_at; created_by/updated_by.
-- estimate_groups: id PK; tenant_id; company_id; product_type_id nullable; sort_order; name; ids; created_at/updated_at; created_by/updated_by.
-- estimate_template_materials: id PK; tenant_id; company_id; title; data; created_at/updated_at; created_by/updated_by.
-- estimate_template_septiks: id PK; tenant_id; company_id; title; data; pattern_ids; created_at/updated_at; created_by/updated_by.
-- estimate_items: id PK; tenant_id; company_id; estimate_id; product_id; qty; qty_auto; qty_manual; price; total; group_id; sort_order; created_at/updated_at; created_by/updated_by.
-- estimate_item_sources: id PK; tenant_id; company_id; estimate_id; product_id; origin_product_id; template_id; qty_per_unit; root_qty; qty_total; created_at/updated_at; created_by/updated_by.
-- contract_estimates: id PK; tenant_id; company_id; contract_id; data_json; total_sum; created_at/updated_at; created_by/updated_by.
-- contract_act_estimates: id PK; tenant_id; company_id; act_id; data_json; total_sum; created_at/updated_at; created_by/updated_by.
+Catalog (legacy_new)
+- products (legacy price fields + закупочные).
+- product_company_prices (операционные цены по tenant/company/product).
+- product_categories, product_subcategories, product_brands, product_types, product_kinds, product_units.
+- product_descriptions, product_attribute_definitions, product_attribute_values, product_media, product_relations.
 
-Misc tables
-- dev_control: module UNIQUE; status fields; sort_index; timestamps.
+Estimates (legacy_new)
+- estimates, estimate_items, estimate_item_sources, estimate_groups.
+- estimate_template_materials, estimate_template_septiks.
+
+Knowledge base (legacy_new)
+- knowledge_articles, knowledge_topics, knowledge_tags.
+- knowledge_article_topics, knowledge_article_tags, knowledge_attachments.
+
+Misc
+- dev_control.

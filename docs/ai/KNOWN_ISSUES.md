@@ -1,14 +1,16 @@
-# KNOWN ISSUES (Р°РєС‚СѓР°Р»СЊРЅРѕ)
+# KNOWN ISSUES (актуально)
 
-РљРѕРјРјРµРЅС‚Р°СЂРёР№ (RU)
-- РЎРїРёСЃРѕРє РѕСЃРЅРѕРІР°РЅ РЅР° С‚РµРєСѓС‰РµРј РєРѕРґРµ Рё СЃС…РµРјРµ `legacy_new`. РћР±РЅРѕРІР»СЏР№ РїСЂРё РїСЂР°РІРєР°С… РјРёРіСЂР°С†РёР№/СЃРµСЂРІРёСЃРѕРІ.
+- `PriceResolverService` не имеет fallback на `products`: при отсутствии строки в `product_company_prices` бросает исключение. Нужен полный backfill и контроль через `pricing:report-missing-company-prices`.
+- Публичный API читает цены из `products`, а внутренний API — из `product_company_prices`: возможны расхождения до полного cutover.
+- `estimates.data` не обновляется текущим кодом и может содержать устаревший слепок (используется как fallback в анализе договора).
+- `Transaction::scopeOnlyExpense` и `Spending::scopeOnlyExpense` фильтруют `sum < 0`, хотя канонический знак хранится в `transaction_types.sign`.
+- Миграции `perenos_*` и `reload_spendings_*` не идемпотентны: повторный запуск может дублировать данные.
+- `receipts.transaction_id` и `spendings.transaction_id` допускают NULL — возможны «сироты» при сбоях.
+- `CashBoxBalanceSnapshotJob` не запланирован в `app/Console/Kernel.php`.
+- Tenant-изоляция обеспечивается приложением; строгого разграничения на уровне БД нет.
+- Dev-control флаги не описаны в документации.
 
-- `FinanceService` СѓР¶Рµ СЂР°Р±РѕС‚Р°РµС‚ РїРѕ РєР°РЅРѕРЅСѓ (`cashboxes`/`cashbox_id`); РµСЃР»Рё РІР°Р»РёРґР°С†РёСЏ РїР°РґР°РµС‚, РїСЂРѕРІРµСЂСЊ legacy-РїСЂР°РІРёР»Р° FormRequest.
-- `TransactionService`, `ReceiptService`, `SpendingService` РёСЃРїРѕР»СЊР·СѓСЋС‚ `DB::transaction()` Р±РµР· `legacy_new`, РїРѕСЌС‚РѕРјСѓ С‚СЂР°РЅР·Р°РєС†РёРё РёРґСѓС‚ РїРѕ default connection.
-- РЎРєРѕСѓРїС‹ `Transaction::scopeOnlyExpense`/`Spending::scopeOnlyExpense` С„РёР»СЊС‚СЂСѓСЋС‚ `sum < 0`, С…РѕС‚СЏ Р·РЅР°Рє С…СЂР°РЅРёС‚СЃСЏ РІ `transaction_types.sign`.
-- РњРёРіСЂР°С†РёРё `perenos_*` Рё `reload_spendings_*` РЅРµ РёРґРµРјРїРѕС‚РµРЅС‚РЅС‹; РїРѕРІС‚РѕСЂРЅС‹Р№ Р·Р°РїСѓСЃРє РјРѕР¶РµС‚ РґСѓР±Р»РёСЂРѕРІР°С‚СЊ РґР°РЅРЅС‹Рµ.
-- `receipts.transaction_id` Рё `spendings.transaction_id` РґРѕРїСѓСЃРєР°СЋС‚ NULL вЂ” РІРѕР·РјРѕР¶РЅС‹ "СЃРёСЂРѕС‚С‹" РїСЂРё СЃР±РѕСЏС….
-- РќРµС‚ СЂР°СЃРїРёСЃР°РЅРёСЏ РґР»СЏ `CashBoxBalanceSnapshotJob`; Р±РµР· cron/queue СЃРЅР°РїС€РѕС‚С‹ РЅРµ РїРёС€СѓС‚СЃСЏ.
-- Р’РѕР·РјРѕР¶РЅС‹ РїСЂРѕР±Р»РµРјС‹ СЃ РєРѕРґРёСЂРѕРІРєРѕР№ РІ СЃРїСЂР°РІРѕС‡РЅРёРєР°С… (transaction_types/sale_types) РїСЂРё РёРјРїРѕСЂС‚Рµ РёР· legacy.
-- Dev-control С„Р»Р°РіРё РЅРµ РґРѕРєСѓРјРµРЅС‚РёСЂРѕРІР°РЅС‹.
-- РњРµР¶С‚РµРЅР°РЅС‚РЅР°СЏ РёР·РѕР»СЏС†РёСЏ РѕР±РµСЃРїРµС‡РёРІР°РµС‚СЃСЏ РїСЂРёР»РѕР¶РµРЅРёРµРј; РЅР° СѓСЂРѕРІРЅРµ Р‘Р” РЅРµС‚ СЃС‚СЂРѕРіРѕРіРѕ СЂР°Р·РіСЂР°РЅРёС‡РµРЅРёСЏ РїРѕ tenant_id.
+## REALITY STATUS
+- Реально реализовано: перечисленные проблемы подтверждаются текущим кодом/схемой.
+- Легаси: `estimates.data` и price-поля в `products`.
+- Не сделано: планировщик snapshots и выравнивание pricing для Public API.

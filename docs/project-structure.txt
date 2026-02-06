@@ -1,54 +1,41 @@
-Project structure (current)
+Project structure (as-built)
 
 Root
-- app/                // Laravel 12 application layer
-  - Console/          // Artisan commands + Kernel
-  - Domain/           // Domain modules: Catalog, Common, CRM, Finance, Storage, System
+- app/
+  - Console/
+  - Domain/
   - Events/, Jobs/, Listeners/
   - Http/
-    - Controllers/Api // Auth, Catalog, Common, Finance, DevControl, System, etc.
+    - Controllers/Api
     - Requests/
     - Resources/
-  - Models/
-  - Repositories/     // Catalog + finance repositories
-  - Services/         // Catalog + finance services
+    - Middleware/
+  - Modules/PublicApi/
+  - Repositories/
+  - Services/
+    - Catalog/, Finance/, Pricing/, Estimates/, ...
 - bootstrap/
 - config/
 - database/
-  - migrations/       // core + finance/catalog migrations
-  - migrations_baseline/
+  - migrations/
   - migrations_new/
-  - schema/           // SQL dumps
+  - schema/
   - seeders/
-  - database.sqlite
 - docs/
-  - ai/               // curated knowledge
-  - finance/          // finance guardrails
-  - Finance Module.md
-  - CRM_TABLE_STANDARD.md // CRM table UI/config/behavior standard
-  - UI_STANDARDS.md       // UI blocks/forms (Vuexy) + tables (PrimeVue) standard
-  - STRUCTURE_GUIDE.md    // module structure + micro-standards
-  - PRODUCT_CATALOG.md    // product catalog pages + data tables
-  - ESTIMATES.md          // estimate rules + structure
-- project-structure.txt
-- ROUTING.md           // Vue auto-router rules
-  - schema.txt
-  - PrimeVueFilter.txt, PROMPT_*.txt, dataTableWork.txt
-- public/             // Vite build output
+  - ai/
+  - finance/
+  - *.md/*.txt
+- public/
 - resources/
-  - ts/               // Vue SPA: @core, @layouts, api, components, composables, config, constants, domain, layouts, modules, navigation, pages (route wrappers), plugins, stores, types, utils, views, App.vue, main.ts
-    - modules/         // feature modules (finance, settings, production, estimates, products)
-  - views/            // Blade views if present
-- routes/
-  - api.php           // REST API (auth, finance, catalog, dev-control, etc.)
-  - web.php
+  - ts/
+    - modules/ (acl, estimates, finance, knowledge, production, products, settings)
+    - pages/ (route wrappers)
+    - @core/, @layouts/, utils/, stores/, types/, navigation/, plugins/
+- routes/ (api.php, web.php)
 - storage/
 - tests/
-  - Feature/FinanceServiceTest.php
 - vendor/
 - node_modules/
-- auto-imports.d.ts, components.d.ts, typed-router.d.ts
-- package.json, package-lock.json, composer.json, vite.config.ts, themeConfig.ts, env.d.ts, README.md, etc.
 
-Routing notes (Vue auto-router)
-- See docs/ROUTING.md
+Routing notes
+- See `docs/ROUTING.md`.

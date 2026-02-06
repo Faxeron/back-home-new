@@ -1,32 +1,32 @@
 # Estimates (rules + structure)
 
 Source of truth
-- `estimate_items` is the authoritative list of estimate rows.
-- `estimates.data` is legacy/cache only (temporary during migration).
+- `estimate_items` — единственный источник строк сметы (qty/price/total).
+- `estimates.data` — legacy/кеш, текущий код его не обновляет.
 
 Estimate header fields
-- client_name (required in UI), client_phone, site_address.
-- client_id stores the linked counterparty id (lookup by phone on create; create if missing).
-- New counterparties are created as type `individual`; legal entity is only set during contract flow.
-- These fields are a snapshot: editing an estimate does not update the counterparty record.
+- `client_name`, `client_phone`, `site_address`.
+- `client_id` хранит контрагента; при создании (не draft) контрагент ищется по телефону и создается при отсутствии.
+- Эти поля — слепок: обновление сметы не меняет карточку контрагента.
 
 Grouping
-- Grouping is automatic by product type.
-- `estimate_groups.product_type_id` maps product types to estimate groups.
+- Группировка по product_type через `estimate_groups`.
+- Группа создается автоматически при первом использовании типа.
 
 Template application rules
-- Template is resolved by SKU via `estimate_template_septiks.data` (list of SKUs).
-- Template items come from `estimate_template_materials.data` (list of {scu, count}).
-- Items are merged by `product_id`.
-- If a matching row exists and `unit_price` differs, overwrite with current price list value.
-- If no matching row, create it from price list.
-
-Auto-qty sources
-- `estimate_item_sources` stores auto-generated contributions per root product.
-- `estimate_items.qty_auto` is the sum of `estimate_item_sources.qty_total` per product.
-- Manual edits are tracked via `estimate_items.qty_manual`.
-- Total qty = `qty_auto + qty_manual`.
+- Шаблон ищется по SKU в `estimate_template_septiks.data`.
+- Материалы берутся из `estimate_template_materials.data` (массив `{scu, count}`).
+- Авто-количества считаются в `estimate_item_sources`.
+- При пересчете:
+  - qty_auto пересчитывается из `estimate_item_sources`.
+  - если цена в `estimate_items.price` уже задана, она не перезаписывается.
 
 Prices
-- Default unit price: `PriceResolverService` (company price table), `price_sale` fallback to `price`.
-- Prices may be overwritten by template application; final adjustments happen after quantities are settled.
+- Базовая цена: `PriceResolverService` (читает `product_company_prices`), `price_sale` -> `price`.
+- Fallback на `products` отсутствует; при отсутствии строки в `product_company_prices` будет исключение.
+- Итоговая цена фиксируется в `estimate_items` и не «плавает».
+
+## REALITY STATUS
+- Реально реализовано: auto-qty через `estimate_item_sources`, слепок цен в `estimate_items`.
+- Легаси: `estimates.data` может содержать старые слепки и используется только в анализе договора.
+- Не сделано: единый механизм обновления цены по шаблону при повторном применении (сейчас price не перезаписывается).
