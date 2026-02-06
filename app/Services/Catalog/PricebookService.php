@@ -20,6 +20,7 @@ use App\Domain\Catalog\Models\ProductUnit;
 use App\Exports\Catalog\PricebookExport;
 use App\Imports\Catalog\PricebookImport;
 use App\Services\Pricing\PriceWriterService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -549,6 +550,12 @@ final class PricebookService
             foreach ($products as $scu => $payload) {
                 $action = $payload['__action'] ?? self::ACTION_UPDATE;
                 unset($payload['__action']);
+
+                $operational = Arr::only($payload, ['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest', 'currency', 'is_active']);
+                foreach (array_keys($operational) as $field) {
+                    unset($payload[$field]);
+                }
+
                 $model = $existing->get($scu);
                 if ($model && $action === self::ACTION_UPDATE) {
                     $payload['archived_at'] = null;
@@ -574,7 +581,7 @@ final class PricebookService
                     continue;
                 }
                 $productIds[$scu] = $model->id;
-                $this->syncOperationalPrices($tenantId, $companyId, $model, $userId);
+                $this->syncOperationalPrices($tenantId, $companyId, (int) $model->id, $operational, $userId);
 
                 $descriptionPayload = $descriptions[$scu] ?? null;
                 if ($descriptionPayload) {
@@ -640,6 +647,12 @@ final class PricebookService
                     $workDefaults = $workPayload['__defaults'] ?? [];
                     unset($workPayload['__defaults']);
 
+                    $workCreatePayload = array_merge($workDefaults, $workPayload);
+                    $workOperational = Arr::only($workCreatePayload, ['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest', 'currency', 'is_active']);
+                    foreach (array_keys($workOperational) as $field) {
+                        unset($workPayload[$field], $workDefaults[$field], $workCreatePayload[$field]);
+                    }
+
                     $workModel = $existing->get($installationScu);
                     if ($workModel) {
                         $workPayload['archived_at'] = null;
@@ -651,7 +664,7 @@ final class PricebookService
                         $workModel->save();
                         $updated++;
                     } else {
-                        $createPayload = array_merge($workDefaults, $workPayload);
+                        $createPayload = $workCreatePayload;
                         $createPayload['tenant_id'] = $tenantId;
                         $createPayload['company_id'] = $companyId;
                         $createPayload['created_at'] = $timestamp;
@@ -664,7 +677,7 @@ final class PricebookService
                         $created++;
                     }
                     $productIds[$installationScu] = $workModel->id;
-                    $this->syncOperationalPrices($tenantId, $companyId, $workModel, $userId);
+                    $this->syncOperationalPrices($tenantId, $companyId, (int) $workModel->id, $workOperational, $userId);
                 }
 
                 ProductRelation::query()
@@ -712,12 +725,12 @@ final class PricebookService
                     ProductRelation::query()->insert($relations);
                 }
 
-                if ($installationScu && isset($workLinkOnly[$scu]) && array_key_exists('montaj_sebest', $payload)) {
+                if ($installationScu && isset($workLinkOnly[$scu]) && array_key_exists('montaj_sebest', $operational)) {
                     $this->syncInstallationWorkPrice(
                         $tenantId,
                         $companyId,
                         $installationScu,
-                        $payload['montaj_sebest'],
+                        (float) $operational['montaj_sebest'],
                         $userId,
                         $timestamp
                     );
@@ -1038,19 +1051,16 @@ private function findDefinition(Collection $definitions, string $name, ?int $pro
             ->update($update);
     }
 
-    private function syncOperationalPrices(int $tenantId, int $companyId, Product $product, ?int $userId): void
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function syncOperationalPrices(int $tenantId, int $companyId, int $productId, array $fields, ?int $userId): void
     {
         app(PriceWriterService::class)->upsertPrices(
             tenantId: $tenantId,
             companyId: $companyId,
-            productId: (int) $product->id,
-            fields: [
-                'price' => $product->price,
-                'price_sale' => $product->price_sale,
-                'price_delivery' => $product->price_delivery,
-                'montaj' => $product->montaj,
-                'montaj_sebest' => $product->montaj_sebest,
-            ],
+            productId: $productId,
+            fields: $fields,
             userId: $userId,
             syncLegacy: false,
         );

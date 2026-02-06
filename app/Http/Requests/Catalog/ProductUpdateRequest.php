@@ -28,6 +28,8 @@ class ProductUpdateRequest extends FormRequest
             'price_delivery' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'montaj' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'montaj_sebest' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
+            'is_active' => ['sometimes', 'boolean'],
             'is_visible' => ['sometimes', 'boolean'],
             'is_top' => ['sometimes', 'boolean'],
             'is_new' => ['sometimes', 'boolean'],

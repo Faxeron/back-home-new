@@ -29,14 +29,9 @@ class Product extends Model
 
     protected $casts = [
         'sort_order' => 'int',
-        'price' => 'float',
-        'price_sale' => 'float',
         'price_vendor' => 'float',
         'price_vendor_min' => 'float',
         'price_zakup' => 'float',
-        'price_delivery' => 'float',
-        'montaj' => 'float',
-        'montaj_sebest' => 'float',
         'is_global' => 'bool',
         'is_visible' => 'bool',
         'is_top' => 'bool',

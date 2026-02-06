@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class PriceResolverService
 {
-    public function getPrices(int $tenantId, int $companyId, int $productId): PriceDTO
+    public function tryGetPrices(int $tenantId, int $companyId, int $productId): ?PriceDTO
     {
         $priceRow = ProductCompanyPrice::query()
             ->where('tenant_id', $tenantId)
@@ -19,7 +19,7 @@ final class PriceResolverService
             ->first();
 
         if (!$priceRow) {
-            throw new RuntimeException("Price not found for product_id={$productId} (tenant_id={$tenantId}, company_id={$companyId}).");
+            return null;
         }
 
         return new PriceDTO(
@@ -32,5 +32,15 @@ final class PriceResolverService
             is_active: (bool) ($priceRow->is_active ?? true),
             is_fallback: false,
         );
+    }
+
+    public function getPrices(int $tenantId, int $companyId, int $productId): PriceDTO
+    {
+        $dto = $this->tryGetPrices($tenantId, $companyId, $productId);
+        if (!$dto) {
+            throw new RuntimeException("Price not found for product_id={$productId} (tenant_id={$tenantId}, company_id={$companyId}).");
+        }
+
+        return $dto;
     }
 }

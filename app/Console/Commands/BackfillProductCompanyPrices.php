@@ -12,7 +12,7 @@ class BackfillProductCompanyPrices extends Command
 {
     protected $signature = 'pricing:backfill-company-prices {--tenant=1} {--companies=1,2} {--dry-run}';
 
-    protected $description = 'Backfill product_company_prices from products (price fields) for selected tenant/companies.';
+    protected $description = 'Ensure product_company_prices rows exist for active products (prices may remain NULL).';
 
     public function handle(): int
     {
@@ -42,23 +42,18 @@ class BackfillProductCompanyPrices extends Command
             $this->info("Processing company_id={$companyId}...");
 
             $created = 0;
-            $updated = 0;
+            $skipped = 0;
 
             Product::query()
                 ->select([
                     'id',
                     'tenant_id',
                     'company_id',
-                    'price',
-                    'price_sale',
-                    'price_delivery',
-                    'montaj',
-                    'montaj_sebest',
                 ])
                 ->where('tenant_id', $tenantId)
                 ->where('company_id', $companyId)
                 ->orderBy('id')
-                ->chunkById(500, function ($products) use ($tenantId, $companyId, $dryRun, &$created, &$updated): void {
+                ->chunkById(500, function ($products) use ($tenantId, $companyId, $dryRun, &$created, &$skipped): void {
                     if ($products->isEmpty()) {
                         return;
                     }
@@ -78,7 +73,8 @@ class BackfillProductCompanyPrices extends Command
                     foreach ($products as $product) {
                         $productId = (int) $product->id;
                         if (isset($existingMap[$productId])) {
-                            $updated++;
+                            $skipped++;
+                            continue;
                         } else {
                             $created++;
                         }
@@ -87,11 +83,6 @@ class BackfillProductCompanyPrices extends Command
                             'tenant_id' => $tenantId,
                             'company_id' => $companyId,
                             'product_id' => $productId,
-                            'price' => $product->price,
-                            'price_sale' => $product->price_sale,
-                            'price_delivery' => $product->price_delivery,
-                            'montaj' => $product->montaj,
-                            'montaj_sebest' => $product->montaj_sebest,
                             'currency' => 'RUB',
                             'is_active' => 1,
                             'created_at' => $now,
@@ -107,11 +98,6 @@ class BackfillProductCompanyPrices extends Command
                         $rows,
                         ['tenant_id', 'company_id', 'product_id'],
                         [
-                            'price',
-                            'price_sale',
-                            'price_delivery',
-                            'montaj',
-                            'montaj_sebest',
                             'currency',
                             'is_active',
                             'updated_at',
@@ -119,7 +105,7 @@ class BackfillProductCompanyPrices extends Command
                     );
                 });
 
-            $this->info("Company {$companyId}: created={$created}, updated={$updated}");
+            $this->info("Company {$companyId}: created={$created}, skipped={$skipped}");
         }
 
         $this->info('Pricing backfill finished.');

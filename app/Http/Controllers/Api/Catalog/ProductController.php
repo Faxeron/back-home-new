@@ -13,6 +13,8 @@ use App\Services\Pricing\PriceResolverService;
 use App\Services\Pricing\PriceWriterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use RuntimeException;
 
 class ProductController extends Controller
 {
@@ -36,8 +38,8 @@ class ProductController extends Controller
         $items = collect($products->items())
             ->map(function (Product $product) use ($tenantId, $companyId) {
                 if ($tenantId && $companyId) {
-                    $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $product->id);
-                    $product->setAttribute('resolved_price', $price->toArray());
+                    $price = $this->priceResolverService->tryGetPrices($tenantId, $companyId, (int) $product->id);
+                    $product->setAttribute('resolved_price', ($price?->toArray()) ?? []);
                 }
                 return $product;
             })
@@ -86,8 +88,8 @@ class ProductController extends Controller
 
         $model = $query->firstOrFail();
         if ($tenantId && $companyId) {
-            $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $model->id);
-            $model->setAttribute('resolved_price', $price->toArray());
+            $price = $this->priceResolverService->tryGetPrices($tenantId, $companyId, (int) $model->id);
+            $model->setAttribute('resolved_price', ($price?->toArray()) ?? []);
         }
 
         return response()->json([
@@ -118,18 +120,16 @@ class ProductController extends Controller
         $model = $query->firstOrFail();
         $data = $request->validated();
 
+        $operationalFields = ['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest', 'currency', 'is_active'];
+        $operationalPayload = Arr::only($data, $operationalFields);
+        foreach ($operationalFields as $field) {
+            unset($data[$field]);
+        }
+
         if (!empty($model->is_global)) {
-            $priceFields = [
-                'price',
-                'price_sale',
-                'price_vendor',
-                'price_vendor_min',
-                'price_zakup',
-                'price_delivery',
-                'montaj',
-                'montaj_sebest',
-            ];
-            if (array_intersect($priceFields, array_keys($data))) {
+            $priceFields = array_merge($operationalFields, ['price_vendor', 'price_vendor_min', 'price_zakup']);
+            $touched = array_unique(array_merge(array_keys($data), array_keys($operationalPayload)));
+            if (array_intersect($priceFields, $touched)) {
                 return response()->json([
                     'message' => 'Prices for global products cannot be edited.',
                 ], 422);
@@ -142,13 +142,28 @@ class ProductController extends Controller
 
         $model->fill($data);
         $model->save();
-        $this->syncOperationalPrices($model, $data, $tenantId, $companyId, $request->user()?->id);
-        if (array_key_exists('montaj_sebest', $data)) {
-            $this->syncInstallationWorkPrice($model, $data['montaj_sebest'], $request->user()?->id);
+
+        if (!empty($operationalPayload)) {
+            if (!$tenantId || !$companyId) {
+                throw new RuntimeException('Missing tenant/company context for pricing update.');
+            }
+
+            $this->priceWriterService->upsertPrices(
+                tenantId: (int) $tenantId,
+                companyId: (int) $companyId,
+                productId: (int) $model->id,
+                fields: $operationalPayload,
+                userId: $request->user()?->id,
+                syncLegacy: false,
+            );
+        }
+
+        if (array_key_exists('montaj_sebest', $operationalPayload)) {
+            $this->syncInstallationWorkPrice($model, $operationalPayload['montaj_sebest'], $request->user()?->id);
         }
         if ($tenantId && $companyId) {
-            $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $model->id);
-            $model->setAttribute('resolved_price', $price->toArray());
+            $price = $this->priceResolverService->tryGetPrices($tenantId, $companyId, (int) $model->id);
+            $model->setAttribute('resolved_price', ($price?->toArray()) ?? []);
         }
         $model->load(['category', 'subCategory', 'brand', 'kind']);
 
@@ -187,39 +202,5 @@ class ProductController extends Controller
             ->update($update);
     }
 
-    private function syncOperationalPrices(Product $product, array $data, ?int $tenantId, ?int $companyId, ?int $userId): void
-    {
-        $operationalFields = ['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest'];
-        $hasPriceUpdate = false;
-        foreach ($operationalFields as $field) {
-            if (array_key_exists($field, $data)) {
-                $hasPriceUpdate = true;
-                break;
-            }
-        }
-
-        if (!$hasPriceUpdate || !$companyId) {
-            return;
-        }
-
-        $effectiveTenantId = $tenantId ?? $product->tenant_id;
-        if (!$effectiveTenantId) {
-            return;
-        }
-
-        $this->priceWriterService->upsertPrices(
-            tenantId: (int) $effectiveTenantId,
-            companyId: (int) $companyId,
-            productId: (int) $product->id,
-            fields: [
-                'price' => $product->price,
-                'price_sale' => $product->price_sale,
-                'price_delivery' => $product->price_delivery,
-                'montaj' => $product->montaj,
-                'montaj_sebest' => $product->montaj_sebest,
-            ],
-            userId: $userId,
-            syncLegacy: false,
-        );
-    }
+    // Pricing writes are handled via PriceWriterService in update().
 }
