@@ -10,6 +10,8 @@ class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $resolved = is_array($this->resolved_price ?? null) ? $this->resolved_price : [];
+
         return [
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
@@ -25,14 +27,14 @@ class ProductResource extends JsonResource
             'sub_category_id' => $this->sub_category_id,
             'brand_id' => $this->brand_id,
             'unit_id' => $this->unit_id,
-            'price' => $this->price,
-            'price_sale' => $this->price_sale,
+            'price' => $resolved['price'] ?? null,
+            'price_sale' => $resolved['price_sale'] ?? null,
             'price_vendor' => $this->price_vendor,
             'price_vendor_min' => $this->price_vendor_min,
             'price_zakup' => $this->price_zakup,
-            'price_delivery' => $this->price_delivery,
-            'montaj' => $this->montaj,
-            'montaj_sebest' => $this->montaj_sebest,
+            'price_delivery' => $resolved['price_delivery'] ?? null,
+            'montaj' => $resolved['montaj'] ?? null,
+            'montaj_sebest' => $resolved['montaj_sebest'] ?? null,
             'is_global' => $this->is_global,
             'is_visible' => $this->is_visible,
             'is_top' => $this->is_top,

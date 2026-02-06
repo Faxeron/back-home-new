@@ -9,6 +9,7 @@ use App\Domain\Catalog\DTO\ProductFilterDTO;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductRelation;
 use App\Services\Catalog\CatalogService;
+use App\Services\Pricing\PriceResolverService;
 use App\Services\Pricing\PriceWriterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class ProductController extends Controller
 {
     public function __construct(
         private readonly CatalogService $catalogService,
+        private readonly PriceResolverService $priceResolverService,
         private readonly PriceWriterService $priceWriterService,
     )
     {
@@ -31,9 +33,18 @@ class ProductController extends Controller
         $filters = ProductFilterDTO::fromRequest($request, $tenantId, $companyId);
 
         $products = $this->catalogService->paginateProducts($filters);
+        $items = collect($products->items())
+            ->map(function (Product $product) use ($tenantId, $companyId) {
+                if ($tenantId && $companyId) {
+                    $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $product->id);
+                    $product->setAttribute('resolved_price', $price->toArray());
+                }
+                return $product;
+            })
+            ->values();
 
         return response()->json([
-            'data' => ProductResource::collection($products->items())->toArray($request),
+            'data' => ProductResource::collection($items)->toArray($request),
             'meta' => [
                 'current_page' => $products->currentPage(),
                 'per_page' => $products->perPage(),
@@ -74,6 +85,10 @@ class ProductController extends Controller
         }
 
         $model = $query->firstOrFail();
+        if ($tenantId && $companyId) {
+            $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $model->id);
+            $model->setAttribute('resolved_price', $price->toArray());
+        }
 
         return response()->json([
             'data' => (new ProductResource($model))->toArray($request),
@@ -130,6 +145,10 @@ class ProductController extends Controller
         $this->syncOperationalPrices($model, $data, $tenantId, $companyId, $request->user()?->id);
         if (array_key_exists('montaj_sebest', $data)) {
             $this->syncInstallationWorkPrice($model, $data['montaj_sebest'], $request->user()?->id);
+        }
+        if ($tenantId && $companyId) {
+            $price = $this->priceResolverService->getPrices($tenantId, $companyId, (int) $model->id);
+            $model->setAttribute('resolved_price', $price->toArray());
         }
         $model->load(['category', 'subCategory', 'brand', 'kind']);
 
