@@ -20,26 +20,14 @@ final class PublicProductService
             ->first();
     }
 
-    public function paginateProducts(PublicProductFilterDTO $filter, ?int $resolvedCompanyId = null): LengthAwarePaginator
+    public function paginateProducts(PublicProductFilterDTO $filter, int $companyId): LengthAwarePaginator
     {
-        $companyId = $resolvedCompanyId ?? $filter->company_id;
-
-        $query = Product::query()
-            ->with(['category', 'brand', 'media'])
-            ->where('tenant_id', self::TENANT_ID)
-            ->whereNull('archived_at')
-            ->where('is_visible', true);
-
-        if ($companyId) {
-            $query->where(function ($builder) use ($companyId) {
-                $builder->where('company_id', $companyId)
-                    ->orWhere('is_global', true);
-            });
-        }
+        $query = $this->baseCompanyQuery($companyId)
+            ->with(['category', 'brand', 'media']);
 
         if ($filter->category) {
             if (ctype_digit($filter->category)) {
-                $query->where('category_id', (int) $filter->category);
+                $query->where('products.category_id', (int) $filter->category);
             } else {
                 $query->whereHas('category', function ($builder) use ($filter) {
                     $builder->where('name', 'like', $filter->category);
@@ -48,8 +36,8 @@ final class PublicProductService
         }
 
         return $query
-            ->orderBy('sort_order')
-            ->orderBy('name')
+            ->orderBy('products.sort_order')
+            ->orderBy('products.name')
             ->paginate($filter->per_page, ['*'], 'page', $filter->page);
     }
 
