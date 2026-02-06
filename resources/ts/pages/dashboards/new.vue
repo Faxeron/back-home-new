@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import { $api } from '@/utils/api'
-import { formatDateShort, formatSum, statusLines } from '@/utils/formatters/finance'
-import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
+import { formatSum } from '@/utils/formatters/finance'
+import { TRANSACTION_TABLE } from '@/modules/finance/config/transactionsTable.config'
+import NewCashboxesBalance, { type CashboxBalanceRow } from '@/views/dashboards/new/NewCashboxesBalance.vue'
+import NewRecentTransactions from '@/views/dashboards/new/NewRecentTransactions.vue'
 import type { Transaction } from '@/types/finance'
 
 definePage({
@@ -14,13 +14,6 @@ definePage({
   },
 })
 
-type CashboxBalanceRow = {
-  id: number
-  name?: string | null
-  balance?: number | null
-  logo_url?: string | null
-}
-
 const cashboxes = ref<CashboxBalanceRow[]>([])
 const cashboxesLoading = ref(false)
 const cashboxesError = ref('')
@@ -28,10 +21,29 @@ const cashboxesError = ref('')
 const transactions = ref<Transaction[]>([])
 const transactionsLoading = ref(false)
 const transactionsError = ref('')
+const transactionsTotal = ref<number | null>(null)
+
+const updatedAt = ref<Date | null>(null)
 
 const cashboxesTotal = computed(() =>
   cashboxes.value.reduce((sum, row) => sum + (Number(row.balance ?? 0) || 0), 0),
 )
+
+const recentIncomes = computed(() => {
+  return transactions.value.reduce((sum, row) => {
+    const sign = Number(row.transaction_type?.sign ?? 0)
+    if (sign <= 0) return sum
+    return sum + (Number((row.sum as any)?.amount ?? row.sum ?? 0) || 0)
+  }, 0)
+})
+
+const recentExpenses = computed(() => {
+  return transactions.value.reduce((sum, row) => {
+    const sign = Number(row.transaction_type?.sign ?? 0)
+    if (sign >= 0) return sum
+    return sum + (Number((row.sum as any)?.amount ?? row.sum ?? 0) || 0)
+  }, 0)
+})
 
 const loadCashboxes = async () => {
   cashboxesLoading.value = true
@@ -55,16 +67,18 @@ const loadRecentTransactions = async () => {
       query: {
         page: 1,
         per_page: 10,
-        include: 'cashbox,counterparty,contract,transactionType,paymentMethod',
+        include: TRANSACTION_TABLE.include,
         sort: 'created_at',
         direction: 'desc',
       },
     })
 
     transactions.value = response?.data ?? []
+    transactionsTotal.value = typeof response?.meta?.total === 'number' ? response.meta.total : null
   } catch (error: any) {
     transactionsError.value = error?.response?.data?.message ?? 'Не удалось загрузить транзакции.'
     transactions.value = []
+    transactionsTotal.value = null
   } finally {
     transactionsLoading.value = false
   }
@@ -72,157 +86,107 @@ const loadRecentTransactions = async () => {
 
 const refreshAll = async () => {
   await Promise.all([loadCashboxes(), loadRecentTransactions()])
-}
-
-const formatSignedSum = (row: Transaction) => {
-  const sign = Number(row.transaction_type?.sign ?? 0)
-  const prefix = sign < 0 ? '-' : sign > 0 ? '+' : ''
-  const currency = row.sum?.currency ?? 'RUB'
-
-  // Transaction sums are stored as positive amounts, sign comes from transaction type.
-  return `${prefix}${formatSum(row.sum)} ${currency}`
+  updatedAt.value = new Date()
 }
 
 onMounted(refreshAll)
 </script>
 
 <template>
-  <VCard>
-    <VCardTitle class="d-flex align-center justify-space-between">
-      <span>Дашборды NEW</span>
-      <VBtn color="primary" variant="tonal" @click="refreshAll">Обновить</VBtn>
-    </VCardTitle>
+  <VRow class="match-height">
+    <VCol cols="12">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
+        <div>
+          <h4 class="text-h4 mb-1">
+            Dashboards NEW
+          </h4>
+          <div class="text-medium-emphasis">
+            Финансы: баланс касс и последние транзакции
+          </div>
+        </div>
 
-    <VCardText>
-      <VRow class="match-height">
-        <VCol cols="12" lg="4">
-          <VCard variant="outlined" class="h-100">
-            <VCardTitle class="d-flex align-center justify-space-between">
-              <span>Баланс касс</span>
-              <VBtn size="small" variant="text" @click="loadCashboxes">Обновить</VBtn>
-            </VCardTitle>
-            <VCardText>
-              <div v-if="cashboxesError" class="text-sm mb-3" style="color: #b91c1c;">
-                {{ cashboxesError }}
-              </div>
+        <div class="d-flex align-center gap-2">
+          <VChip
+            v-if="updatedAt"
+            size="small"
+            variant="tonal"
+            color="secondary"
+          >
+            Обновлено: {{ updatedAt.toLocaleString('ru-RU') }}
+          </VChip>
 
-              <DataTable
-                :value="cashboxes"
-                dataKey="id"
-                class="p-datatable-sm"
-                :loading="cashboxesLoading"
-              >
-                <Column field="name" header="Касса">
-                  <template #body="{ data }">
-                    <CashboxCell :cashbox="data" size="sm" />
-                  </template>
-                </Column>
-                <Column field="balance" header="Баланс" style="inline-size: 16ch;">
-                  <template #body="{ data }">
-                    {{ formatSum(Number(data.balance ?? 0)) }}
-                  </template>
-                </Column>
-                <template #empty>
-                  <div class="text-center py-6 text-muted">Нет данных.</div>
-                </template>
-              </DataTable>
+          <VBtn
+            color="primary"
+            variant="tonal"
+            @click="refreshAll"
+          >
+            Обновить
+          </VBtn>
+        </div>
+      </div>
+    </VCol>
 
-              <VDivider class="my-4" />
-              <div class="d-flex justify-end text-sm font-semibold">
-                Итог: {{ formatSum(cashboxesTotal) }}
-              </div>
-            </VCardText>
-          </VCard>
-        </VCol>
+    <VCol
+      cols="12"
+      md="4"
+    >
+      <CardStatisticsVerticalSimple
+        title="Итого по кассам"
+        icon="tabler-cash"
+        color="primary"
+        :stats="`${formatSum(cashboxesTotal)} RUB`"
+      />
+    </VCol>
 
-        <VCol cols="12" lg="8">
-          <VCard variant="outlined" class="h-100">
-            <VCardTitle class="d-flex align-center justify-space-between">
-              <span>Последние транзакции</span>
-              <VBtn size="small" variant="text" @click="loadRecentTransactions">Обновить</VBtn>
-            </VCardTitle>
-            <VCardText>
-              <div v-if="transactionsError" class="text-sm mb-3" style="color: #b91c1c;">
-                {{ transactionsError }}
-              </div>
+    <VCol
+      cols="12"
+      md="4"
+    >
+      <CardStatisticsVerticalSimple
+        title="Приходы (последние 10)"
+        icon="tabler-arrow-down-right"
+        color="success"
+        :stats="`${formatSum(recentIncomes)} RUB`"
+      />
+    </VCol>
 
-              <DataTable
-                :value="transactions"
-                dataKey="id"
-                class="p-datatable-sm"
-                :loading="transactionsLoading"
-              >
-                <Column field="created_at" header="Дата" style="inline-size: 12ch;">
-                  <template #body="{ data }">
-                    {{ formatDateShort(data.created_at) }}
-                  </template>
-                </Column>
+    <VCol
+      cols="12"
+      md="4"
+    >
+      <CardStatisticsVerticalSimple
+        title="Расходы (последние 10)"
+        icon="tabler-arrow-up-right"
+        color="error"
+        :stats="`${formatSum(recentExpenses)} RUB`"
+      />
+    </VCol>
 
-                <Column field="transaction_type.name" header="Тип" style="inline-size: 22ch;">
-                  <template #body="{ data }">
-                    {{ data.transaction_type?.name ?? '—' }}
-                  </template>
-                </Column>
+    <VCol
+      cols="12"
+      lg="5"
+    >
+      <NewCashboxesBalance
+        :rows="cashboxes"
+        :total="cashboxesTotal"
+        :loading="cashboxesLoading"
+        :error="cashboxesError"
+        @refresh="loadCashboxes"
+      />
+    </VCol>
 
-                <Column field="sum" header="Сумма" style="inline-size: 18ch;">
-                  <template #body="{ data }">
-                    <span
-                      :style="{
-                        color: Number(data.transaction_type?.sign ?? 0) < 0 ? '#b91c1c' : '#065f46',
-                        fontWeight: 600,
-                      }"
-                    >
-                      {{ formatSignedSum(data) }}
-                    </span>
-                  </template>
-                </Column>
-
-                <Column field="cashbox.name" header="Касса" style="inline-size: 22ch;">
-                  <template #body="{ data }">
-                    <CashboxCell :cashbox="data.cashbox" size="sm" />
-                  </template>
-                </Column>
-
-                <Column field="counterparty.name" header="Контрагент">
-                  <template #body="{ data }">
-                    {{ data.counterparty?.name ?? '—' }}
-                  </template>
-                </Column>
-
-                <Column header="Оплата" style="inline-size: 10ch;">
-                  <template #body="{ data }">
-                    <div class="d-flex flex-column" style="line-height: 1.15;">
-                      <span :class="statusLines(data.is_paid, data.date_is_paid)[0].className">
-                        {{ statusLines(data.is_paid, data.date_is_paid)[0].text }}
-                      </span>
-                      <span class="text-medium-emphasis text-xs">
-                        {{ statusLines(data.is_paid, data.date_is_paid)[1].text }}
-                      </span>
-                    </div>
-                  </template>
-                </Column>
-
-                <Column header="Закрыта" style="inline-size: 10ch;">
-                  <template #body="{ data }">
-                    <div class="d-flex flex-column" style="line-height: 1.15;">
-                      <span :class="statusLines(data.is_completed, data.date_is_completed)[0].className">
-                        {{ statusLines(data.is_completed, data.date_is_completed)[0].text }}
-                      </span>
-                      <span class="text-medium-emphasis text-xs">
-                        {{ statusLines(data.is_completed, data.date_is_completed)[1].text }}
-                      </span>
-                    </div>
-                  </template>
-                </Column>
-
-                <template #empty>
-                  <div class="text-center py-6 text-muted">Нет данных.</div>
-                </template>
-              </DataTable>
-            </VCardText>
-          </VCard>
-        </VCol>
-      </VRow>
-    </VCardText>
-  </VCard>
+    <VCol
+      cols="12"
+      lg="7"
+    >
+      <NewRecentTransactions
+        :rows="transactions"
+        :total="transactionsTotal"
+        :loading="transactionsLoading"
+        :error="transactionsError"
+        @refresh="loadRecentTransactions"
+      />
+    </VCol>
+  </VRow>
 </template>
+
