@@ -5,6 +5,7 @@
 --------------------------------------------------
 - Архитектура: Laravel 12 (backend) + Vue 3 (frontend, Vuexy/Vuetify + PrimeVue), модульная структура.
 - Основные модули: finance, products (catalog), estimates (сметы), production (contracts/installations), settings, knowledge base, ACL/roles, public API.
+- Основная БД: доменные данные работают через connection `legacy_new` (default connection не используется для домена).
 - Pricing сейчас: операционные цены читаются из `product_company_prices` через PriceResolver; legacy-цены в `products` еще сохраняются.
 - Слепок сметы: источник истины — `estimate_items`; при создании договора формируются `contract_items` (слепок).
 - Tenant/company модель: `tenant_id` + `company_id`, контекст берется из пользователя и проверяется через `user_company` + middleware.
