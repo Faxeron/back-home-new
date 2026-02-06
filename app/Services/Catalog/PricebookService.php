@@ -725,7 +725,13 @@ final class PricebookService
                     ProductRelation::query()->insert($relations);
                 }
 
-                if ($installationScu && isset($workLinkOnly[$scu]) && array_key_exists('montaj_sebest', $operational)) {
+                if (
+                    $installationScu
+                    && isset($workLinkOnly[$scu])
+                    && array_key_exists('montaj_sebest', $operational)
+                    && $operational['montaj_sebest'] !== null
+                    && is_numeric($operational['montaj_sebest'])
+                ) {
                     $this->syncInstallationWorkPrice(
                         $tenantId,
                         $companyId,
