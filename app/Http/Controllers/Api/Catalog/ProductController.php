@@ -9,12 +9,16 @@ use App\Domain\Catalog\DTO\ProductFilterDTO;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\Models\ProductRelation;
 use App\Services\Catalog\CatalogService;
+use App\Services\Pricing\PriceWriterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly CatalogService $catalogService)
+    public function __construct(
+        private readonly CatalogService $catalogService,
+        private readonly PriceWriterService $priceWriterService,
+    )
     {
     }
 
@@ -123,6 +127,7 @@ class ProductController extends Controller
 
         $model->fill($data);
         $model->save();
+        $this->syncOperationalPrices($model, $data, $tenantId, $companyId, $request->user()?->id);
         if (array_key_exists('montaj_sebest', $data)) {
             $this->syncInstallationWorkPrice($model, $data['montaj_sebest'], $request->user()?->id);
         }
@@ -161,5 +166,41 @@ class ProductController extends Controller
         Product::query()
             ->whereIn('id', $relatedIds)
             ->update($update);
+    }
+
+    private function syncOperationalPrices(Product $product, array $data, ?int $tenantId, ?int $companyId, ?int $userId): void
+    {
+        $operationalFields = ['price', 'price_sale', 'price_delivery', 'montaj', 'montaj_sebest'];
+        $hasPriceUpdate = false;
+        foreach ($operationalFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $hasPriceUpdate = true;
+                break;
+            }
+        }
+
+        if (!$hasPriceUpdate || !$companyId) {
+            return;
+        }
+
+        $effectiveTenantId = $tenantId ?? $product->tenant_id;
+        if (!$effectiveTenantId) {
+            return;
+        }
+
+        $this->priceWriterService->upsertPrices(
+            tenantId: (int) $effectiveTenantId,
+            companyId: (int) $companyId,
+            productId: (int) $product->id,
+            fields: [
+                'price' => $product->price,
+                'price_sale' => $product->price_sale,
+                'price_delivery' => $product->price_delivery,
+                'montaj' => $product->montaj,
+                'montaj_sebest' => $product->montaj_sebest,
+            ],
+            userId: $userId,
+            syncLegacy: false,
+        );
     }
 }

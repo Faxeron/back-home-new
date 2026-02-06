@@ -18,6 +18,7 @@ use App\Domain\Catalog\Models\ProductType;
 use App\Domain\Catalog\Models\ProductUnit;
 use App\Exports\Catalog\PricebookExport;
 use App\Imports\Catalog\PricebookImport;
+use App\Services\Pricing\PriceWriterService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -572,6 +573,7 @@ final class PricebookService
                     continue;
                 }
                 $productIds[$scu] = $model->id;
+                $this->syncOperationalPrices($tenantId, $companyId, $model, $userId);
 
                 $descriptionPayload = $descriptions[$scu] ?? null;
                 if ($descriptionPayload) {
@@ -661,6 +663,7 @@ final class PricebookService
                         $created++;
                     }
                     $productIds[$installationScu] = $workModel->id;
+                    $this->syncOperationalPrices($tenantId, $companyId, $workModel, $userId);
                 }
 
                 ProductRelation::query()
@@ -1032,6 +1035,24 @@ private function findDefinition(Collection $definitions, string $name, ?int $pro
             ->where('company_id', $companyId)
             ->where('scu', $installationScu)
             ->update($update);
+    }
+
+    private function syncOperationalPrices(int $tenantId, int $companyId, Product $product, ?int $userId): void
+    {
+        app(PriceWriterService::class)->upsertPrices(
+            tenantId: $tenantId,
+            companyId: $companyId,
+            productId: (int) $product->id,
+            fields: [
+                'price' => $product->price,
+                'price_sale' => $product->price_sale,
+                'price_delivery' => $product->price_delivery,
+                'montaj' => $product->montaj,
+                'montaj_sebest' => $product->montaj_sebest,
+            ],
+            userId: $userId,
+            syncLegacy: false,
+        );
     }
 
     /**
