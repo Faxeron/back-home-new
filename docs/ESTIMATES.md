@@ -28,5 +28,5 @@ Auto-qty sources
 - Total qty = `qty_auto + qty_manual`.
 
 Prices
-- Default unit price: `products.price_sale` fallback to `products.price`.
+- Default unit price: `PriceResolverService` (company price table), `price_sale` fallback to `price`.
 - Prices may be overwritten by template application; final adjustments happen after quantities are settled.

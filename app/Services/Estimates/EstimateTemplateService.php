@@ -9,6 +9,7 @@ use App\Domain\Estimates\Models\EstimateItem;
 use App\Domain\Estimates\Models\EstimateItemSource;
 use App\Domain\Estimates\Models\EstimateTemplateMaterial;
 use App\Domain\Estimates\Models\EstimateTemplateSeptik;
+use App\Services\Pricing\PriceResolverService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -236,7 +237,7 @@ class EstimateTemplateService
         if ($price !== null) {
             $item->price = $price;
         } elseif ($item->price === null) {
-            $item->price = $this->resolvePrice($product);
+            $item->price = $this->resolvePrice($product, $estimate->tenant_id, $estimate->company_id);
         }
 
         $item->total = $item->qty * (float) ($item->price ?? 0);
@@ -298,7 +299,7 @@ class EstimateTemplateService
             $item->qty_manual = (float) ($item->qty_manual ?? 0);
             $item->qty = $item->qty_auto + $item->qty_manual;
             if ($item->price === null) {
-                $item->price = $this->resolvePrice($product);
+                $item->price = $this->resolvePrice($product, $estimate->tenant_id, $estimate->company_id);
             }
             $item->total = $item->qty * $item->price;
             $item->group_id = $this->resolveGroupId($product->product_type_id, $estimate);
@@ -358,14 +359,16 @@ class EstimateTemplateService
         return $group->id;
     }
 
-    private function resolvePrice(Product $product): float
+    private function resolvePrice(Product $product, ?int $tenantId, ?int $companyId): float
     {
-        if ($product->price_sale !== null) {
-            return (float) $product->price_sale;
-        }
-
-        if ($product->price !== null) {
-            return (float) $product->price;
+        if ($tenantId && $companyId) {
+            $price = app(PriceResolverService::class)->getPrices($tenantId, $companyId, (int) $product->id);
+            if ($price->price_sale !== null) {
+                return (float) $price->price_sale;
+            }
+            if ($price->price !== null) {
+                return (float) $price->price;
+            }
         }
 
         return 0.0;
