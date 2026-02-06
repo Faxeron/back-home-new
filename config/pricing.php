@@ -1,5 +1,5 @@
 <?php
 
 return [
-    'mode' => env('PRICING_MODE', 'dual_read'),
+    'mode' => env('PRICING_MODE', 'company_table_only'),
 ];
