@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog\Models;
 
+use App\Domain\Catalog\Traits\HasCatalogSlug;
 use App\Domain\Common\Traits\BelongsToCompany;
 use App\Domain\Common\Traits\BelongsToTenant;
 use App\Domain\Common\Traits\HasCreator;
@@ -18,12 +19,19 @@ class ProductSubcategory extends Model
     use BelongsToCompany;
     use HasCreator;
     use HasUpdater;
+    use HasCatalogSlug;
 
     protected $connection = 'legacy_new';
 
     protected $table = 'product_subcategories';
 
     protected $guarded = [];
+
+    protected $casts = [
+        'sort_order' => 'int',
+        'is_active' => 'bool',
+        'is_global' => 'bool',
+    ];
 
     public function category(): BelongsTo
     {
