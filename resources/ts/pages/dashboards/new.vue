@@ -4,6 +4,7 @@ import { $api } from '@/utils/api'
 import { formatSum } from '@/utils/formatters/finance'
 import { TRANSACTION_TABLE } from '@/modules/finance/config/transactionsTable.config'
 import NewCashboxesBalance, { type CashboxBalanceRow } from '@/views/dashboards/new/NewCashboxesBalance.vue'
+import NewCashflowAreaChart from '@/views/dashboards/new/NewCashflowAreaChart.vue'
 import NewRecentTransactions from '@/views/dashboards/new/NewRecentTransactions.vue'
 import type { Transaction } from '@/types/finance'
 
@@ -29,6 +30,18 @@ const monthSummaryError = ref('')
 const monthIncomes = ref<number>(0)
 const monthExpenses = ref<number>(0)
 
+type CashflowPoint = {
+  month: string
+  incomes_sum: number
+  expenses_sum: number
+  net_sum: number
+  currency?: string | null
+}
+
+const cashflowPoints = ref<CashflowPoint[]>([])
+const cashflowLoading = ref(false)
+const cashflowError = ref('')
+
 const updatedAt = ref<Date | null>(null)
 
 const cashboxesTotal = computed(() =>
@@ -50,6 +63,21 @@ const loadMonthSummary = async () => {
     monthExpenses.value = 0
   } finally {
     monthSummaryLoading.value = false
+  }
+}
+
+const loadCashflowSeries = async () => {
+  cashflowLoading.value = true
+  cashflowError.value = ''
+  try {
+    const response: any = await $api('finance/transactions/cashflow-series')
+    const data = response?.data ?? {}
+    cashflowPoints.value = Array.isArray(data?.points) ? data.points : []
+  } catch (error: any) {
+    cashflowError.value = error?.response?.data?.message ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РіСЂР°С„РёРє РґРІРёР¶РµРЅРёСЏ РґРµРЅРµРі.'
+    cashflowPoints.value = []
+  } finally {
+    cashflowLoading.value = false
   }
 }
 
@@ -110,7 +138,7 @@ const setTransactionsFilter = async (val: 'all' | 'income' | 'expense') => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([loadCashboxes(), loadRecentTransactions(), loadMonthSummary()])
+  await Promise.all([loadCashboxes(), loadRecentTransactions(), loadMonthSummary(), loadCashflowSeries()])
   updatedAt.value = new Date()
 }
 
@@ -196,6 +224,15 @@ onMounted(refreshAll)
         icon="tabler-arrow-up-right"
         color="error"
         :stats="monthSummaryLoading ? '—' : `${formatSum(monthExpenses)} RUB`"
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <NewCashflowAreaChart
+        :points="cashflowPoints"
+        :loading="cashflowLoading"
+        :error="cashflowError"
+        @refresh="loadCashflowSeries"
       />
     </VCol>
 

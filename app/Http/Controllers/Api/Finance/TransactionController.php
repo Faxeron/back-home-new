@@ -14,6 +14,7 @@ use App\Services\Finance\TransactionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -93,6 +94,74 @@ class TransactionController extends Controller
                 'expenses_sum' => $expenses,
                 'net_sum' => $incomes - $expenses,
                 'transactions_count' => (int) ($row?->transactions_count ?? 0),
+            ],
+        ]);
+    }
+
+    public function cashflowSeries(Request $request): JsonResponse
+    {
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        // Last 12 months including current month.
+        $from = now()->subMonths(11)->startOfMonth();
+        $to = now()->endOfMonth();
+
+        $driver = DB::connection()->getDriverName();
+        $monthExpr = match ($driver) {
+            'pgsql' => "to_char(transactions.created_at, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', transactions.created_at)",
+            default => "DATE_FORMAT(transactions.created_at, '%Y-%m')",
+        };
+
+        /** @var Collection<int, object> $rows */
+        $rows = Transaction::query()
+            ->leftJoin('transaction_types as tt', 'tt.id', '=', 'transactions.transaction_type_id')
+            ->where('transactions.tenant_id', $tenantId)
+            ->where('transactions.company_id', $companyId)
+            ->whereBetween('transactions.created_at', [$from, $to])
+            ->groupByRaw($monthExpr)
+            ->orderByRaw($monthExpr)
+            ->selectRaw("$monthExpr as ym")
+            ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign > 0 THEN transactions.sum ELSE 0 END), 0) as incomes_sum')
+            ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign < 0 THEN transactions.sum ELSE 0 END), 0) as expenses_sum')
+            ->get();
+
+        $byMonth = $rows
+            ->keyBy(fn ($r) => (string) ($r->ym ?? ''))
+            ->map(fn ($r) => [
+                'incomes_sum' => (float) ($r->incomes_sum ?? 0),
+                'expenses_sum' => (float) ($r->expenses_sum ?? 0),
+            ]);
+
+        $points = [];
+        $cursor = $from->copy();
+        while ($cursor->lte($to)) {
+            $ym = $cursor->format('Y-m');
+            $income = (float) ($byMonth->get($ym)['incomes_sum'] ?? 0);
+            $expense = (float) ($byMonth->get($ym)['expenses_sum'] ?? 0);
+
+            $points[] = [
+                'month' => $ym,
+                'incomes_sum' => $income,
+                'expenses_sum' => $expense,
+                'net_sum' => $income - $expense,
+                'currency' => 'RUB',
+            ];
+
+            $cursor->addMonthNoOverflow()->startOfMonth();
+        }
+
+        return response()->json([
+            'data' => [
+                'date_from' => $from->toDateString(),
+                'date_to' => $to->toDateString(),
+                'currency' => 'RUB',
+                'points' => $points,
             ],
         ]);
     }
