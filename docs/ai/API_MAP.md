@@ -9,12 +9,25 @@ Public (без auth)
 - GET `/api/estimate/{randomId}mnt`
 - GET `/api/public/cities`
 - GET `/api/public/companies`
+- GET `/api/public/catalog/tree`
+- GET `/api/public/catalog/categories/{slug}`
+- GET `/api/public/catalog/subcategories/{slug}`
+- GET `/api/public/catalog/brands/{slug}`
 - GET `/api/public/products`
 - GET `/api/public/products/{slug}`
 - POST `/api/public/leads`
 
+Public catalog rules (для сайта)
+- Для всех catalog/products endpoints обязателен контекст `city` или `company_id` (иначе 400).
+- `tenant_id=1` фиксирован для public API.
+- Товары: `products.is_visible=1`, `products.archived_at IS NULL`.
+- Цены: только `product_company_prices` с `is_active=1` и не-NULL `price_sale` или `price` (иначе товар не попадает в каталог).
+- Отладка: `?no_cache=1` отключает серверный кэш (если endpoint поддерживает).
+
 Finance (auth:sanctum + tenant.company)
 - GET `/api/finance/transactions`
+- GET `/api/finance/transactions/summary`
+- GET `/api/finance/transactions/cashflow-series`
 - DELETE `/api/finance/transactions/{transaction}`
 - GET `/api/finance/cashboxes`
 - GET `/api/finance/cashboxes/{cashBoxId}/balance`
@@ -38,6 +51,9 @@ Finance legacy aliases
 - GET `/api/finances/transactions`
 - GET `/api/finances/receipts`
 - GET `/api/finances/spendings`
+
+Dashboards (auth:sanctum + tenant.company)
+- GET `/api/dashboards/employee/summary`
 
 Common
 - GET `/api/common/companies`
@@ -129,6 +145,6 @@ Installations
 - PATCH `/api/installations/{contract}`
 
 ## REALITY STATUS
-- Реально реализовано: все маршруты перечислены в `routes/api.php` и совпадают с этим списком.
+- Реально реализовано: маршруты перечислены в `routes/api.php` и отражены в этом списке.
 - Легаси: `/api/finances/*` алиасы для старых клиентов.
 - Не сделано: отсутствует отдельный публичный API для компаний вне tenant=1 (не требуется сейчас).
