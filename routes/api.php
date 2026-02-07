@@ -59,6 +59,7 @@ use App\Http\Controllers\Api\Knowledge\KnowledgeTopicController;
 use App\Http\Controllers\Api\Dashboards\EmployeeDashboardController;
 use App\Modules\PublicApi\Controllers\PublicCityController;
 use App\Modules\PublicApi\Controllers\PublicCompanyController;
+use App\Modules\PublicApi\Controllers\PublicCatalogController;
 use App\Modules\PublicApi\Controllers\PublicLeadController;
 use App\Modules\PublicApi\Controllers\PublicProductController;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,7 @@ Route::get('estimate/{randomId}', [EstimatePublicController::class, 'show']);
 Route::prefix('public')->group(function (): void {
     Route::get('cities', [PublicCityController::class, 'index']);
     Route::get('companies', [PublicCompanyController::class, 'index']);
+    Route::get('catalog/tree', [PublicCatalogController::class, 'tree']);
     Route::get('products', [PublicProductController::class, 'index']);
     Route::get('products/{slug}', [PublicProductController::class, 'show']);
     Route::post('leads', [PublicLeadController::class, 'store'])->middleware('throttle:30,1');
