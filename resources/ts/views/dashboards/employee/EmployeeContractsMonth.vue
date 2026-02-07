@@ -7,51 +7,53 @@ const props = defineProps<{
   title?: string
   subtitle?: string
   labels: string[]
-  weekCounts: number[]
-  monthCount: number
-  monthSum: number
+  currentWeekCounts: number[]
+  prevWeekCounts: number[]
+  currentMonthCount: number
+  currentMonthSum: number
+  prevMonthCount: number
+  prevMonthSum: number
+  currentMonthLabel: string
+  prevMonthLabel: string
   currency?: string
 }>()
 
 const vuetifyTheme = useTheme()
+const currency = computed(() => props.currency ?? 'RUB')
 
-const series = computed(() => [{ data: props.weekCounts ?? [] }])
+const series = computed(() => ([
+  { name: props.currentMonthLabel, data: props.currentWeekCounts ?? [] },
+  { name: props.prevMonthLabel, data: props.prevWeekCounts ?? [] },
+]))
 
 const chartOptions = computed(() => {
   const currentTheme = vuetifyTheme.current.value.colors
   const variableTheme = vuetifyTheme.current.value.variables
 
   const labelColor = `rgba(${hexToRgb(currentTheme['on-surface'])},${variableTheme['disabled-opacity']})`
-  const soft = `rgba(${hexToRgb(currentTheme.primary)},0.18)`
-  const solid = `rgba(${hexToRgb(currentTheme.primary)},1)`
-
-  const colors = (props.weekCounts ?? []).map((_, idx, arr) => (idx === arr.length - 1 ? solid : soft))
 
   return {
     chart: {
-      height: 162,
       type: 'bar',
       parentHeightOffset: 0,
       toolbar: { show: false },
     },
     plotOptions: {
       bar: {
-        barHeight: '80%',
-        columnWidth: '38%',
+        columnWidth: '52%',
         startingShape: 'rounded',
         endingShape: 'rounded',
         borderRadius: 6,
-        distributed: true,
       },
     },
+    colors: [currentTheme.primary, currentTheme.info],
+    dataLabels: { enabled: false },
+    legend: { show: false },
     tooltip: { enabled: false },
     grid: {
       show: false,
-      padding: { top: -20, bottom: -12, left: -10, right: 0 },
+      padding: { top: -10, bottom: -8, left: -10, right: 10 },
     },
-    colors,
-    dataLabels: { enabled: false },
-    legend: { show: false },
     xaxis: {
       categories: props.labels ?? [],
       axisBorder: { show: false },
@@ -71,26 +73,24 @@ const chartOptions = computed(() => {
     },
   }
 })
-
-const currency = computed(() => props.currency ?? 'RUB')
 </script>
 
 <template>
   <VCard>
-    <VCardText class="d-flex justify-space-between gap-4">
-      <div class="d-flex flex-column">
-        <div class="mb-auto">
-          <h5 class="text-h5 text-no-wrap mb-2">
-            {{ props.title ?? 'Договоры' }}
-          </h5>
-          <div class="text-body-1">
-            {{ props.subtitle ?? 'Текущий месяц' }}
-          </div>
-        </div>
+    <VCardItem class="pb-3">
+      <VCardTitle class="text-no-wrap">
+        {{ props.title ?? 'Договоры' }}
+      </VCardTitle>
+    </VCardItem>
 
-        <div>
+    <VCardText class="d-flex align-start justify-space-between flex-wrap gap-4">
+      <div class="d-flex align-start gap-6 flex-wrap">
+        <div class="d-flex flex-column">
+          <div class="text-body-2 text-medium-emphasis mb-1">
+            {{ props.currentMonthLabel }}
+          </div>
           <div class="text-h4 mb-1">
-            {{ formatSum(props.monthSum ?? 0) }} {{ currency }}
+            {{ formatSum(props.currentMonthSum ?? 0) }} {{ currency }}
           </div>
           <VChip
             label
@@ -98,7 +98,24 @@ const currency = computed(() => props.currency ?? 'RUB')
             size="small"
             variant="tonal"
           >
-            Заключено: {{ props.monthCount ?? 0 }}
+            Договоров: {{ props.currentMonthCount ?? 0 }}
+          </VChip>
+        </div>
+
+        <div class="d-flex flex-column">
+          <div class="text-body-2 text-medium-emphasis mb-1">
+            {{ props.prevMonthLabel }}
+          </div>
+          <div class="text-h4 mb-1">
+            {{ formatSum(props.prevMonthSum ?? 0) }} {{ currency }}
+          </div>
+          <VChip
+            label
+            color="info"
+            size="small"
+            variant="tonal"
+          >
+            Договоров: {{ props.prevMonthCount ?? 0 }}
           </VChip>
         </div>
       </div>
@@ -107,10 +124,9 @@ const currency = computed(() => props.currency ?? 'RUB')
         <VueApexCharts
           :options="chartOptions"
           :series="series"
-          :height="162"
+          :height="178"
         />
       </div>
     </VCardText>
   </VCard>
 </template>
-

@@ -19,7 +19,9 @@ type SummaryResponse = {
     contracts: {
       all_time: { count: number; sum: number; currency: string }
       month: { count: number; sum: number; currency: string }
+      prev_month: { count: number; sum: number; currency: string }
       series: { labels: string[]; counts: number[]; sums: number[] }
+      prev_series: { labels: string[]; counts: number[]; sums: number[] }
     }
     payroll: {
       month: { count: number; accrued_sum: number; currency: string }
@@ -38,6 +40,16 @@ type SummaryResponse = {
 const loading = ref(false)
 const error = ref('')
 const summary = ref<SummaryResponse['data'] | null>(null)
+
+const monthLabelYY = (date: Date) => {
+  const month = new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(date)
+  const yy = String(date.getFullYear()).slice(-2)
+  const text = `${month} ${yy}`
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+const weekIndexLabels = (count: number) => Array.from({ length: count }, (_, i) => `Нед ${i + 1}`)
+const pad = (arr: number[], len: number) => (arr.length >= len ? arr : [...arr, ...Array.from({ length: len - arr.length }, () => 0)])
 
 const load = async () => {
   loading.value = true
@@ -97,11 +109,16 @@ onMounted(load)
       lg="6"
     >
       <EmployeeContractsMonth
-        :labels="summary?.contracts.series.labels ?? []"
-        :week-counts="summary?.contracts.series.counts ?? []"
-        :month-count="summary?.contracts.month.count ?? 0"
-        :month-sum="summary?.contracts.month.sum ?? 0"
-        :currency="summary?.contracts.month.currency ?? 'RUB'"
+        :labels="weekIndexLabels(Math.max(summary?.contracts.series.counts?.length ?? 0, summary?.contracts.prev_series.counts?.length ?? 0))"
+        :current-week-counts="pad(summary?.contracts.series.counts ?? [], Math.max(summary?.contracts.series.counts?.length ?? 0, summary?.contracts.prev_series.counts?.length ?? 0))"
+        :prev-week-counts="pad(summary?.contracts.prev_series.counts ?? [], Math.max(summary?.contracts.series.counts?.length ?? 0, summary?.contracts.prev_series.counts?.length ?? 0))"
+        :current-month-count="summary?.contracts.month.count ?? 0"
+        :current-month-sum="summary?.contracts.month.sum ?? 0"
+        :prev-month-count="summary?.contracts.prev_month.count ?? 0"
+        :prev-month-sum="summary?.contracts.prev_month.sum ?? 0"
+        :current-month-label="monthLabelYY(new Date())"
+        :prev-month-label="monthLabelYY(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1))"
+        :currency="summary?.contracts.month.currency ?? summary?.contracts.prev_month.currency ?? 'RUB'"
         title="Заключено договоров"
         subtitle="Текущий месяц"
       />
@@ -147,4 +164,3 @@ onMounted(load)
     </VCol>
   </VRow>
 </template>
-

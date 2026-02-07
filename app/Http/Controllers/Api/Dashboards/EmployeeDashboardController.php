@@ -24,8 +24,11 @@ final class EmployeeDashboardController extends Controller
             return response()->json(['message' => 'Missing tenant/company/user context.'], 403);
         }
 
-        $from = now()->startOfMonth();
-        $to = now()->endOfMonth();
+        $now = now();
+        $from = $now->copy()->startOfMonth();
+        $to = $now->copy()->endOfMonth();
+        $prevFrom = $now->copy()->subMonthNoOverflow()->startOfMonth();
+        $prevTo = $now->copy()->subMonthNoOverflow()->endOfMonth();
 
         $contractsAll = Contract::query()
             ->where('tenant_id', $tenantId)
@@ -36,11 +39,18 @@ final class EmployeeDashboardController extends Controller
             ->whereNotNull('contract_date')
             ->whereBetween('contract_date', [$from->toDateString(), $to->toDateString()]);
 
+        $contractsPrevMonth = (clone $contractsAll)
+            ->whereNotNull('contract_date')
+            ->whereBetween('contract_date', [$prevFrom->toDateString(), $prevTo->toDateString()]);
+
         $contractsAllCount = (int) (clone $contractsAll)->count();
         $contractsAllSum = (float) (clone $contractsAll)->sum('total_amount');
 
         $contractsMonthCount = (int) (clone $contractsMonth)->count();
         $contractsMonthSum = (float) (clone $contractsMonth)->sum('total_amount');
+
+        $contractsPrevMonthCount = (int) (clone $contractsPrevMonth)->count();
+        $contractsPrevMonthSum = (float) (clone $contractsPrevMonth)->sum('total_amount');
 
         $accrualsMonth = PayrollAccrual::query()
             ->where('tenant_id', $tenantId)
@@ -69,6 +79,11 @@ final class EmployeeDashboardController extends Controller
         $weekLabels = array_map(fn ($w) => $w['label'], $weeks);
 
         $contractsWeek = $this->bucketizeContracts($tenantId, $companyId, $userId, $from, $to, $weeks);
+
+        $prevWeeks = $this->buildWeekBuckets($prevFrom, $prevTo);
+        $prevWeekLabels = array_map(fn ($w) => $w['label'], $prevWeeks);
+        $contractsPrevWeek = $this->bucketizeContracts($tenantId, $companyId, $userId, $prevFrom, $prevTo, $prevWeeks);
+
         $salaryWeek = $this->bucketizeAccruals($tenantId, $companyId, $userId, $from, $to, $weeks);
         $estimatesWeek = $this->bucketizeEstimates($tenantId, $companyId, $userId, $from, $to, $weeks);
 
@@ -89,10 +104,20 @@ final class EmployeeDashboardController extends Controller
                         'sum' => $contractsMonthSum,
                         'currency' => 'RUB',
                     ],
+                    'prev_month' => [
+                        'count' => $contractsPrevMonthCount,
+                        'sum' => $contractsPrevMonthSum,
+                        'currency' => 'RUB',
+                    ],
                     'series' => [
                         'labels' => $weekLabels,
                         'counts' => $contractsWeek['counts'],
                         'sums' => $contractsWeek['sums'],
+                    ],
+                    'prev_series' => [
+                        'labels' => $prevWeekLabels,
+                        'counts' => $contractsPrevWeek['counts'],
+                        'sums' => $contractsPrevWeek['sums'],
                     ],
                 ],
                 'payroll' => [
