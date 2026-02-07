@@ -73,6 +73,9 @@ Route::prefix('public')->group(function (): void {
     Route::get('cities', [PublicCityController::class, 'index']);
     Route::get('companies', [PublicCompanyController::class, 'index']);
     Route::get('catalog/tree', [PublicCatalogController::class, 'tree']);
+    Route::get('catalog/categories/{slug}', [PublicCatalogController::class, 'category']);
+    Route::get('catalog/subcategories/{slug}', [PublicCatalogController::class, 'subcategory']);
+    Route::get('catalog/brands/{slug}', [PublicCatalogController::class, 'brand']);
     Route::get('products', [PublicProductController::class, 'index']);
     Route::get('products/{slug}', [PublicProductController::class, 'show']);
     Route::post('leads', [PublicLeadController::class, 'store'])->middleware('throttle:30,1');

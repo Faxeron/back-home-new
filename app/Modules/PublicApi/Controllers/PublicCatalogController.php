@@ -17,7 +17,7 @@ class PublicCatalogController extends Controller
     ) {
     }
 
-    public function tree(Request $request): JsonResponse
+    private function resolveContext(Request $request): array
     {
         $citySlug = trim((string) $request->get('city', ''));
         $citySlug = $citySlug === '' ? null : $citySlug;
@@ -26,6 +26,13 @@ class PublicCatalogController extends Controller
         $companyId = $companyId > 0 ? $companyId : null;
 
         $context = $this->contextResolver->resolve($citySlug, $companyId);
+
+        return [$context, $citySlug];
+    }
+
+    public function tree(Request $request): JsonResponse
+    {
+        [$context, $citySlug] = $this->resolveContext($request);
         if (isset($context['error'])) {
             return response()->json([
                 'error' => $context['error'],
@@ -47,5 +54,82 @@ class PublicCatalogController extends Controller
             ->json(['data' => $payload])
             ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=600');
     }
-}
 
+    public function category(Request $request, string $slug): JsonResponse
+    {
+        [$context, $citySlug] = $this->resolveContext($request);
+        if (isset($context['error'])) {
+            return response()->json(['error' => $context['error']], 400);
+        }
+
+        $companyId = (int) $context['company_id'];
+        $noCache = $request->boolean('no_cache');
+
+        $cacheKey = 'public:catalog:category:' . $slug . ':company:' . $companyId . ':city:' . ($citySlug ?? 'none');
+        $buildPayload = fn () => $this->catalogService->getCategoryPage($companyId, $slug);
+
+        $payload = $noCache
+            ? $buildPayload()
+            : Cache::remember($cacheKey, now()->addSeconds(600), $buildPayload);
+
+        if ($payload === null) {
+            return response()->json(['error' => 'category_not_found'], 404)
+                ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=300');
+        }
+
+        return response()->json(['data' => $payload])
+            ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=600');
+    }
+
+    public function subcategory(Request $request, string $slug): JsonResponse
+    {
+        [$context, $citySlug] = $this->resolveContext($request);
+        if (isset($context['error'])) {
+            return response()->json(['error' => $context['error']], 400);
+        }
+
+        $companyId = (int) $context['company_id'];
+        $noCache = $request->boolean('no_cache');
+
+        $cacheKey = 'public:catalog:subcategory:' . $slug . ':company:' . $companyId . ':city:' . ($citySlug ?? 'none');
+        $buildPayload = fn () => $this->catalogService->getSubcategoryPage($companyId, $slug);
+
+        $payload = $noCache
+            ? $buildPayload()
+            : Cache::remember($cacheKey, now()->addSeconds(600), $buildPayload);
+
+        if ($payload === null) {
+            return response()->json(['error' => 'subcategory_not_found'], 404)
+                ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=300');
+        }
+
+        return response()->json(['data' => $payload])
+            ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=600');
+    }
+
+    public function brand(Request $request, string $slug): JsonResponse
+    {
+        [$context, $citySlug] = $this->resolveContext($request);
+        if (isset($context['error'])) {
+            return response()->json(['error' => $context['error']], 400);
+        }
+
+        $companyId = (int) $context['company_id'];
+        $noCache = $request->boolean('no_cache');
+
+        $cacheKey = 'public:catalog:brand:' . $slug . ':company:' . $companyId . ':city:' . ($citySlug ?? 'none');
+        $buildPayload = fn () => $this->catalogService->getBrandPage($companyId, $slug);
+
+        $payload = $noCache
+            ? $buildPayload()
+            : Cache::remember($cacheKey, now()->addSeconds(600), $buildPayload);
+
+        if ($payload === null) {
+            return response()->json(['error' => 'brand_not_found'], 404)
+                ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=300');
+        }
+
+        return response()->json(['data' => $payload])
+            ->header('Cache-Control', $noCache ? 'no-store' : 'public, max-age=600');
+    }
+}

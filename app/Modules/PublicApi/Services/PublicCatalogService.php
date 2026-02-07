@@ -119,5 +119,155 @@ final class PublicCatalogService
             'filters' => $filters,
         ];
     }
-}
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getCategoryPage(int $companyId, string $slug): ?array
+    {
+        $slug = trim($slug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $category = $this->findCompanyOrGlobal(ProductCategory::class, $companyId, $slug, [
+            'id', 'slug', 'name', 'sort_order', 'h1', 'seo_title', 'seo_description',
+        ]);
+
+        if (!$category) {
+            return null;
+        }
+
+        $children = ProductSubcategory::query()
+            ->select(['id', 'slug', 'name', 'sort_order'])
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->where('category_id', (int) $category->id)
+            ->where(function ($q) use ($companyId): void {
+                $q->where('company_id', $companyId)->orWhere('is_global', true);
+            })
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn ($s) => [
+                'id' => (int) $s->id,
+                'slug' => (string) $s->slug,
+                'name' => (string) $s->name,
+                'sort_order' => (int) ($s->sort_order ?? 0),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'id' => (int) $category->id,
+            'slug' => (string) $category->slug,
+            'name' => (string) $category->name,
+            'sort_order' => (int) ($category->sort_order ?? 0),
+            'h1' => $category->h1 ? (string) $category->h1 : null,
+            'seo_title' => $category->seo_title ? (string) $category->seo_title : null,
+            'seo_description' => $category->seo_description ? (string) $category->seo_description : null,
+            'children' => $children,
+            'company_id' => $companyId,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getSubcategoryPage(int $companyId, string $slug): ?array
+    {
+        $slug = trim($slug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $subcategory = $this->findCompanyOrGlobal(ProductSubcategory::class, $companyId, $slug, [
+            'id', 'slug', 'name', 'sort_order', 'category_id', 'h1', 'seo_title', 'seo_description',
+        ]);
+
+        if (!$subcategory) {
+            return null;
+        }
+
+        $category = ProductCategory::query()
+            ->select(['id', 'slug', 'name', 'sort_order', 'h1', 'seo_title', 'seo_description'])
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->where('id', (int) $subcategory->category_id)
+            ->where(function ($q) use ($companyId): void {
+                $q->where('company_id', $companyId)->orWhere('is_global', true);
+            })
+            ->first();
+
+        $categoryArr = $category ? [
+            'id' => (int) $category->id,
+            'slug' => (string) $category->slug,
+            'name' => (string) $category->name,
+            'sort_order' => (int) ($category->sort_order ?? 0),
+            'h1' => $category->h1 ? (string) $category->h1 : null,
+            'seo_title' => $category->seo_title ? (string) $category->seo_title : null,
+            'seo_description' => $category->seo_description ? (string) $category->seo_description : null,
+        ] : null;
+
+        return [
+            'id' => (int) $subcategory->id,
+            'slug' => (string) $subcategory->slug,
+            'name' => (string) $subcategory->name,
+            'sort_order' => (int) ($subcategory->sort_order ?? 0),
+            'h1' => $subcategory->h1 ? (string) $subcategory->h1 : null,
+            'seo_title' => $subcategory->seo_title ? (string) $subcategory->seo_title : null,
+            'seo_description' => $subcategory->seo_description ? (string) $subcategory->seo_description : null,
+            'category' => $categoryArr,
+            'company_id' => $companyId,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getBrandPage(int $companyId, string $slug): ?array
+    {
+        $slug = trim($slug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $brand = $this->findCompanyOrGlobal(ProductBrand::class, $companyId, $slug, [
+            'id', 'slug', 'name', 'sort_order',
+        ]);
+
+        if (!$brand) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $brand->id,
+            'slug' => (string) $brand->slug,
+            'name' => (string) $brand->name,
+            'sort_order' => (int) ($brand->sort_order ?? 0),
+            'company_id' => $companyId,
+        ];
+    }
+
+    /**
+     * Prefer company-specific record; fallback to global.
+     *
+     * @param class-string<\Illuminate\Database\Eloquent\Model> $modelClass
+     * @param array<int, string> $select
+     */
+    private function findCompanyOrGlobal(string $modelClass, int $companyId, string $slug, array $select)
+    {
+        $base = $modelClass::query()
+            ->select($select)
+            ->where('tenant_id', self::TENANT_ID)
+            ->where('is_active', true)
+            ->where('slug', $slug);
+
+        $company = (clone $base)->where('company_id', $companyId)->first();
+        if ($company) {
+            return $company;
+        }
+
+        return $base->where('is_global', true)->first();
+    }
+}
