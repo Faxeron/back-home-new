@@ -37,31 +37,38 @@ class PublicProductController extends Controller
         $noCache = $request->boolean('no_cache');
 
         $cacheKey = sprintf(
-            'public:products:list:company:%d:city:%s:page:%d:per:%d:category:%s',
+            'public:products:list:v2:company:%d:city:%s:page:%d:per:%d:hash:%s',
             $companyId,
             $citySlug ?? 'none',
             $filters->page,
             $filters->per_page,
-            $filters->category ?? 'none'
+            sha1(json_encode([
+                'category' => $filters->category,
+                'category_id' => $filters->category_id,
+                'sub_category_id' => $filters->sub_category_id,
+                'brand_id' => $filters->brand_id,
+                'price_min' => $filters->price_min,
+                'price_max' => $filters->price_max,
+                'q' => $filters->q,
+                'attrs' => $filters->attrs,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: 'x')
         );
 
         $buildPayload = function () use ($filters, $companyId) {
             $products = $this->productService->paginateProducts($filters, $companyId);
 
-            $cityMap = $this->productService->getCityMapForCompanyIds([$companyId]);
-
             $data = collect($products->items())
-                ->map(fn ($product) => $this->cardTransformer->toDTO($product, $companyId, $cityMap)->toArray())
+                ->map(fn ($product) => $this->cardTransformer->toDTO($product, $companyId)->toArray())
                 ->values()
                 ->all();
 
             return [
                 'data' => $data,
                 'meta' => [
-                    'current_page' => $products->currentPage(),
+                    'page' => $products->currentPage(),
                     'per_page' => $products->perPage(),
                     'total' => $products->total(),
-                    'last_page' => $products->lastPage(),
+                    'has_more' => $products->currentPage() < $products->lastPage(),
                 ],
             ];
         };

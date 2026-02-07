@@ -5,25 +5,25 @@ namespace App\Modules\PublicApi\DTO;
 final class ProductCardDTO
 {
     /**
-     * @param array<int, string> $images
      * @param array<string, mixed>|null $category
+     * @param array<string, mixed>|null $subcategory
      * @param array<string, mixed>|null $brand
-     * @param array<int, string> $city_available
+     * @param array<string, mixed> $price
      */
     public function __construct(
         public int $id,
         public string $slug,
         public string $name,
-        public ?float $price,
-        public ?float $price_sale,
-        public ?float $price_delivery,
-        public ?float $montaj,
-        public ?string $currency,
-        public array $images,
+        public int $sort_order,
+        public bool $is_top,
+        public bool $is_new,
         public ?array $category,
+        public ?array $subcategory,
         public ?array $brand,
-        public array $city_available,
-        public ?int $company_id,
+        public array $price,
+        public ?string $image,
+        public ?string $description_short,
+        public int $company_id,
     ) {
     }
 
@@ -33,16 +33,17 @@ final class ProductCardDTO
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
-            'price' => $this->price,
-            'price_sale' => $this->price_sale,
-            'price_delivery' => $this->price_delivery,
-            'montaj' => $this->montaj,
-            'currency' => $this->currency,
-            'images' => $this->images,
+            'sort_order' => $this->sort_order,
+            'is_top' => $this->is_top,
+            'is_new' => $this->is_new,
             'category' => $this->category,
+            'subcategory' => $this->subcategory,
             'brand' => $this->brand,
-            'city_available' => $this->city_available,
+            'price' => $this->price,
+            'image' => $this->image,
+            'description_short' => $this->description_short,
             'company_id' => $this->company_id,
         ];
     }
 }
+

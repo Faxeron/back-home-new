@@ -7,59 +7,77 @@ use App\Modules\PublicApi\DTO\ProductCardDTO;
 
 final class ProductCardTransformer
 {
-    /**
-     * @param array<int, array<int, string>> $cityMap
-     */
-    public function toDTO(Product $product, int $companyId, array $cityMap = []): ProductCardDTO
+    public function toDTO(Product $product, int $companyId): ProductCardDTO
     {
         $hasCompanyPrice = $product->pcp_company_id !== null;
-        $price = $hasCompanyPrice ? $product->pcp_price : null;
-        $priceSale = $hasCompanyPrice ? ($product->pcp_price_sale ?? $product->pcp_price) : null;
-        $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
-        $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
-        $currency = $product->pcp_currency ?: 'RUB';
+        $price = $hasCompanyPrice ? ($product->pcp_price !== null ? (float) $product->pcp_price : null) : null;
+        $priceSale = $hasCompanyPrice ? ($product->pcp_price_sale !== null ? (float) $product->pcp_price_sale : $price) : null;
+        $priceDelivery = $hasCompanyPrice ? ($product->pcp_price_delivery !== null ? (float) $product->pcp_price_delivery : null) : null;
+        $montaj = $hasCompanyPrice ? ($product->pcp_montaj !== null ? (float) $product->pcp_montaj : null) : null;
+        $currency = $hasCompanyPrice ? (($product->pcp_currency ?: 'RUB') ?: 'RUB') : 'RUB';
 
-        $images = [];
+        $image = null;
         if ($product->relationLoaded('media')) {
-            $images = $product->media
-                ->map(fn ($media) => (string) $media->url)
-                ->filter(fn ($url) => $url !== '')
-                ->values()
-                ->all();
+            $main = $product->media->firstWhere('is_main', true) ?? $product->media->first();
+            if ($main) {
+                $url = trim((string) ($main->url ?? ''));
+                $image = $url !== '' ? $url : null;
+            }
         }
 
         $category = null;
         if ($product->relationLoaded('category') && $product->category) {
             $category = [
-                'id' => $product->category->id,
-                'name' => $product->category->name,
+                'id' => (int) $product->category->id,
+                'slug' => (string) $product->category->slug,
+                'name' => (string) $product->category->name,
+            ];
+        }
+
+        $subcategory = null;
+        if ($product->relationLoaded('subCategory') && $product->subCategory) {
+            $subcategory = [
+                'id' => (int) $product->subCategory->id,
+                'slug' => (string) $product->subCategory->slug,
+                'name' => (string) $product->subCategory->name,
             ];
         }
 
         $brand = null;
         if ($product->relationLoaded('brand') && $product->brand) {
             $brand = [
-                'id' => $product->brand->id,
-                'name' => $product->brand->name,
+                'id' => (int) $product->brand->id,
+                'slug' => (string) $product->brand->slug,
+                'name' => (string) $product->brand->name,
             ];
         }
 
-        $cityAvailable = isset($cityMap[$companyId]) ? $cityMap[$companyId] : [];
+        $descriptionShort = null;
+        if ($product->relationLoaded('description') && $product->description) {
+            $descriptionShortRaw = (string) ($product->description->description_short ?? '');
+            $descriptionShort = trim($descriptionShortRaw) !== '' ? trim($descriptionShortRaw) : null;
+        }
 
         return new ProductCardDTO(
             id: (int) $product->id,
             slug: (string) $product->slug,
             name: (string) $product->name,
-            price: $price !== null ? (float) $price : null,
-            price_sale: $priceSale !== null ? (float) $priceSale : null,
-            price_delivery: $priceDelivery !== null ? (float) $priceDelivery : null,
-            montaj: $montaj !== null ? (float) $montaj : null,
-            currency: $currency !== null ? (string) $currency : null,
-            images: $images,
+            sort_order: (int) ($product->sort_order ?? 0),
+            is_top: (bool) ($product->is_top ?? false),
+            is_new: (bool) ($product->is_new ?? false),
             category: $category,
+            subcategory: $subcategory,
             brand: $brand,
-            city_available: $cityAvailable,
-            company_id: $companyId,
+            price: [
+                'price' => $price,
+                'price_sale' => $priceSale,
+                'price_delivery' => $priceDelivery,
+                'montaj' => $montaj,
+                'currency' => $currency,
+            ],
+            image: $image,
+            description_short: $descriptionShort,
+            company_id: (int) $companyId,
         );
     }
 }
