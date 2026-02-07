@@ -105,7 +105,6 @@ Response:
       "price_delivery": 3000,
       "montaj": 15000,
       "currency": "RUB",
-      "old_price": 120000,
       "images": ["/storage/.../1.jpg"],
       "category": {"id": 3, "name": "Септики"},
       "brand": {"id": 2, "name": "Brand"},

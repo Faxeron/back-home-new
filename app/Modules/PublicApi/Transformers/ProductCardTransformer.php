@@ -18,11 +18,6 @@ final class ProductCardTransformer
         $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
         $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
         $currency = $product->pcp_currency ?: 'RUB';
-        // For our pricing model: base price is always higher than sale price (when sale is present),
-        // so old_price is just the base price.
-        $oldPrice = ($hasCompanyPrice && $product->pcp_price !== null && $product->pcp_price_sale !== null)
-            ? (float) $product->pcp_price
-            : null;
 
         $images = [];
         if ($product->relationLoaded('media')) {
@@ -60,7 +55,6 @@ final class ProductCardTransformer
             price_delivery: $priceDelivery !== null ? (float) $priceDelivery : null,
             montaj: $montaj !== null ? (float) $montaj : null,
             currency: $currency !== null ? (string) $currency : null,
-            old_price: $oldPrice !== null ? (float) $oldPrice : null,
             images: $images,
             category: $category,
             brand: $brand,
