@@ -18,13 +18,11 @@ final class ProductCardTransformer
         $priceDelivery = $hasCompanyPrice ? $product->pcp_price_delivery : null;
         $montaj = $hasCompanyPrice ? $product->pcp_montaj : null;
         $currency = $product->pcp_currency ?: 'RUB';
-        // old_price is only meaningful when a base price exists and sale is lower than base.
-        $oldPrice = null;
-        if ($hasCompanyPrice && $product->pcp_price !== null && $product->pcp_price_sale !== null) {
-            $base = (float) $product->pcp_price;
-            $sale = (float) $product->pcp_price_sale;
-            $oldPrice = $sale < $base ? $base : null;
-        }
+        // For our pricing model: base price is always higher than sale price (when sale is present),
+        // so old_price is just the base price.
+        $oldPrice = ($hasCompanyPrice && $product->pcp_price !== null && $product->pcp_price_sale !== null)
+            ? (float) $product->pcp_price
+            : null;
 
         $images = [];
         if ($product->relationLoaded('media')) {
