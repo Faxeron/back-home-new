@@ -7,16 +7,15 @@
 - `city` — slug из `cities`, должен иметь `company_id`.
 - `company_id` должен существовать в `companies` (tenant=1).
 - Цены берутся только из `product_company_prices`.
-- Если для компании нет цены, все price fields = null (включая `price_sale`).
+- В публичный каталог **не попадают** товары без активной строки цены (`product_company_prices.is_active=1`) или без числовой цены (`price_sale` или `price` должны быть не NULL).
 - Кэш: серверный Cache::remember с ключом, включающим `company_id`/`city`.
 - Для отладки можно отключить серверный кэш: `?no_cache=1` (Cache-Control: no-store).
 
-## Диагностика NULL-цен (обязательная проверка при интеграции)
-Если на витрине появляется "Цена по запросу", это означает ровно одно: API вернул `null` в `price`/`price_sale` (фронт это не "придумывает").
-
-Есть 2 разные причины на стороне ERP:
-1) В `product_company_prices` нет строки для нужного `product_id` + `company_id` (или строка есть, но `is_active=0`).
-2) Строка есть, но оба поля `price` и `price_sale` равны `NULL` (например, сделали backfill структуры без фактических значений).
+## Диагностика отсутствия товара в каталоге (цены/активность)
+Если товара нет в списке `/api/public/products`, это означает одно из:
+1) В `product_company_prices` нет активной строки для `tenant_id=1` + `company_id` + `product_id` (`is_active=1`).
+2) Активная строка есть, но оба поля `price_sale` и `price` равны `NULL` (публичный каталог такие товары не показывает).
+3) Товар скрыт: `products.is_visible=0` или `products.archived_at IS NOT NULL`.
 
 Чек-лист (tenant=1, companies=1,2):
 ```bash
@@ -83,12 +82,67 @@ Response:
 
 ---
 
+## GET /api/public/catalog/tree
+Дерево каталога для построения меню/фильтров.
+
+Query:
+- `company_id` или `city` (обязательно)
+
+Response:
+```json
+{
+  "data": {
+    "categories": [
+      {
+        "id": 1,
+        "slug": "septiki",
+        "name": "Септики",
+        "sort_order": 10,
+        "children": [
+          {
+            "id": 11,
+            "slug": "evrolos",
+            "name": "Евролос",
+            "sort_order": 10
+          }
+        ]
+      }
+    ],
+    "brands": [
+      { "id": 2, "slug": "evrolos", "name": "Евролос", "sort_order": 10 }
+    ],
+    "filters": [
+      { "id": 10, "code": "people", "name": "Для людей", "unit": "чел", "value_type": "number", "sort_order": 10 }
+    ]
+  }
+}
+```
+
+---
+
 ## GET /api/public/products
 Список товаров (company-aware).
 
 Query:
 - `company_id` или `city` (обязательно)
-- `category` (optional) — id или name
+- `page` (optional, default 1)
+- `per_page` (optional, default 24, max 100)
+
+Фильтры (optional):
+- `category_id`
+- `sub_category_id`
+- `brand_id`
+- `price_min`
+- `price_max`
+- `q` (поиск по `products.name`/`products.scu`)
+- `attrs[ID]=value` (например `attrs[10]=5`)
+
+Сортировка:
+- по умолчанию: `ORDER BY products.sort_order ASC, products.id DESC`
+
+Ответ:
+- `data[*].price.price` это "зачеркнутая" цена (старая)
+- `data[*].price.price_sale` это актуальная цена
 - `page` (optional, default 1)
 - `per_page` (optional, default 24, max 100)
 
@@ -100,23 +154,29 @@ Response:
       "id": 101,
       "slug": "septik-abc",
       "name": "Септик ABC",
-      "price": 120000,
-      "price_sale": 99000,
-      "price_delivery": 3000,
-      "montaj": 15000,
-      "currency": "RUB",
-      "images": ["/storage/.../1.jpg"],
-      "category": {"id": 3, "name": "Септики"},
-      "brand": {"id": 2, "name": "Brand"},
-      "city_available": ["surgut"],
+      "sort_order": 120,
+      "is_top": true,
+      "is_new": false,
+      "category": { "id": 3, "slug": "septiki", "name": "Септики" },
+      "subcategory": { "id": 7, "slug": "evrolos", "name": "Евролос" },
+      "brand": { "id": 2, "slug": "brand", "name": "Brand" },
+      "price": {
+        "price": 120000,
+        "price_sale": 99000,
+        "price_delivery": 3000,
+        "montaj": 15000,
+        "currency": "RUB"
+      },
+      "image": "/storage/.../1.jpg",
+      "description_short": "Короткое описание...",
       "company_id": 1
     }
   ],
   "meta": {
-    "current_page": 1,
+    "page": 1,
     "per_page": 24,
     "total": 120,
-    "last_page": 5
+    "has_more": true
   }
 }
 ```
@@ -136,17 +196,30 @@ Response:
     "id": 101,
     "slug": "septik-abc",
     "name": "Септик ABC",
-    "description": "...",
-    "specs": [{"name": "Объем", "value": "2м3"}],
-    "images": ["/storage/.../1.jpg"],
-    "price": 120000,
-    "price_sale": 99000,
-    "price_delivery": 3000,
-    "montaj": 15000,
-    "currency": "RUB",
-    "brand": {"id": 2, "name": "Brand"},
-    "category": {"id": 3, "name": "Септики"},
-    "faq": [],
+    "sort_order": 120,
+    "is_top": true,
+    "is_new": false,
+    "category": { "id": 3, "slug": "septiki", "name": "Септики" },
+    "subcategory": { "id": 7, "slug": "evrolos", "name": "Евролос" },
+    "brand": { "id": 2, "slug": "brand", "name": "Brand" },
+    "price": {
+      "price": 120000,
+      "price_sale": 99000,
+      "price_delivery": 3000,
+      "montaj": 15000,
+      "currency": "RUB"
+    },
+    "description_short": "Короткое описание...",
+    "description_long": "Длинное описание...",
+    "media": [
+      { "url": "/storage/.../1.jpg", "alt": "Фото", "is_main": true, "sort_order": 10, "type": "image" }
+    ],
+    "attributes": [
+      { "id": 10, "code": "people", "name": "Для людей", "value": 5, "unit": "чел" }
+    ],
+    "related_products": [
+      { "id": 202, "slug": "septik-xyz", "name": "Септик XYZ", "price": { "price": 100000, "price_sale": 95000, "price_delivery": null, "montaj": null, "currency": "RUB" }, "image": "/storage/.../2.jpg", "description_short": null, "sort_order": 1000, "is_top": false, "is_new": false, "category": null, "subcategory": null, "brand": null, "company_id": 1 }
+    ],
     "seo": null,
     "company_id": 1
   }
@@ -183,6 +256,6 @@ Response:
 ```
 
 ## REALITY STATUS
-- Реально реализовано: endpoints и поля соответствуют текущему public API.
-- Легаси: нет.
-- Не сделано: публичная аутентификация/ограничения доступа (не требуется).
+- Реально реализовано: `cities`, `companies`, `catalog/tree`, `products` (list + slug), `leads`.
+- Легаси: параметр `category` в `/products` (оставлен для совместимости, но рекомендуется `category_id`).
+- Не сделано: отдельный endpoint для SEO-страниц категорий/брендов (пока строится на основе `catalog/tree` + `/products`).
