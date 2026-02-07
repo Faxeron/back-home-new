@@ -107,7 +107,13 @@ class PublicProductController extends Controller
                 return null;
             }
 
-            return $this->pageTransformer->toDTO($product, $resolvedCompanyId)->toArray();
+            $relatedProducts = $this->productService->getRelatedProducts($product, $resolvedCompanyId, 8);
+            $relatedDtos = array_map(
+                fn ($p) => $this->cardTransformer->toDTO($p, $resolvedCompanyId),
+                $relatedProducts,
+            );
+
+            return $this->pageTransformer->toDTO($product, $resolvedCompanyId, $relatedDtos)->toArray();
         };
 
         $payload = $noCache

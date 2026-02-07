@@ -16,9 +16,41 @@ final class PublicProductService
     public function findBySlug(string $slug, int $companyId): ?Product
     {
         return $this->baseCompanyQuery($companyId)
-            ->with(['category', 'brand', 'media', 'description', 'attributeValues.definition'])
+            ->with(['category', 'subCategory', 'brand', 'media', 'description', 'attributeValues.definition'])
             ->where('slug', $slug)
             ->first();
+    }
+
+    /**
+     * @return array<int, Product>
+     */
+    public function getRelatedProducts(Product $product, int $companyId, int $limit = 8): array
+    {
+        $limit = $limit > 0 ? min($limit, 24) : 8;
+
+        $ids = $product->relations()
+            ->select(['related_product_id'])
+            ->where('tenant_id', self::TENANT_ID)
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->pluck('related_product_id')
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0)
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->baseCompanyQuery($companyId)
+            ->with(['category', 'subCategory', 'brand', 'media', 'description'])
+            ->whereIn('products.id', $ids)
+            ->orderBy('products.sort_order')
+            ->orderByDesc('products.id')
+            ->limit($limit)
+            ->get()
+            ->all();
     }
 
     public function paginateProducts(PublicProductFilterDTO $filter, int $companyId): LengthAwarePaginator
