@@ -51,13 +51,14 @@ final class PublicProductService
                     ->where('pcp.company_id', $companyId)
                     ->where('pcp.is_active', true);
             })
+            // Use explicit aliases; array-key aliasing is not reliable across Builder/Eloquent versions.
             ->addSelect([
-                'pcp_price' => 'pcp.price',
-                'pcp_price_sale' => 'pcp.price_sale',
-                'pcp_price_delivery' => 'pcp.price_delivery',
-                'pcp_montaj' => 'pcp.montaj',
-                'pcp_currency' => 'pcp.currency',
-                'pcp_company_id' => 'pcp.company_id',
+                'pcp.price as pcp_price',
+                'pcp.price_sale as pcp_price_sale',
+                'pcp.price_delivery as pcp_price_delivery',
+                'pcp.montaj as pcp_montaj',
+                'pcp.currency as pcp_currency',
+                'pcp.company_id as pcp_company_id',
             ])
             ->where('products.tenant_id', self::TENANT_ID)
             ->whereNull('products.archived_at')
