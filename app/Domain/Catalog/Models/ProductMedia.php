@@ -24,6 +24,12 @@ class ProductMedia extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'sort_order' => 'int',
+        'is_main' => 'bool',
+        'is_global' => 'bool',
+    ];
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');

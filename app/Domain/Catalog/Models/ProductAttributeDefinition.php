@@ -25,6 +25,13 @@ class ProductAttributeDefinition extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_visible' => 'bool',
+        'is_filterable' => 'bool',
+        'sort_order' => 'int',
+        'is_global' => 'bool',
+    ];
+
     public function values(): HasMany
     {
         return $this->hasMany(ProductAttributeValue::class, 'attribute_id');
