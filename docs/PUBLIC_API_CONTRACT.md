@@ -120,6 +120,88 @@ Response:
 
 ---
 
+## GET /api/public/catalog/categories/{slug}
+SEO-страница категории (для построения URL и мета-тегов).
+
+Query:
+- `company_id` или `city` (обязательно)
+
+Response:
+```json
+{
+  "data": {
+    "id": 1,
+    "slug": "septiki",
+    "name": "Септики",
+    "sort_order": 10,
+    "h1": "Септики",
+    "seo_title": "Септики в Сургуте",
+    "seo_description": "Каталог септиков...",
+    "children": [
+      { "id": 11, "slug": "evrolos", "name": "Евролос", "sort_order": 10 }
+    ],
+    "company_id": 1
+  }
+}
+```
+
+Ошибки:
+- `404` `category_not_found`
+
+---
+
+## GET /api/public/catalog/subcategories/{slug}
+SEO-страница подкатегории.
+
+Query:
+- `company_id` или `city` (обязательно)
+
+Response:
+```json
+{
+  "data": {
+    "id": 11,
+    "slug": "evrolos",
+    "name": "Евролос",
+    "sort_order": 10,
+    "h1": "Евролос",
+    "seo_title": null,
+    "seo_description": null,
+    "category": { "id": 1, "slug": "septiki", "name": "Септики", "sort_order": 10, "h1": null, "seo_title": null, "seo_description": null },
+    "company_id": 1
+  }
+}
+```
+
+Ошибки:
+- `404` `subcategory_not_found`
+
+---
+
+## GET /api/public/catalog/brands/{slug}
+SEO-страница бренда.
+
+Query:
+- `company_id` или `city` (обязательно)
+
+Response:
+```json
+{
+  "data": {
+    "id": 2,
+    "slug": "evrolos",
+    "name": "Евролос",
+    "sort_order": 10,
+    "company_id": 1
+  }
+}
+```
+
+Ошибки:
+- `404` `brand_not_found`
+
+---
+
 ## GET /api/public/products
 Список товаров (company-aware).
 
