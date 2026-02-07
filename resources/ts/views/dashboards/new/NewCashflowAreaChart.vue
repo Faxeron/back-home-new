@@ -34,10 +34,10 @@ const categories = computed(() => {
   })
 })
 
-const currency = computed(() => props.points?.[0]?.currency ?? 'RUB')
-
-// Scale values in units of 10k RUB so the y-axis is naturally aligned to 10k steps.
-const scale = 10_000
+// Scale values in units of 1k RUB so the y-axis isn't shown in millions.
+// Labels and tooltip are shown as kRUB.
+const scale = 1_000
+const unitLabel = 'kRUB'
 const series = computed(() => {
   const income = (props.points ?? []).map(p => (Number(p.incomes_sum ?? 0) || 0) / scale)
   const expense = (props.points ?? []).map(p => (Number(p.expenses_sum ?? 0) || 0) / scale)
@@ -59,7 +59,19 @@ const yAxis = computed(() => {
   const max = Math.ceil(maxVal)
   const span = Math.max(1, max - min)
 
-  const step = Math.max(1, Math.ceil(span / 12))
+  // Prefer steps that are multiples of 10 kRUB (i.e., 10k RUB) but adapt to data range.
+  const niceStep = (raw: number) => {
+    if (!Number.isFinite(raw) || raw <= 0) return 10
+    const pow = 10 ** Math.floor(Math.log10(raw))
+    const n = raw / pow
+    const base = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10
+    return base * pow
+  }
+
+  const targetTicks = 10
+  const rawStep = span / targetTicks
+  const step = Math.max(10, niceStep(rawStep / 10) * 10)
+
   const axisMin = Math.floor(min / step) * step
   const axisMax = Math.ceil(max / step) * step
   const tickAmount = Math.max(2, Math.min(12, (axisMax - axisMin) / step))
@@ -111,7 +123,7 @@ const chartOptions = computed(() => {
     tooltip: {
       shared: true,
       y: {
-        formatter: (val: number) => `${formatSum((Number(val) || 0) * scale)} ${currency.value}`,
+        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))} ${unitLabel}`,
       },
     },
     xaxis: {
@@ -125,7 +137,7 @@ const chartOptions = computed(() => {
       tickAmount: yAxis.value.tickAmount,
       labels: {
         ...(base.yaxis?.labels ?? {}),
-        formatter: (val: number) => `${formatSum((Number(val) || 0) * scale)} ${currency.value}`,
+        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))} ${unitLabel}`,
       },
     },
   }
