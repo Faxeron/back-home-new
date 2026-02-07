@@ -165,7 +165,11 @@ final class PublicProductService
                     ->orWhere('products.is_global', true);
             })
             // Never return products without an active company price row.
-            ->whereNotNull('pcp.company_id');
+            ->whereNotNull('pcp.company_id')
+            // Avoid NULL prices in public catalog: require at least one numeric price field.
+            ->where(function (Builder $q): void {
+                $q->whereNotNull('pcp.price_sale')->orWhereNotNull('pcp.price');
+            });
     }
 
     /**
