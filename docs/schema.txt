@@ -1,9 +1,9 @@
 Schema snapshot (as-built)
 
 Notes
-- Доменные данные живут в connection `legacy_new`.
-- Канонический SQL дамп: `database/schema/legacy_new-schema.sql`.
-- Большинство таблиц имеет meta поля: tenant_id, company_id, created_at/updated_at, created_by/updated_by.
+- Р”РѕРјРµРЅРЅС‹Рµ РґР°РЅРЅС‹Рµ Р¶РёРІСѓС‚ РІ connection `legacy_new`.
+- РљР°РЅРѕРЅРёС‡РµСЃРєРёР№ SQL РґР°РјРї: `database/schema/legacy_new-schema.sql`.
+- Р‘РѕР»СЊС€РёРЅСЃС‚РІРѕ С‚Р°Р±Р»РёС† РёРјРµРµС‚ meta РїРѕР»СЏ: tenant_id, company_id, created_at/updated_at, created_by/updated_by.
 
 Core auth/system (legacy_new)
 - users, personal_access_tokens, roles, role_users, permissions, role_permissions, role_scopes, user_profiles, user_company, tenants.
@@ -25,8 +25,8 @@ Finance (legacy_new)
 - payroll_accruals, payroll_payouts, payroll_payout_items.
 
 Catalog (legacy_new)
-- products (legacy price fields + закупочные).
-- product_company_prices (операционные цены по tenant/company/product).
+- products (legacy price fields + Р·Р°РєСѓРїРѕС‡РЅС‹Рµ).
+- product_company_prices (РѕРїРµСЂР°С†РёРѕРЅРЅС‹Рµ С†РµРЅС‹ РїРѕ tenant/company/product).
 - product_categories, product_subcategories, product_brands, product_types, product_kinds, product_units.
 - product_descriptions, product_attribute_definitions, product_attribute_values, product_media, product_relations.
 
