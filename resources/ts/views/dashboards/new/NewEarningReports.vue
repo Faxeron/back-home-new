@@ -151,38 +151,57 @@ const chartConfigs = computed(() => {
   const contractsCurrentCounts = d?.contracts?.current?.counts ?? []
   const contractsPrevCounts = d?.contracts?.prev?.counts ?? []
 
-  const contractsAnnotations: any[] = []
-  for (let seriesIndex = 0; seriesIndex < 2; seriesIndex++) {
-    for (let i = 0; i < 12; i++) {
-      const y = Number((seriesIndex === 0 ? contractsCurrentSumsK[i] : contractsPrevSumsK[i]) ?? 0) || 0
-      const x = labels.value[i] ?? String(i + 1)
-      contractsAnnotations.push({
-        x,
-        y,
-        seriesIndex,
-        label: {
-          borderColor: 'transparent',
-          style: {
-            fontSize: '15px',
-            fontFamily: 'Public Sans',
-            color: legendColor,
-            background: 'transparent',
-            fontWeight: 600,
-          },
-          offsetY: -25,
-          text: `${formatSum(Math.round(y))}k`,
-        },
-        marker: { size: 0 },
-      })
-    }
-  }
+  const contractsSeries = [
+    { name: `${year}`, data: contractsCurrentSumsK.length ? contractsCurrentSumsK : Array(12).fill(0) },
+    { name: `${prevYear}`, data: contractsPrevSumsK.length ? contractsPrevSumsK : Array(12).fill(0) },
+  ]
 
+  // Base chart: sums in kRUB above bars (both years).
   const contractsOptions: any = {
     ...baseOptions,
     colors: [
       `rgba(${hexToRgb(c.primary)}, 1)`,
       labelPrimaryColor,
     ],
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+      offsetY: -25,
+      style: {
+        fontSize: '15px',
+        fontFamily: 'Public Sans',
+        fontWeight: 600,
+        colors: [legendColor],
+      },
+    },
+    yaxis: {
+      ...baseOptions.yaxis,
+      title: { ...baseOptions.yaxis.title, text: 'kRUB' },
+      labels: {
+        ...baseOptions.yaxis.labels,
+        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+      },
+    },
+    tooltip: {
+      shared: true,
+      y: {
+        formatter: (_val: number, opts: any) => {
+          const i = Number(opts?.dataPointIndex ?? 0) || 0
+          const s = Number(opts?.seriesIndex ?? 0) || 0
+          const sumRub = s === 0 ? (d?.contracts?.current?.sums?.[i] ?? 0) : (d?.contracts?.prev?.sums?.[i] ?? 0)
+          const count = s === 0 ? (d?.contracts?.current?.counts?.[i] ?? 0) : (d?.contracts?.prev?.counts?.[i] ?? 0)
+          return `${formatSum(sumRub)} RUB (кол-во: ${count})`
+        },
+      },
+    },
+  }
+
+  // Overlay chart: draws "count inside bar" labels. Bars are transparent.
+  const contractsOverlayOptions: any = {
+    ...baseOptions,
+    colors: ['transparent', 'transparent'],
+    fill: { opacity: 0 },
+    stroke: { show: false },
     plotOptions: {
       ...baseOptions.plotOptions,
       bar: {
@@ -206,27 +225,20 @@ const chartConfigs = computed(() => {
       },
       dropShadow: { enabled: true, opacity: 0.25, blur: 2, left: 0, top: 1 },
     },
+    tooltip: { enabled: false },
+    grid: { ...baseOptions.grid, show: false },
+    legend: { show: false },
+    xaxis: {
+      ...baseOptions.xaxis,
+      labels: { show: false },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+    },
     yaxis: {
       ...baseOptions.yaxis,
-      title: { ...baseOptions.yaxis.title, text: 'kRUB' },
-      labels: {
-        ...baseOptions.yaxis.labels,
-        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
-      },
+      labels: { show: false },
+      title: { ...baseOptions.yaxis.title, text: '' },
     },
-    tooltip: {
-      shared: true,
-      y: {
-        formatter: (_val: number, opts: any) => {
-          const i = Number(opts?.dataPointIndex ?? 0) || 0
-          const s = Number(opts?.seriesIndex ?? 0) || 0
-          const sumRub = s === 0 ? (d?.contracts?.current?.sums?.[i] ?? 0) : (d?.contracts?.prev?.sums?.[i] ?? 0)
-          const count = s === 0 ? (d?.contracts?.current?.counts?.[i] ?? 0) : (d?.contracts?.prev?.counts?.[i] ?? 0)
-          return `${formatSum(sumRub)} RUB (кол-во: ${count})`
-        },
-      },
-    },
-    annotations: { points: contractsAnnotations },
   }
 
   const estimatesCurrent = (d?.estimates?.current?.counts ?? []).map(v => Number(v ?? 0) || 0)
@@ -302,11 +314,10 @@ const chartConfigs = computed(() => {
     {
       title: 'Договоры',
       icon: 'tabler-file-text',
-      series: [
-        { name: `${year}`, data: contractsCurrentSumsK.length ? contractsCurrentSumsK : Array(12).fill(0) },
-        { name: `${prevYear}`, data: contractsPrevSumsK.length ? contractsPrevSumsK : Array(12).fill(0) },
-      ],
+      series: contractsSeries,
       chartOptions: contractsOptions,
+      overlaySeries: contractsSeries,
+      overlayOptions: contractsOverlayOptions,
     },
     {
       title: 'Сметы',
@@ -409,8 +420,29 @@ const subtitle = computed(() => {
         </VSlideGroupItem>
       </VSlideGroup>
 
+      <div
+        v-if="chartConfigs.length && Number(currentTab) === 0"
+        class="earning-reports-chart-wrap mt-3"
+      >
+        <VueApexCharts
+          ref="refVueApexChart"
+          :key="`contracts-base-${dataRev}`"
+          type="bar"
+          :options="chartConfigs[0]?.chartOptions"
+          :series="chartConfigs[0]?.series"
+          height="230"
+        />
+        <VueApexCharts
+          class="earning-reports-overlay"
+          :key="`contracts-overlay-${dataRev}`"
+          type="bar"
+          :options="chartConfigs[0]?.overlayOptions"
+          :series="chartConfigs[0]?.overlaySeries"
+          height="230"
+        />
+      </div>
       <VueApexCharts
-        v-if="chartConfigs.length"
+        v-else-if="chartConfigs.length"
         ref="refVueApexChart"
         :key="`${currentTab}-${dataRev}`"
         type="bar"
@@ -428,3 +460,15 @@ const subtitle = computed(() => {
     </VCardText>
   </VCard>
 </template>
+
+<style scoped>
+.earning-reports-chart-wrap {
+  position: relative;
+}
+
+.earning-reports-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+</style>
