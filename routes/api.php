@@ -57,6 +57,7 @@ use App\Http\Controllers\Api\Knowledge\KnowledgeAttachmentController;
 use App\Http\Controllers\Api\Knowledge\KnowledgeTagController;
 use App\Http\Controllers\Api\Knowledge\KnowledgeTopicController;
 use App\Http\Controllers\Api\Dashboards\EmployeeDashboardController;
+use App\Http\Controllers\Api\Dashboards\NewDashboardController;
 use App\Modules\PublicApi\Controllers\PublicCityController;
 use App\Modules\PublicApi\Controllers\PublicCompanyController;
 use App\Modules\PublicApi\Controllers\PublicCatalogController;
@@ -84,6 +85,7 @@ Route::prefix('public')->group(function (): void {
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::prefix('dashboards')->group(function (): void {
         Route::get('employee/summary', [EmployeeDashboardController::class, 'summary'])->middleware('permission:view,dashboard.employee');
+        Route::get('new/earning-reports', [NewDashboardController::class, 'earningReports'])->middleware('permission:view,finance');
     });
 
     Route::prefix('finance')->group(function (): void {
