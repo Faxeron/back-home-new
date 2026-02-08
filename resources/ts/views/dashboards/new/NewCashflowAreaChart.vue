@@ -122,6 +122,7 @@ const chartOptions = computed(() => {
     },
     tooltip: {
       shared: true,
+      intersect: false,
       y: {
         formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))} ${unitLabel}`,
       },
