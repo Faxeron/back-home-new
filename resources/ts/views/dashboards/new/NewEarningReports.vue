@@ -4,6 +4,8 @@ import { useTheme } from 'vuetify'
 import { hexToRgb } from '@layouts/utils'
 import { formatSum } from '@/utils/formatters/finance'
 
+const MONTHS_RU_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'] as const
+
 type YearSeries = {
   counts?: number[]
   sums?: number[]
@@ -38,6 +40,20 @@ const currentTab = ref<number>(0)
 const refVueApexChart = ref()
 const dataRev = ref(0)
 
+const year = computed(() => props.data?.year ?? new Date().getFullYear())
+const prevYear = computed(() => props.data?.prev_year ?? (year.value - 1))
+
+const isDark = computed(() => Boolean(theme.global.current.value.dark))
+const tooltipTheme = computed(() => isDark.value ? 'dark' : 'light')
+
+const currentYearColor = computed(() => `rgba(${hexToRgb(theme.current.value.colors.warning)}, 1)`)
+const prevYearColor = computed(() => {
+  const c = theme.current.value.colors
+  const v = theme.current.value.variables
+
+  return `rgba(${hexToRgb(c.primary)},${v['dragged-opacity']})`
+})
+
 // vue3-apexcharts sometimes doesn't redraw correctly on async data updates.
 // Bump key to force a remount when new payload arrives.
 watch(
@@ -47,7 +63,7 @@ watch(
   },
 )
 
-const labels = computed(() => props.data?.labels ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+const labels = computed(() => Array.from(MONTHS_RU_SHORT))
 
 const krub = (sumRub: unknown) => Math.round((Number(sumRub ?? 0) || 0) / 1000)
 
@@ -56,17 +72,13 @@ const chartConfigs = computed(() => {
   const c = theme.current.value.colors
   const v = theme.current.value.variables
 
-  const isDark = Boolean(theme.global.current.value.dark)
-  const tooltipTheme = isDark ? 'dark' : 'light'
-
-  const labelPrimaryColor = `rgba(${hexToRgb(c.primary)},${v['dragged-opacity']})`
+  const labelPrimaryColor = prevYearColor.value
   const legendColor = `rgba(${hexToRgb(c['on-background'])},${v['high-emphasis-opacity']})`
   const borderColor = `rgba(${hexToRgb(String(v['border-color']))},${v['border-opacity']})`
   const labelColor = `rgba(${hexToRgb(c['on-surface'])},${v['disabled-opacity']})`
 
-  const year = d?.year ?? new Date().getFullYear()
-  const prevYear = d?.prev_year ?? (year - 1)
-  const currentYearColor = `rgba(${hexToRgb(c.warning)}, 1)`
+  const y = year.value
+  const py = prevYear.value
 
   const baseOptions: any = {
     chart: {
@@ -127,7 +139,7 @@ const chartConfigs = computed(() => {
     tooltip: {
       shared: true,
       intersect: false,
-      theme: tooltipTheme,
+      theme: tooltipTheme.value,
       style: {
         fontSize: '13px',
         fontFamily: 'Public Sans',
@@ -161,19 +173,16 @@ const chartConfigs = computed(() => {
 
   const contractsCurrentSumsK = (d?.contracts?.current?.sums ?? []).map(krub)
   const contractsPrevSumsK = (d?.contracts?.prev?.sums ?? []).map(krub)
-  const contractsCurrentCounts = d?.contracts?.current?.counts ?? []
-  const contractsPrevCounts = d?.contracts?.prev?.counts ?? []
-
   const contractsSeries = [
-    { name: `${year}`, data: contractsCurrentSumsK.length ? contractsCurrentSumsK : Array(12).fill(0) },
-    { name: `${prevYear}`, data: contractsPrevSumsK.length ? contractsPrevSumsK : Array(12).fill(0) },
+    { name: `${y}`, data: contractsCurrentSumsK.length ? contractsCurrentSumsK : Array(12).fill(0) },
+    { name: `${py}`, data: contractsPrevSumsK.length ? contractsPrevSumsK : Array(12).fill(0) },
   ]
 
   // Base chart: sums in kRUB above bars (both years).
   const contractsOptions: any = {
     ...baseOptions,
     colors: [
-      currentYearColor,
+      currentYearColor.value,
       labelPrimaryColor,
     ],
     dataLabels: {
@@ -209,58 +218,13 @@ const chartConfigs = computed(() => {
     },
   }
 
-  // Overlay chart: draws "count inside bar" labels. Bars are transparent.
-  const contractsOverlayOptions: any = {
-    ...baseOptions,
-    colors: ['transparent', 'transparent'],
-    fill: { opacity: 0 },
-    stroke: { show: false },
-    plotOptions: {
-      ...baseOptions.plotOptions,
-      bar: {
-        ...baseOptions.plotOptions.bar,
-        dataLabels: { position: 'center' },
-      },
-    },
-    dataLabels: {
-      enabled: true,
-      formatter: (_val: number, opts: any) => {
-        const i = Number(opts?.dataPointIndex ?? 0) || 0
-        const s = Number(opts?.seriesIndex ?? 0) || 0
-        const count = s === 0 ? contractsCurrentCounts[i] : contractsPrevCounts[i]
-        return `${Number(count ?? 0) || 0}`
-      },
-      style: {
-        fontSize: '12px',
-        fontFamily: 'Public Sans',
-        fontWeight: 700,
-        colors: ['#fff'],
-      },
-      dropShadow: { enabled: true, opacity: 0.25, blur: 2, left: 0, top: 1 },
-    },
-    tooltip: { enabled: false },
-    grid: { ...baseOptions.grid, show: false },
-    legend: { show: false },
-    xaxis: {
-      ...baseOptions.xaxis,
-      labels: { show: false },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: {
-      ...baseOptions.yaxis,
-      labels: { show: false },
-      title: { ...baseOptions.yaxis.title, text: '' },
-    },
-  }
-
   const estimatesCurrent = (d?.estimates?.current?.counts ?? []).map(v => Number(v ?? 0) || 0)
   const estimatesPrev = (d?.estimates?.prev?.counts ?? []).map(v => Number(v ?? 0) || 0)
 
   const estimatesOptions: any = {
     ...baseOptions,
     colors: [
-      currentYearColor,
+      currentYearColor.value,
       labelPrimaryColor,
     ],
     dataLabels: {
@@ -293,7 +257,7 @@ const chartConfigs = computed(() => {
   const profitOptions: any = {
     ...baseOptions,
     colors: [
-      currentYearColor,
+      currentYearColor.value,
       labelPrimaryColor,
     ],
     dataLabels: {
@@ -329,15 +293,13 @@ const chartConfigs = computed(() => {
       icon: 'tabler-file-text',
       series: contractsSeries,
       chartOptions: contractsOptions,
-      overlaySeries: contractsSeries,
-      overlayOptions: contractsOverlayOptions,
     },
     {
       title: 'Сметы',
       icon: 'tabler-calculator',
       series: [
-        { name: `${year}`, data: estimatesCurrent.length ? estimatesCurrent : Array(12).fill(0) },
-        { name: `${prevYear}`, data: estimatesPrev.length ? estimatesPrev : Array(12).fill(0) },
+        { name: `${y}`, data: estimatesCurrent.length ? estimatesCurrent : Array(12).fill(0) },
+        { name: `${py}`, data: estimatesPrev.length ? estimatesPrev : Array(12).fill(0) },
       ],
       chartOptions: estimatesOptions,
     },
@@ -345,41 +307,43 @@ const chartConfigs = computed(() => {
       title: 'Прибыль',
       icon: 'tabler-trending-up',
       series: [
-        { name: `${year}`, data: profitCurrent.length ? profitCurrent : Array(12).fill(0) },
-        { name: `${prevYear}`, data: profitPrev.length ? profitPrev : Array(12).fill(0) },
+        { name: `${y}`, data: profitCurrent.length ? profitCurrent : Array(12).fill(0) },
+        { name: `${py}`, data: profitPrev.length ? profitPrev : Array(12).fill(0) },
       ],
       chartOptions: profitOptions,
     },
   ]
 })
 
-const yearLegend = computed(() => {
-  const d = props.data
-  const year = d?.year ?? new Date().getFullYear()
-  const prevYear = d?.prev_year ?? (year - 1)
-  const colors = chartConfigs.value?.[Number(currentTab.value)]?.chartOptions?.colors ?? []
-
-  return {
-    year,
-    prevYear,
-    currentColor: String(colors?.[0] ?? 'rgba(255, 159, 67, 1)'),
-    prevColor: String(colors?.[1] ?? 'rgba(115, 103, 240, 0.3)'),
-  }
-})
-
-const subtitle = computed(() => {
-  const d = props.data
-  if (!d) return 'Yearly Overview'
-  return `${d.year} vs ${d.prev_year}`
-})
 </script>
 
 <template>
   <VCard
     title="Годовой разрез"
-    :subtitle="subtitle"
     class="h-100"
   >
+    <template #subtitle>
+      <div class="d-flex align-center flex-wrap gap-2">
+        <span
+          class="year-dot"
+          :style="{ backgroundColor: currentYearColor }"
+        />
+        <span class="font-weight-medium">
+          {{ year }}
+        </span>
+        <span class="text-medium-emphasis">
+          vs
+        </span>
+        <span
+          class="year-dot"
+          :style="{ backgroundColor: prevYearColor }"
+        />
+        <span class="font-weight-medium">
+          {{ prevYear }}
+        </span>
+      </div>
+    </template>
+
     <template #append>
       <div class="d-flex align-center gap-2">
         <VBtn
@@ -447,48 +411,16 @@ const subtitle = computed(() => {
         </VSlideGroupItem>
       </VSlideGroup>
 
-      <div class="d-flex align-center justify-end gap-6 mb-2">
-        <div class="d-flex align-center gap-2">
-          <span
-            class="year-dot"
-            :style="{ backgroundColor: yearLegend.currentColor }"
-          />
-          <span class="text-body-2 font-weight-medium">
-            {{ yearLegend.year }}
-          </span>
-        </div>
-        <div class="d-flex align-center gap-2">
-          <span
-            class="year-dot"
-            :style="{ backgroundColor: yearLegend.prevColor }"
-          />
-          <span class="text-body-2 font-weight-medium">
-            {{ yearLegend.prevYear }}
-          </span>
-        </div>
-      </div>
-
-      <div
+      <VueApexCharts
         v-if="chartConfigs.length && Number(currentTab) === 0"
-        class="earning-reports-chart-wrap mt-3"
-      >
-        <VueApexCharts
-          ref="refVueApexChart"
-          :key="`contracts-base-${dataRev}`"
-          type="bar"
-          :options="chartConfigs[0]?.chartOptions"
-          :series="chartConfigs[0]?.series"
-          height="230"
-        />
-        <VueApexCharts
-          class="earning-reports-overlay"
-          :key="`contracts-overlay-${dataRev}`"
-          type="bar"
-          :options="chartConfigs[0]?.overlayOptions"
-          :series="chartConfigs[0]?.overlaySeries"
-          height="230"
-        />
-      </div>
+        ref="refVueApexChart"
+        :key="`contracts-${dataRev}`"
+        type="bar"
+        :options="chartConfigs[0]?.chartOptions"
+        :series="chartConfigs[0]?.series"
+        height="230"
+        class="mt-3"
+      />
       <VueApexCharts
         v-else-if="chartConfigs.length"
         ref="refVueApexChart"
@@ -510,16 +442,6 @@ const subtitle = computed(() => {
 </template>
 
 <style scoped>
-.earning-reports-chart-wrap {
-  position: relative;
-}
-
-.earning-reports-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 .year-dot {
   border-radius: 999px;
   block-size: 10px;
