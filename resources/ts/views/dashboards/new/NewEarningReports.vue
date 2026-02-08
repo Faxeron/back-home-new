@@ -56,6 +56,9 @@ const chartConfigs = computed(() => {
   const c = theme.current.value.colors
   const v = theme.current.value.variables
 
+  const isDark = Boolean(theme.global.current.value.dark)
+  const tooltipTheme = isDark ? 'dark' : 'light'
+
   const labelPrimaryColor = `rgba(${hexToRgb(c.primary)},${v['dragged-opacity']})`
   const legendColor = `rgba(${hexToRgb(c['on-background'])},${v['high-emphasis-opacity']})`
   const borderColor = `rgba(${hexToRgb(String(v['border-color']))},${v['border-opacity']})`
@@ -63,6 +66,7 @@ const chartConfigs = computed(() => {
 
   const year = d?.year ?? new Date().getFullYear()
   const prevYear = d?.prev_year ?? (year - 1)
+  const currentYearColor = `rgba(${hexToRgb(c.warning)}, 1)`
 
   const baseOptions: any = {
     chart: {
@@ -120,7 +124,15 @@ const chartConfigs = computed(() => {
       },
     },
     // Apex error guard: shared tooltip requires intersect=false
-    tooltip: { shared: true, intersect: false },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      theme: tooltipTheme,
+      style: {
+        fontSize: '13px',
+        fontFamily: 'Public Sans',
+      },
+    },
     states: {
       hover: { filter: { type: 'none' } },
       active: { filter: { type: 'none' } },
@@ -161,12 +173,12 @@ const chartConfigs = computed(() => {
   const contractsOptions: any = {
     ...baseOptions,
     colors: [
-      `rgba(${hexToRgb(c.primary)}, 1)`,
+      currentYearColor,
       labelPrimaryColor,
     ],
     dataLabels: {
       enabled: true,
-      formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+      formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}т`,
       offsetY: -25,
       style: {
         fontSize: '15px',
@@ -177,15 +189,14 @@ const chartConfigs = computed(() => {
     },
     yaxis: {
       ...baseOptions.yaxis,
-      title: { ...baseOptions.yaxis.title, text: 'kRUB' },
+      title: { ...baseOptions.yaxis.title, text: 'т₽' },
       labels: {
         ...baseOptions.yaxis.labels,
-        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}т`,
       },
     },
     tooltip: {
-      shared: true,
-      intersect: false,
+      ...baseOptions.tooltip,
       y: {
         formatter: (_val: number, opts: any) => {
           const i = Number(opts?.dataPointIndex ?? 0) || 0
@@ -249,7 +260,7 @@ const chartConfigs = computed(() => {
   const estimatesOptions: any = {
     ...baseOptions,
     colors: [
-      `rgba(${hexToRgb(c.primary)}, 1)`,
+      currentYearColor,
       labelPrimaryColor,
     ],
     dataLabels: {
@@ -264,8 +275,7 @@ const chartConfigs = computed(() => {
       },
     },
     tooltip: {
-      shared: true,
-      intersect: false,
+      ...baseOptions.tooltip,
       y: { formatter: (val: number) => `${Math.round(Number(val) || 0)} шт.` },
     },
     yaxis: {
@@ -283,12 +293,12 @@ const chartConfigs = computed(() => {
   const profitOptions: any = {
     ...baseOptions,
     colors: [
-      `rgba(${hexToRgb(c.success)}, 1)`,
-      `rgba(${hexToRgb(c.info)},${v['dragged-opacity']})`,
+      currentYearColor,
+      labelPrimaryColor,
     ],
     dataLabels: {
       enabled: true,
-      formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+      formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}т`,
       offsetY: -25,
       style: {
         fontSize: '15px',
@@ -299,15 +309,14 @@ const chartConfigs = computed(() => {
     },
     yaxis: {
       ...baseOptions.yaxis,
-      title: { ...baseOptions.yaxis.title, text: 'kRUB' },
+      title: { ...baseOptions.yaxis.title, text: 'т₽' },
       labels: {
         ...baseOptions.yaxis.labels,
-        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}k`,
+        formatter: (val: number) => `${formatSum(Math.round(Number(val) || 0))}т`,
       },
     },
     tooltip: {
-      shared: true,
-      intersect: false,
+      ...baseOptions.tooltip,
       y: {
         formatter: (val: number) => `${formatSum((Number(val) || 0) * 1000)} RUB`,
       },
@@ -344,6 +353,20 @@ const chartConfigs = computed(() => {
   ]
 })
 
+const yearLegend = computed(() => {
+  const d = props.data
+  const year = d?.year ?? new Date().getFullYear()
+  const prevYear = d?.prev_year ?? (year - 1)
+  const colors = chartConfigs.value?.[Number(currentTab.value)]?.chartOptions?.colors ?? []
+
+  return {
+    year,
+    prevYear,
+    currentColor: String(colors?.[0] ?? 'rgba(255, 159, 67, 1)'),
+    prevColor: String(colors?.[1] ?? 'rgba(115, 103, 240, 0.3)'),
+  }
+})
+
 const subtitle = computed(() => {
   const d = props.data
   if (!d) return 'Yearly Overview'
@@ -353,7 +376,7 @@ const subtitle = computed(() => {
 
 <template>
   <VCard
-    title="Earning Reports"
+    title="Годовой разрез"
     :subtitle="subtitle"
     class="h-100"
   >
@@ -424,6 +447,27 @@ const subtitle = computed(() => {
         </VSlideGroupItem>
       </VSlideGroup>
 
+      <div class="d-flex align-center justify-end gap-6 mb-2">
+        <div class="d-flex align-center gap-2">
+          <span
+            class="year-dot"
+            :style="{ backgroundColor: yearLegend.currentColor }"
+          />
+          <span class="text-body-2 font-weight-medium">
+            {{ yearLegend.year }}
+          </span>
+        </div>
+        <div class="d-flex align-center gap-2">
+          <span
+            class="year-dot"
+            :style="{ backgroundColor: yearLegend.prevColor }"
+          />
+          <span class="text-body-2 font-weight-medium">
+            {{ yearLegend.prevYear }}
+          </span>
+        </div>
+      </div>
+
       <div
         v-if="chartConfigs.length && Number(currentTab) === 0"
         class="earning-reports-chart-wrap mt-3"
@@ -474,5 +518,28 @@ const subtitle = computed(() => {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.year-dot {
+  border-radius: 999px;
+  block-size: 10px;
+  inline-size: 10px;
+}
+
+/* Make tooltip text readable (some themes apply too-low opacity). */
+:deep(.apexcharts-tooltip) {
+  opacity: 1 !important;
+}
+
+:deep(.apexcharts-tooltip *) {
+  opacity: 1 !important;
+}
+
+:deep(.apexcharts-tooltip.apexcharts-theme-light) {
+  color: rgba(15, 20, 34, 0.92) !important;
+}
+
+:deep(.apexcharts-tooltip.apexcharts-theme-dark) {
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 </style>
