@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import { hexToRgb } from '@layouts/utils'
 import { formatSum } from '@/utils/formatters/finance'
@@ -36,6 +36,16 @@ const emit = defineEmits<{
 const theme = useTheme()
 const currentTab = ref<number>(0)
 const refVueApexChart = ref()
+const dataRev = ref(0)
+
+// vue3-apexcharts sometimes doesn't redraw correctly on async data updates.
+// Bump key to force a remount when new payload arrives.
+watch(
+  () => props.data,
+  () => {
+    dataRev.value++
+  },
+)
 
 const labels = computed(() => props.data?.labels ?? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
@@ -402,7 +412,7 @@ const subtitle = computed(() => {
       <VueApexCharts
         v-if="chartConfigs.length"
         ref="refVueApexChart"
-        :key="currentTab"
+        :key="`${currentTab}-${dataRev}`"
         type="bar"
         :options="chartConfigs[Number(currentTab)]?.chartOptions"
         :series="chartConfigs[Number(currentTab)]?.series"
