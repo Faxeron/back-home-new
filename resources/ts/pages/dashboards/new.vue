@@ -5,6 +5,7 @@ import { formatSum } from '@/utils/formatters/finance'
 import { TRANSACTION_TABLE } from '@/modules/finance/config/transactionsTable.config'
 import NewCashboxesBalance, { type CashboxBalanceRow } from '@/views/dashboards/new/NewCashboxesBalance.vue'
 import NewCashflowAreaChart from '@/views/dashboards/new/NewCashflowAreaChart.vue'
+import NewEarningReports from '@/views/dashboards/new/NewEarningReports.vue'
 import NewRecentTransactions from '@/views/dashboards/new/NewRecentTransactions.vue'
 import type { Transaction } from '@/types/finance'
 
@@ -42,6 +43,10 @@ const cashflowPoints = ref<CashflowPoint[]>([])
 const cashflowLoading = ref(false)
 const cashflowError = ref('')
 
+const earningReports = ref<any>(null)
+const earningReportsLoading = ref(false)
+const earningReportsError = ref('')
+
 const updatedAt = ref<Date | null>(null)
 
 const cashboxesTotal = computed(() =>
@@ -78,6 +83,20 @@ const loadCashflowSeries = async () => {
     cashflowPoints.value = []
   } finally {
     cashflowLoading.value = false
+  }
+}
+
+const loadEarningReports = async () => {
+  earningReportsLoading.value = true
+  earningReportsError.value = ''
+  try {
+    const response: any = await $api('dashboards/new/earning-reports')
+    earningReports.value = response?.data ?? null
+  } catch (error: any) {
+    earningReportsError.value = error?.response?.data?.message ?? 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Earning Reports.'
+    earningReports.value = null
+  } finally {
+    earningReportsLoading.value = false
   }
 }
 
@@ -138,7 +157,7 @@ const setTransactionsFilter = async (val: 'all' | 'income' | 'expense') => {
 }
 
 const refreshAll = async () => {
-  await Promise.all([loadCashboxes(), loadRecentTransactions(), loadMonthSummary(), loadCashflowSeries()])
+  await Promise.all([loadCashboxes(), loadRecentTransactions(), loadMonthSummary(), loadCashflowSeries(), loadEarningReports()])
   updatedAt.value = new Date()
 }
 
@@ -233,6 +252,15 @@ onMounted(refreshAll)
         :loading="cashflowLoading"
         :error="cashflowError"
         @refresh="loadCashflowSeries"
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <NewEarningReports
+        :data="earningReports"
+        :loading="earningReportsLoading"
+        :error="earningReportsError"
+        @refresh="loadEarningReports"
       />
     </VCol>
 
