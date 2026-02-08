@@ -119,7 +119,8 @@ const chartConfigs = computed(() => {
         },
       },
     },
-    tooltip: { shared: true },
+    // Apex error guard: shared tooltip requires intersect=false
+    tooltip: { shared: true, intersect: false },
     states: {
       hover: { filter: { type: 'none' } },
       active: { filter: { type: 'none' } },
@@ -184,6 +185,7 @@ const chartConfigs = computed(() => {
     },
     tooltip: {
       shared: true,
+      intersect: false,
       y: {
         formatter: (_val: number, opts: any) => {
           const i = Number(opts?.dataPointIndex ?? 0) || 0
@@ -263,6 +265,7 @@ const chartConfigs = computed(() => {
     },
     tooltip: {
       shared: true,
+      intersect: false,
       y: { formatter: (val: number) => `${Math.round(Number(val) || 0)} шт.` },
     },
     yaxis: {
@@ -304,6 +307,7 @@ const chartConfigs = computed(() => {
     },
     tooltip: {
       shared: true,
+      intersect: false,
       y: {
         formatter: (val: number) => `${formatSum((Number(val) || 0) * 1000)} RUB`,
       },
