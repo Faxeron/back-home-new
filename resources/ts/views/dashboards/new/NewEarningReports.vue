@@ -403,6 +403,7 @@ const subtitle = computed(() => {
         v-if="chartConfigs.length"
         ref="refVueApexChart"
         :key="currentTab"
+        type="bar"
         :options="chartConfigs[Number(currentTab)]?.chartOptions"
         :series="chartConfigs[Number(currentTab)]?.series"
         height="230"
