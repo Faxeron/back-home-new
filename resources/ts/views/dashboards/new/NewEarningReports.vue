@@ -67,6 +67,13 @@ const labels = computed(() => Array.from(MONTHS_RU_SHORT))
 
 const krub = (sumRub: unknown) => Math.round((Number(sumRub ?? 0) || 0) / 1000)
 
+const pad12 = (input: unknown): number[] => {
+  const src = Array.isArray(input) ? input : []
+  const out = new Array<number>(12)
+  for (let i = 0; i < 12; i++) out[i] = Number(src[i] ?? 0) || 0
+  return out
+}
+
 const chartConfigs = computed(() => {
   const d = props.data
   const c = theme.current.value.colors
@@ -171,11 +178,11 @@ const chartConfigs = computed(() => {
     ],
   }
 
-  const contractsCurrentSumsK = (d?.contracts?.current?.sums ?? []).map(krub)
-  const contractsPrevSumsK = (d?.contracts?.prev?.sums ?? []).map(krub)
+  const contractsCurrentSumsK = pad12((d?.contracts?.current?.sums ?? []).map(krub))
+  const contractsPrevSumsK = pad12((d?.contracts?.prev?.sums ?? []).map(krub))
   const contractsSeries = [
-    { name: `${y}`, data: contractsCurrentSumsK.length ? contractsCurrentSumsK : Array(12).fill(0) },
-    { name: `${py}`, data: contractsPrevSumsK.length ? contractsPrevSumsK : Array(12).fill(0) },
+    { name: `${y}`, data: contractsCurrentSumsK },
+    { name: `${py}`, data: contractsPrevSumsK },
   ]
 
   // Base chart: sums in kRUB above bars (both years).
@@ -218,8 +225,8 @@ const chartConfigs = computed(() => {
     },
   }
 
-  const estimatesCurrent = (d?.estimates?.current?.counts ?? []).map(v => Number(v ?? 0) || 0)
-  const estimatesPrev = (d?.estimates?.prev?.counts ?? []).map(v => Number(v ?? 0) || 0)
+  const estimatesCurrent = pad12((d?.estimates?.current?.counts ?? []).map(v => Number(v ?? 0) || 0))
+  const estimatesPrev = pad12((d?.estimates?.prev?.counts ?? []).map(v => Number(v ?? 0) || 0))
 
   const estimatesOptions: any = {
     ...baseOptions,
@@ -251,8 +258,8 @@ const chartConfigs = computed(() => {
     },
   }
 
-  const profitCurrent = (d?.profit?.current?.net_sums ?? []).map(krub)
-  const profitPrev = (d?.profit?.prev?.net_sums ?? []).map(krub)
+  const profitCurrent = pad12((d?.profit?.current?.net_sums ?? []).map(krub))
+  const profitPrev = pad12((d?.profit?.prev?.net_sums ?? []).map(krub))
 
   const profitOptions: any = {
     ...baseOptions,
@@ -298,8 +305,8 @@ const chartConfigs = computed(() => {
       title: 'Сметы',
       icon: 'tabler-calculator',
       series: [
-        { name: `${y}`, data: estimatesCurrent.length ? estimatesCurrent : Array(12).fill(0) },
-        { name: `${py}`, data: estimatesPrev.length ? estimatesPrev : Array(12).fill(0) },
+        { name: `${y}`, data: estimatesCurrent },
+        { name: `${py}`, data: estimatesPrev },
       ],
       chartOptions: estimatesOptions,
     },
@@ -307,8 +314,8 @@ const chartConfigs = computed(() => {
       title: 'Прибыль',
       icon: 'tabler-trending-up',
       series: [
-        { name: `${y}`, data: profitCurrent.length ? profitCurrent : Array(12).fill(0) },
-        { name: `${py}`, data: profitPrev.length ? profitPrev : Array(12).fill(0) },
+        { name: `${y}`, data: profitCurrent },
+        { name: `${py}`, data: profitPrev },
       ],
       chartOptions: profitOptions,
     },
