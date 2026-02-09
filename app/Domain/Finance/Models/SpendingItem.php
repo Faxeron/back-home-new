@@ -24,4 +24,9 @@ class SpendingItem extends Model
     {
         return $this->belongsTo(SpendingFund::class, 'fond_id');
     }
+
+    public function cashflowItem(): BelongsTo
+    {
+        return $this->belongsTo(CashflowItem::class, 'cashflow_item_id');
+    }
 }

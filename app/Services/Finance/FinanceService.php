@@ -8,6 +8,7 @@ use App\Domain\Finance\Models\CashboxHistory;
 use App\Domain\Finance\Models\FinanceAllocation;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
+use App\Domain\Finance\Models\SpendingItem;
 use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\Models\TransactionType;
 use App\Domain\Finance\DTO\CashTransferDTO;
@@ -50,6 +51,7 @@ class FinanceService
                 'cashbox_id' => $receipt->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
+                'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
                 'contract_id' => $receipt->contract_id,
                 'related_id' => $receipt->id,
@@ -110,6 +112,7 @@ class FinanceService
                 'cashbox_id' => $receipt->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
+                'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
                 'contract_id' => null,
                 'related_id' => $receipt->id,
@@ -163,6 +166,12 @@ class FinanceService
                 'created_at' => $data['created_at'] ?? now(),
             ]);
 
+            $cashflowItemId = $this->resolveSpendingCashflowItemId(
+                $spending->spending_item_id,
+                $spending->tenant_id,
+                $spending->company_id,
+            );
+
             $transaction = Transaction::create([
                 'tenant_id' => $spending->tenant_id,
                 'company_id' => $spending->company_id,
@@ -170,6 +179,7 @@ class FinanceService
                 'cashbox_id' => $spending->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
+                'cashflow_item_id' => $cashflowItemId,
                 'counterparty_id' => $spending->counterparty_id,
                 'contract_id' => $spending->contract_id,
                 'related_id' => $spending->id,
@@ -310,6 +320,12 @@ class FinanceService
                 'created_at' => $data['created_at'] ?? now(),
             ]);
 
+            $cashflowItemId = $this->resolveSpendingCashflowItemId(
+                $spending->spending_item_id,
+                $spending->tenant_id,
+                $spending->company_id,
+            );
+
             $transaction = Transaction::create([
                 'tenant_id' => $spending->tenant_id,
                 'company_id' => $spending->company_id,
@@ -317,6 +333,7 @@ class FinanceService
                 'cashbox_id' => $spending->cashbox_id,
                 'transaction_type_id' => $type->id,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
+                'cashflow_item_id' => $cashflowItemId,
                 'counterparty_id' => null,
                 'contract_id' => null,
                 'related_id' => $spending->id,
@@ -429,6 +446,8 @@ class FinanceService
             throw new RuntimeException('Transaction already completed');
         }
 
+        $this->assertCashflowItem($transaction);
+
         $cashboxId = $transaction->cashbox_id;
         $this->lockCashBoxes([$cashboxId]);
 
@@ -494,6 +513,20 @@ class FinanceService
         }
 
         return $type;
+    }
+
+    private function assertCashflowItem(Transaction $transaction): void
+    {
+        $type = $this->getTransactionTypeById((int) $transaction->transaction_type_id);
+        $code = strtoupper((string) $type->code);
+
+        if (in_array($code, ['TRANSFER_IN', 'TRANSFER_OUT'], true)) {
+            return;
+        }
+
+        if (empty($transaction->cashflow_item_id)) {
+            throw new RuntimeException('Cashflow item is required');
+        }
     }
 
     private function toFloat($value): float
@@ -673,5 +706,32 @@ class FinanceService
             ->whereIn('id', $ids->all())
             ->lockForUpdate()
             ->get();
+    }
+
+    private function resolveSpendingCashflowItemId(?int $spendingItemId, ?int $tenantId, ?int $companyId): int
+    {
+        if (!$spendingItemId) {
+            throw new RuntimeException('Spending item is required');
+        }
+
+        $item = SpendingItem::query()
+            ->where('id', $spendingItemId)
+            ->where(function ($builder) use ($tenantId) {
+                $builder->whereNull('tenant_id')
+                    ->orWhere('tenant_id', $tenantId);
+            })
+            ->where(function ($builder) use ($companyId) {
+                $builder->whereNull('company_id')
+                    ->orWhere('company_id', $companyId);
+            })
+            ->first();
+
+        $cashflowItemId = $item?->cashflow_item_id ? (int) $item->cashflow_item_id : null;
+
+        if (!$cashflowItemId) {
+            throw new RuntimeException('У статьи расхода не задана статья ДДС');
+        }
+
+        return $cashflowItemId;
     }
 }

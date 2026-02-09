@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\API\Common\CompanyLookupController;
 use App\Http\Controllers\API\Finance\CashBoxController as FinanceCashBoxController;
 use App\Http\Controllers\API\Finance\CashTransferController;
+use App\Http\Controllers\API\Finance\CashflowItemController;
 use App\Http\Controllers\API\Finance\DirectorController;
 use App\Http\Controllers\Api\SaleTypeController;
 use App\Http\Controllers\Api\SpendingFundController;
@@ -58,6 +59,7 @@ use App\Http\Controllers\Api\Knowledge\KnowledgeTagController;
 use App\Http\Controllers\Api\Knowledge\KnowledgeTopicController;
 use App\Http\Controllers\Api\Dashboards\EmployeeDashboardController;
 use App\Http\Controllers\Api\Dashboards\NewDashboardController;
+use App\Http\Controllers\Api\Reports\CashflowReportController;
 use App\Modules\PublicApi\Controllers\PublicCityController;
 use App\Modules\PublicApi\Controllers\PublicCompanyController;
 use App\Modules\PublicApi\Controllers\PublicCatalogController;
@@ -117,6 +119,13 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('cash-transfers', [CashTransferController::class, 'index'])->middleware('permission:view,finance');
         Route::post('cash-transfers', [CashTransferController::class, 'store'])->middleware('permission:create,finance');
     });
+
+    Route::get('cashflow-items', [CashflowItemController::class, 'index'])->middleware('permission:view,finance');
+    Route::post('cashflow-items', [CashflowItemController::class, 'store'])->middleware('permission:create,finance');
+    Route::put('cashflow-items/{cashflowItem}', [CashflowItemController::class, 'update'])->middleware('permission:edit,finance');
+    Route::delete('cashflow-items/{cashflowItem}', [CashflowItemController::class, 'destroy'])->middleware('permission:delete,finance');
+
+    Route::get('reports/cashflow', [CashflowReportController::class, 'show'])->middleware('permission:view,finance');
 
     // Backwards-compatible aliases (to be deprecated) for legacy /finances/* consumers.
     Route::prefix('finances')->group(function (): void {

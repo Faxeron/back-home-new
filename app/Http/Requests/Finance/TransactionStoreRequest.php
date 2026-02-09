@@ -22,6 +22,7 @@ class TransactionStoreRequest extends FormRequest
             'contract_id' => 'nullable|integer',
             'counterparty_id' => 'nullable|integer',
             'payment_method_id' => 'nullable|integer',
+            'cashflow_item_id' => 'nullable|integer|exists:legacy_new.cashflow_items,id',
             'notes' => 'nullable|string',
         ];
     }

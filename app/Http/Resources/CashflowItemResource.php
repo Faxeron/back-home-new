@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Domain\Finance\Models\SpendingItem
+ * @mixin \App\Domain\Finance\Models\CashflowItem
  */
-class SpendingItemResource extends JsonResource
+class CashflowItemResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -17,11 +17,15 @@ class SpendingItemResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'company_id' => $this->company_id,
+            'parent_id' => $this->parent_id,
+            'code' => $this->code,
             'name' => $this->name,
-            'description' => $this->description,
-            'fond_id' => $this->fond_id,
-            'cashflow_item_id' => $this->cashflow_item_id,
+            'section' => $this->section,
+            'direction' => $this->direction,
             'is_active' => $this->is_active,
+            'sort_order' => $this->sort_order,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

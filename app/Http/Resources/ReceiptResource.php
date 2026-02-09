@@ -21,6 +21,7 @@ class ReceiptResource extends JsonResource
             'company_id' => $this->company_id,
             'cashbox_id' => $this->cashbox_id,
             'transaction_id' => $this->transaction_id,
+            'cashflow_item_id' => $this->whenLoaded('transaction', fn () => $this->transaction?->cashflow_item_id),
             'sum' => $this->money($this->sum),
             'contract_id' => $this->contract_id,
             'counterparty_id' => $this->counterparty_id,

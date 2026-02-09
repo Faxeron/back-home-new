@@ -23,6 +23,7 @@ class SpendingResource extends JsonResource
             'transaction_id' => $this->transaction_id,
             'fond_id' => $this->fond_id,
             'spending_item_id' => $this->spending_item_id,
+            'cashflow_item_id' => $this->item?->cashflow_item_id,
             'contract_id' => $this->contract_id,
             'description' => $this->description,
             'sum' => $this->money($this->sum),

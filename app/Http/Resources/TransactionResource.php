@@ -26,6 +26,7 @@ class TransactionResource extends JsonResource
             'cashbox_id' => $this->cashbox_id,
             'transaction_type_id' => $this->transaction_type_id,
             'payment_method_id' => $this->payment_method_id,
+            'cashflow_item_id' => $this->cashflow_item_id,
             'company_id' => $this->company_id,
             'counterparty_id' => $this->counterparty_id,
             'contract_id' => $this->contract_id,

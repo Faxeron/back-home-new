@@ -5,7 +5,7 @@ namespace App\Services\Finance\Filters;
 class IncludeRegistry
 {
     private array $map = [
-        'transactions' => ['cashbox', 'company', 'counterparty', 'contract', 'transactionType', 'paymentMethod'],
+        'transactions' => ['cashbox', 'company', 'counterparty', 'contract', 'transactionType', 'paymentMethod', 'cashflowItem'],
         'receipts' => ['cashbox', 'company', 'counterparty', 'contract', 'transaction', 'creator'],
         'spendings' => ['cashbox', 'company', 'counterparty', 'contract', 'item', 'fund', 'transaction', 'spentToUser', 'creator'],
     ];

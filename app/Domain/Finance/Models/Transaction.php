@@ -13,6 +13,7 @@ use App\Domain\Finance\Casts\PaymentMethodCast;
 use App\Domain\Finance\Casts\TransactionTypeCast;
 use App\Domain\Finance\Models\CashboxHistory;
 use App\Domain\Finance\Models\CashBox;
+use App\Domain\Finance\Models\CashflowItem;
 use App\Domain\Finance\Models\PaymentMethod;
 use App\Domain\Finance\Models\TransactionType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -70,6 +71,11 @@ class Transaction extends Model
     public function paymentMethod(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
+    }
+
+    public function cashflowItem(): BelongsTo
+    {
+        return $this->belongsTo(CashflowItem::class, 'cashflow_item_id');
     }
 
     public function receipt(): HasOne

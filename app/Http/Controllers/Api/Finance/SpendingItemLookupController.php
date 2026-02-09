@@ -28,7 +28,7 @@ class SpendingItemLookupController extends Controller
                     ->orWhere('is_global', true);
             })
             ->orderBy('name')
-            ->get(['id', 'name', 'fond_id', 'description', 'is_active']);
+            ->get(['id', 'name', 'fond_id', 'cashflow_item_id', 'description', 'is_active']);
 
         return response()->json(['data' => $data]);
     }

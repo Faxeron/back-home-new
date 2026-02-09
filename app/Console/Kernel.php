@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\BackfillTransactionClientId::class,
         \App\Console\Commands\BackfillTransactionCounterparty::class,
         \App\Console\Commands\BackfillTransactionRelatedId::class,
+        \App\Console\Commands\BackfillTransactionCashflowItems::class,
         \App\Console\Commands\SyncUsersToLegacyNew::class,
     ];
 

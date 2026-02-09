@@ -5,6 +5,7 @@ namespace App\Services\Finance;
 use App\Domain\Finance\DTO\TransactionData;
 use App\Domain\Finance\DTO\TransactionFilterDTO;
 use App\Domain\Finance\Models\Transaction;
+use App\Domain\Finance\Models\TransactionType;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Events\TransactionDeleted;
@@ -89,6 +90,7 @@ class TransactionService
 
     public function markPaid(Transaction $transaction): void
     {
+        $this->assertCashflowItem($transaction);
         $transaction->is_paid = true;
         $transaction->date_is_paid = now();
         $transaction->save();
@@ -125,5 +127,19 @@ class TransactionService
         }
 
         return TransactionData::fromArray($payload)->toArray();
+    }
+
+    private function assertCashflowItem(Transaction $transaction): void
+    {
+        $type = TransactionType::query()->find((int) $transaction->transaction_type_id);
+        $code = strtoupper((string) ($type?->code ?? ''));
+
+        if (in_array($code, ['TRANSFER_IN', 'TRANSFER_OUT'], true)) {
+            return;
+        }
+
+        if (empty($transaction->cashflow_item_id)) {
+            throw new \RuntimeException('Cashflow item is required');
+        }
     }
 }
