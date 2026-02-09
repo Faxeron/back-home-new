@@ -15,7 +15,7 @@ final class PublicCityService
     public function listCities(?string $search = null, ?int $companyId = null): Collection
     {
         $query = City::query()
-            ->select(['id', 'slug', 'name', 'company_id'])
+            ->select(['id', 'slug', 'name', 'name_prepositional', 'name_genitive', 'company_id'])
             ->where('tenant_id', self::TENANT_ID)
             ->whereNotNull('company_id');
 

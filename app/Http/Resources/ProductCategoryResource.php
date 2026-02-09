@@ -15,6 +15,7 @@ class ProductCategoryResource extends JsonResource
             'tenant_id' => $this->tenant_id,
             'company_id' => $this->company_id,
             'name' => $this->name,
+            'slug' => $this->slug,
             'products_count' => $this->when(isset($this->products_count), $this->products_count),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
