@@ -62,6 +62,7 @@ return new class extends Migration
         // Replace old unique(product_id, attribute_id) with unique(tenant_id, company_id, product_id, attribute_id).
         $oldUnique = 'product_attr_values_product_attribute_unique';
         if ($this->indexExists('product_attribute_values', $oldUnique)) {
+            $this->addIndex('product_attribute_values', 'prod_attr_values_product_id_idx', ['product_id']);
             DB::connection($this->connection)->statement("ALTER TABLE product_attribute_values DROP INDEX {$oldUnique}");
         }
 
@@ -125,5 +126,5 @@ return new class extends Migration
             ->where('index_name', $indexName)
             ->exists();
     }
-};
 
+};
