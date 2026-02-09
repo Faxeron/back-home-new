@@ -1,26 +1,30 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAbility } from '@casl/vue'
-import SpendingItemsTable from '@/modules/finance/components/settings/SpendingItemsTable.vue'
+import CashflowItemsTable from '@/modules/finance/components/settings/CashflowItemsTable.vue'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import { useDictionaryFilters, type DictionaryFilterDef } from '@/composables/useDictionaryFilters'
-import { SPENDING_ITEM_TABLE } from '@/modules/finance/config/spendingItemsTable.config'
+import { CASHFLOW_ITEM_TABLE } from '@/modules/finance/config/cashflowItemsTable.config'
 import { useDictionariesStore } from '@/stores/dictionaries'
-import type { SpendingItem } from '@/types/finance'
+import type { CashflowItem } from '@/types/finance'
 
-const dictionaries = useDictionariesStore()
 const tableRef = ref<any>(null)
 const scrollHeight = ref('700px')
 const reloadRef = ref<() => void>(() => {})
 const ability = useAbility()
-const canCreate = computed(() => ability.can('create', 'settings.spending_items'))
-const canEdit = computed(() => ability.can('edit', 'settings.spending_items'))
-const canDelete = computed(() => ability.can('delete', 'settings.spending_items'))
+const canCreate = computed(() => ability.can('create', 'settings.cashflow_items'))
+const canEdit = computed(() => ability.can('edit', 'settings.cashflow_items'))
+const canDelete = computed(() => ability.can('delete', 'settings.cashflow_items'))
+
+const dictionaries = useDictionariesStore()
 
 const filterDefs: DictionaryFilterDef[] = [
-  { key: 'name', kind: 'text', queryKey: 'q', debounce: true },
-  { key: 'fond_id', kind: 'select', queryKey: 'fund_id' },
-  { key: 'cashflow_item_id', kind: 'select', queryKey: 'cashflow_item_id' },
+  { key: 'code', kind: 'text', queryKey: 'code', debounce: true },
+  { key: 'name', kind: 'text', queryKey: 'name', debounce: true },
+  { key: 'section', kind: 'select', queryKey: 'section' },
+  { key: 'direction', kind: 'select', queryKey: 'direction' },
+  { key: 'parent_id', kind: 'select', queryKey: 'parent_id' },
+  { key: 'is_active', kind: 'select', queryKey: 'is_active' },
 ]
 
 const { filters, serverParams, resetFilters, handleSort } = useDictionaryFilters(filterDefs, {
@@ -33,10 +37,10 @@ const {
   loading,
   reset: resetData,
   virtualScrollerOptions,
-} = useTableInfinite<SpendingItem>({
-  endpoint: 'settings/spending-items',
-  perPage: SPENDING_ITEM_TABLE.perPage,
-  rowHeight: SPENDING_ITEM_TABLE.rowHeight,
+} = useTableInfinite<CashflowItem>({
+  endpoint: 'cashflow-items',
+  perPage: CASHFLOW_ITEM_TABLE.perPage,
+  rowHeight: CASHFLOW_ITEM_TABLE.rowHeight,
   params: () => serverParams.value,
 })
 
@@ -45,9 +49,10 @@ reloadRef.value = () => {
 }
 
 const updateScrollHeight = () => {
-  const tableEl = tableRef.value?.$el as HTMLElement | undefined
-  if (!tableEl) return
-  const rect = tableEl.getBoundingClientRect()
+  const rawEl = tableRef.value?.$el
+  const tableEl = Array.isArray(rawEl) ? rawEl[0] : rawEl
+  if (!tableEl || typeof (tableEl as HTMLElement).getBoundingClientRect !== 'function') return
+  const rect = (tableEl as HTMLElement).getBoundingClientRect()
   const padding = 24
   const nextHeight = Math.max(320, window.innerHeight - rect.top - padding)
   scrollHeight.value = `${Math.floor(nextHeight)}px`
@@ -58,8 +63,7 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
-  await dictionaries.loadSpendingFunds()
-  await dictionaries.loadCashflowItems()
+  await dictionaries.loadCashflowItems(true)
   await resetData()
   await nextTick()
   updateScrollHeight()
@@ -72,7 +76,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <SpendingItemsTable
+  <CashflowItemsTable
     ref="tableRef"
     v-model:filters="filters"
     :rows="data"

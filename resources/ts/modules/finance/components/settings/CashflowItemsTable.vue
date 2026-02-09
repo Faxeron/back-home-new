@@ -6,17 +6,32 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { $api } from '@/utils/api'
-import { SPENDING_ITEM_COLUMNS } from '@/modules/finance/config/spendingItemsTable.config'
 import { useDictionariesStore } from '@/stores/dictionaries'
-import type { SpendingItem } from '@/types/finance'
+import { CASHFLOW_ITEM_COLUMNS } from '@/modules/finance/config/cashflowItemsTable.config'
+import type { CashflowItem } from '@/types/finance'
 
-type SpendingItemRow = SpendingItem & {
-  fund_name?: string
-  cashflow_name?: string
+type CashflowItemRow = CashflowItem & {
+  parent_name?: string
 }
 
+const SECTION_OPTIONS = [
+  { label: 'Операционная', value: 'OPERATING' },
+  { label: 'Инвестиционная', value: 'INVESTING' },
+  { label: 'Финансовая', value: 'FINANCING' },
+]
+
+const DIRECTION_OPTIONS = [
+  { label: 'Поступления', value: 'IN' },
+  { label: 'Расходы', value: 'OUT' },
+]
+
+const ACTIVE_OPTIONS = [
+  { label: 'Активна', value: 1 },
+  { label: 'Не активна', value: 0 },
+]
+
 const props = defineProps<{
-  rows: SpendingItem[]
+  rows: CashflowItem[]
   loading: boolean
   totalRecords: number
   scrollHeight: string
@@ -46,40 +61,6 @@ const canDelete = computed(() => props.canDelete !== false)
 
 const dictionaries = useDictionariesStore()
 
-const fundMap = computed(
-  () => new Map(dictionaries.spendingFunds.map(item => [String(item.id), item.name])),
-)
-
-const cashflowMap = computed(() => {
-  const list = dictionaries.cashflowItems
-  const map = new Map<string, string>()
-  for (const item of list) {
-    const label = [item.code, item.name].filter(Boolean).join(' — ')
-    map.set(String(item.id), label)
-  }
-  return map
-})
-
-const rows = computed<SpendingItemRow[]>(() =>
-  (props.rows || []).map(row => ({
-    ...row,
-    fund_name: row.fond_id != null ? fundMap.value.get(String(row.fond_id)) ?? '' : '',
-    cashflow_name:
-      row.cashflow_item_id != null
-        ? cashflowMap.value.get(String(row.cashflow_item_id)) ?? ''
-        : '',
-  })),
-)
-
-const cashflowOptions = computed(() =>
-  dictionaries.cashflowItems
-    .filter(item => String(item.direction ?? '') === 'OUT' && item.is_active !== false)
-    .map(item => ({
-      id: item.id,
-      label: [item.code, item.name].filter(Boolean).join(' — '),
-    })),
-)
-
 const dialogOpen = ref(false)
 const saving = ref(false)
 const deletingId = ref<number | null>(null)
@@ -87,54 +68,81 @@ const errorMessage = ref('')
 
 const form = reactive({
   id: null as number | null,
+  parent_id: null as number | null,
+  code: '',
   name: '',
-  fond_id: null as number | null,
-  cashflow_item_id: null as number | null,
-  description: '',
+  section: 'OPERATING',
+  direction: 'IN',
+  sort_order: 100,
   is_active: true,
 })
+
+const cashflowOptions = computed(() => {
+  const source = dictionaries.cashflowItems.length ? dictionaries.cashflowItems : props.rows
+  return source.map(item => ({
+    id: item.id,
+    label: [item.code, item.name].filter(Boolean).join(' — '),
+  }))
+})
+
+const parentOptions = computed(() =>
+  cashflowOptions.value.filter(option => option.id !== form.id),
+)
+
+const parentMap = computed(() => new Map(cashflowOptions.value.map(item => [String(item.id), item.label])))
+
+const rows = computed<CashflowItemRow[]>(() =>
+  (props.rows || []).map(row => ({
+    ...row,
+    parent_name: row.parent_id != null ? parentMap.value.get(String(row.parent_id)) ?? '' : '',
+  })),
+)
+
+const formatBool = (value?: boolean | null) => (value === true ? 'Да' : value === false ? 'Нет' : '')
+const formatSection = (value?: string | null) =>
+  SECTION_OPTIONS.find(option => option.value === value)?.label ?? value ?? ''
+const formatDirection = (value?: string | null) =>
+  DIRECTION_OPTIONS.find(option => option.value === value)?.label ?? value ?? ''
 
 const canSave = computed(() => (form.id ? canEdit.value : canCreate.value))
 const isReadOnly = computed(() => !canSave.value)
 
 const resetForm = () => {
   form.id = null
+  form.parent_id = null
+  form.code = ''
   form.name = ''
-  form.fond_id = null
-  form.cashflow_item_id = null
-  form.description = ''
+  form.section = 'OPERATING'
+  form.direction = 'IN'
+  form.sort_order = 100
   form.is_active = true
   errorMessage.value = ''
 }
 
-const openCreate = async () => {
+const openCreate = () => {
   if (!canCreate.value) return
   resetForm()
-  await Promise.all([dictionaries.loadSpendingFunds(), dictionaries.loadCashflowItems()])
   dialogOpen.value = true
 }
 
-const openEdit = async (row: SpendingItemRow) => {
+const openEdit = (row: CashflowItemRow) => {
   if (!canEdit.value) return
   resetForm()
   form.id = row.id
+  form.parent_id = row.parent_id ?? null
+  form.code = row.code ?? ''
   form.name = row.name ?? ''
-  form.fond_id = row.fond_id ?? null
-  form.cashflow_item_id = row.cashflow_item_id ?? null
-  form.description = row.description ?? ''
+  form.section = row.section ?? 'OPERATING'
+  form.direction = row.direction ?? 'IN'
+  form.sort_order = row.sort_order ?? 100
   form.is_active = row.is_active ?? true
-  await Promise.all([dictionaries.loadSpendingFunds(), dictionaries.loadCashflowItems()])
   dialogOpen.value = true
 }
 
 const submit = async () => {
   if (!canSave.value) return
-  if (!form.name.trim()) {
-    errorMessage.value = 'Укажите название статьи.'
-    return
-  }
-  if (!form.fond_id) {
-    errorMessage.value = 'Выберите фонд.'
+  if (!form.code.trim() || !form.name.trim()) {
+    errorMessage.value = 'Заполните код и название.'
     return
   }
 
@@ -142,27 +150,29 @@ const submit = async () => {
   errorMessage.value = ''
   try {
     const payload = {
+      parent_id: form.parent_id ?? null,
+      code: form.code.trim(),
       name: form.name.trim(),
-      fond_id: form.fond_id,
-      cashflow_item_id: form.cashflow_item_id ?? null,
-      description: form.description?.trim() || null,
+      section: form.section,
+      direction: form.direction,
+      sort_order: form.sort_order ?? 100,
       is_active: form.is_active ? 1 : 0,
     }
 
     if (form.id) {
-      await $api(`settings/spending-items/${form.id}`, {
-        method: 'PATCH',
+      await $api(`cashflow-items/${form.id}`, {
+        method: 'PUT',
         body: payload,
       })
     } else {
-      await $api('settings/spending-items', {
+      await $api('cashflow-items', {
         method: 'POST',
         body: payload,
       })
     }
 
     dialogOpen.value = false
-    await dictionaries.loadSpendingItems(true)
+    await dictionaries.loadCashflowItems(true)
     emit('reload')
   } catch (error: any) {
     errorMessage.value =
@@ -172,13 +182,13 @@ const submit = async () => {
   }
 }
 
-const removeItem = async (row: SpendingItemRow) => {
+const removeItem = async (row: CashflowItemRow) => {
   if (!canDelete.value) return
-  if (!window.confirm('Удалить статью расхода?')) return
+  if (!window.confirm('Отключить статью ДДС?')) return
   deletingId.value = row.id
   try {
-    await $api(`settings/spending-items/${row.id}`, { method: 'DELETE' })
-    await dictionaries.loadSpendingItems(true)
+    await $api(`cashflow-items/${row.id}`, { method: 'DELETE' })
+    await dictionaries.loadCashflowItems(true)
     emit('reload')
   } catch (error: any) {
     errorMessage.value =
@@ -230,20 +240,32 @@ const removeItem = async (row: SpendingItemRow) => {
       </template>
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.id.field"
-        :header="SPENDING_ITEM_COLUMNS.id.header"
-        :sortable="SPENDING_ITEM_COLUMNS.id.sortable"
+        :field="CASHFLOW_ITEM_COLUMNS.id.field"
+        :header="CASHFLOW_ITEM_COLUMNS.id.header"
+        :sortable="CASHFLOW_ITEM_COLUMNS.id.sortable"
         :showFilterMenu="false"
-        :style="`inline-size: ${SPENDING_ITEM_COLUMNS.id.width};`"
-        :headerStyle="`inline-size: ${SPENDING_ITEM_COLUMNS.id.width};`"
-        :bodyStyle="`inline-size: ${SPENDING_ITEM_COLUMNS.id.width};`"
+        :style="`inline-size: ${CASHFLOW_ITEM_COLUMNS.id.width};`"
+        :headerStyle="`inline-size: ${CASHFLOW_ITEM_COLUMNS.id.width};`"
+        :bodyStyle="`inline-size: ${CASHFLOW_ITEM_COLUMNS.id.width};`"
       />
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.name.field"
-        :header="SPENDING_ITEM_COLUMNS.name.header"
-        :sortable="SPENDING_ITEM_COLUMNS.name.sortable"
-        :showFilterMenu="false"
+        :field="CASHFLOW_ITEM_COLUMNS.code.field"
+        :header="CASHFLOW_ITEM_COLUMNS.code.header"
+        :sortable="CASHFLOW_ITEM_COLUMNS.code.sortable"
+      >
+        <template #filter="{ filterModel, filterCallback }">
+          <InputText v-model="filterModel.value" class="w-full" @input="filterCallback()" />
+        </template>
+        <template #body="{ data }">
+          {{ data.code ?? '' }}
+        </template>
+      </Column>
+
+      <Column
+        :field="CASHFLOW_ITEM_COLUMNS.name.field"
+        :header="CASHFLOW_ITEM_COLUMNS.name.header"
+        :sortable="CASHFLOW_ITEM_COLUMNS.name.sortable"
       >
         <template #filter="{ filterModel, filterCallback }">
           <InputText v-model="filterModel.value" class="w-full" @input="filterCallback()" />
@@ -254,28 +276,48 @@ const removeItem = async (row: SpendingItemRow) => {
       </Column>
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.fund.field"
-        :header="SPENDING_ITEM_COLUMNS.fund.header"
+        :field="CASHFLOW_ITEM_COLUMNS.section.field"
+        :header="CASHFLOW_ITEM_COLUMNS.section.header"
         :showFilterMenu="false"
       >
         <template #filter="{ filterModel, filterCallback }">
           <Select
             v-model="filterModel.value"
-            :options="dictionaries.spendingFunds"
-            optionLabel="name"
-            optionValue="id"
+            :options="SECTION_OPTIONS"
+            optionLabel="label"
+            optionValue="value"
             class="w-full"
             @change="filterCallback()"
           />
         </template>
         <template #body="{ data }">
-          {{ data.fund_name ?? '' }}
+          {{ formatSection(data.section) }}
         </template>
       </Column>
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.cashflow.field"
-        :header="SPENDING_ITEM_COLUMNS.cashflow.header"
+        :field="CASHFLOW_ITEM_COLUMNS.direction.field"
+        :header="CASHFLOW_ITEM_COLUMNS.direction.header"
+        :showFilterMenu="false"
+      >
+        <template #filter="{ filterModel, filterCallback }">
+          <Select
+            v-model="filterModel.value"
+            :options="DIRECTION_OPTIONS"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            @change="filterCallback()"
+          />
+        </template>
+        <template #body="{ data }">
+          {{ formatDirection(data.direction) }}
+        </template>
+      </Column>
+
+      <Column
+        :field="CASHFLOW_ITEM_COLUMNS.parent.field"
+        :header="CASHFLOW_ITEM_COLUMNS.parent.header"
         :showFilterMenu="false"
       >
         <template #filter="{ filterModel, filterCallback }">
@@ -289,27 +331,36 @@ const removeItem = async (row: SpendingItemRow) => {
           />
         </template>
         <template #body="{ data }">
-          {{ data.cashflow_name ?? '' }}
+          {{ data.parent_name ?? '' }}
         </template>
       </Column>
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.description.field"
-        :header="SPENDING_ITEM_COLUMNS.description.header"
-        :showFilterMenu="false"
+        :field="CASHFLOW_ITEM_COLUMNS.sortOrder.field"
+        :header="CASHFLOW_ITEM_COLUMNS.sortOrder.header"
       >
         <template #body="{ data }">
-          {{ data.description ?? '' }}
+          {{ data.sort_order ?? 100 }}
         </template>
       </Column>
 
       <Column
-        :field="SPENDING_ITEM_COLUMNS.isActive.field"
-        :header="SPENDING_ITEM_COLUMNS.isActive.header"
+        :field="CASHFLOW_ITEM_COLUMNS.isActive.field"
+        :header="CASHFLOW_ITEM_COLUMNS.isActive.header"
         :showFilterMenu="false"
       >
+        <template #filter="{ filterModel, filterCallback }">
+          <Select
+            v-model="filterModel.value"
+            :options="ACTIVE_OPTIONS"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            @change="filterCallback()"
+          />
+        </template>
         <template #body="{ data }">
-          {{ data.is_active === true ? 'Да' : data.is_active === false ? 'Нет' : '' }}
+          {{ formatBool(data.is_active) }}
         </template>
       </Column>
 
@@ -341,43 +392,57 @@ const removeItem = async (row: SpendingItemRow) => {
     </DataTable>
   </div>
 
-  <VDialog v-model="dialogOpen" max-width="520">
+  <VDialog v-model="dialogOpen" max-width="560">
     <VCard>
       <VCardTitle class="d-flex align-center justify-space-between">
-        <span>{{ form.id ? 'Редактировать статью' : 'Новая статья расхода' }}</span>
+        <span>{{ form.id ? 'Редактировать статью' : 'Новая статья ДДС' }}</span>
         <VBtn icon="tabler-x" variant="text" @click="dialogOpen = false" />
       </VCardTitle>
       <VCardText class="d-flex flex-column gap-4">
         <div v-if="errorMessage" class="text-sm text-error">{{ errorMessage }}</div>
 
+        <VTextField v-model="form.code" label="Код" hide-details :disabled="isReadOnly" />
         <VTextField v-model="form.name" label="Название" hide-details :disabled="isReadOnly" />
+
         <VSelect
-          v-model="form.fond_id"
-          :items="dictionaries.spendingFunds"
-          item-title="name"
-          item-value="id"
-          label="Фонд"
+          v-model="form.section"
+          :items="SECTION_OPTIONS"
+          item-title="label"
+          item-value="value"
+          label="Раздел"
           hide-details
           :disabled="isReadOnly"
         />
+
         <VSelect
-          v-model="form.cashflow_item_id"
-          :items="cashflowOptions"
+          v-model="form.direction"
+          :items="DIRECTION_OPTIONS"
+          item-title="label"
+          item-value="value"
+          label="Направление"
+          hide-details
+          :disabled="isReadOnly"
+        />
+
+        <VSelect
+          v-model="form.parent_id"
+          :items="parentOptions"
           item-title="label"
           item-value="id"
-          label="Статья ДДС"
+          label="Родитель"
           clearable
           hide-details
           :disabled="isReadOnly"
         />
-        <VTextarea
-          v-model="form.description"
-          label="Описание"
-          rows="2"
-          auto-grow
+
+        <VTextField
+          v-model.number="form.sort_order"
+          type="number"
+          label="Сортировка"
           hide-details
           :disabled="isReadOnly"
         />
+
         <VSwitch v-model="form.is_active" label="Активна" inset :disabled="isReadOnly" />
       </VCardText>
       <VCardActions class="justify-end gap-2">

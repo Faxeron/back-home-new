@@ -24,6 +24,9 @@ class CashflowItemController extends Controller
         $section = strtoupper((string) $request->get('section', ''));
         $direction = strtoupper((string) $request->get('direction', ''));
         $isActive = $request->get('is_active', null);
+        $code = trim((string) $request->get('code', ''));
+        $name = trim((string) $request->get('name', ''));
+        $parentId = $request->integer('parent_id') ?: null;
 
         $query = CashflowItem::query()
             ->where(function ($builder) use ($tenantId) {
@@ -43,6 +46,15 @@ class CashflowItemController extends Controller
         }
         if ($isActive !== null) {
             $query->where('is_active', (int) $isActive === 1);
+        }
+        if ($code !== '') {
+            $query->where('code', 'like', "%{$code}%");
+        }
+        if ($name !== '') {
+            $query->where('name', 'like', "%{$name}%");
+        }
+        if ($parentId) {
+            $query->where('parent_id', $parentId);
         }
 
         $items = $query

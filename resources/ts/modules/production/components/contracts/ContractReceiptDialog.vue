@@ -25,6 +25,7 @@ const validationErrors = ref<Record<string, string[]>>({})
 const form = reactive({
   cashbox_id: null as number | null,
   payment_method_id: null as number | null,
+  cashflow_item_id: null as number | null,
   sum: null as number | null,
   payment_date: '',
   description: '',
@@ -46,12 +47,17 @@ const datePickerConfig = {
 const resetForm = () => {
   form.cashbox_id = null
   form.payment_method_id = null
+  form.cashflow_item_id = null
   form.sum = null
   form.payment_date = new Date().toISOString().slice(0, 10)
   form.description = ''
   errorMessage.value = ''
   validationErrors.value = {}
 }
+
+const cashflowItemsIn = computed(() =>
+  dictionaries.cashflowItems.filter(item => item.direction === 'IN' && item.is_active !== false),
+)
 
 const normalizeDateValue = (value?: string | null) => {
   const trimmed = (value ?? '').trim()
@@ -74,6 +80,7 @@ const submit = async () => {
       contract_id: props.contract.id,
       cashbox_id: form.cashbox_id,
       payment_method_id: form.payment_method_id,
+      cashflow_item_id: form.cashflow_item_id,
       sum: form.sum,
       payment_date: normalizeDateValue(form.payment_date),
       description: form.description || null,
@@ -99,7 +106,11 @@ watch(
   async value => {
     if (!value) return
     resetForm()
-    await Promise.all([dictionaries.loadCashBoxes(), dictionaries.loadPaymentMethods()])
+    await Promise.all([
+      dictionaries.loadCashBoxes(),
+      dictionaries.loadPaymentMethods(),
+      dictionaries.loadCashflowItems(),
+    ])
   },
 )
 </script>
@@ -143,6 +154,14 @@ watch(
           item-title="name"
           item-value="id"
           label="Способ оплаты"
+        />
+
+        <AppSelect
+          v-model="form.cashflow_item_id"
+          :items="cashflowItemsIn"
+          item-title="name"
+          item-value="id"
+          label="Статья ДДС"
         />
 
         <VTextField

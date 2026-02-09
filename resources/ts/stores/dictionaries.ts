@@ -10,6 +10,11 @@ interface NamedItem {
   sign?: number | string | null
   fond_id?: number | string | null
   logo_url?: string | null
+  section?: string
+  direction?: string
+  is_active?: boolean
+  parent_id?: number | string | null
+  sort_order?: number | null
 }
 
 export const useDictionariesStore = defineStore('dictionaries', {
@@ -18,6 +23,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     companies: [] as NamedItem[],
     spendingFunds: [] as NamedItem[],
     spendingItems: [] as NamedItem[],
+    cashflowItems: [] as NamedItem[],
     saleTypes: [] as NamedItem[],
     transactionTypes: [] as NamedItem[],
     paymentMethods: [] as NamedItem[],
@@ -29,6 +35,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
       companies: false,
       spendingFunds: false,
       spendingItems: false,
+      cashflowItems: false,
       saleTypes: false,
       transactionTypes: false,
       paymentMethods: false,
@@ -93,8 +100,8 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loaded.spendingFunds = true
       }
     },
-    async loadSpendingItems() {
-      if (this.loaded.spendingItems) return
+    async loadSpendingItems(force = false) {
+      if (!force && this.loaded.spendingItems) return
       try {
         const res: any = await $api('finance/spending-items')
         const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
@@ -110,6 +117,30 @@ export const useDictionariesStore = defineStore('dictionaries', {
         console.error('Failed to load spending items', e)
         this.spendingItems = []
         this.loaded.spendingItems = true
+      }
+    },
+    async loadCashflowItems(force = false) {
+      if (!force && this.loaded.cashflowItems) return
+      try {
+        const res: any = await $api('cashflow-items')
+        const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
+        this.cashflowItems = list
+          .map((item: any) => ({
+            id: item?.id ?? item?.value,
+            name: item?.name ?? item?.label,
+            code: item?.code ?? undefined,
+            section: item?.section ?? undefined,
+            direction: item?.direction ?? undefined,
+            parent_id: item?.parent_id ?? null,
+            sort_order: item?.sort_order ?? null,
+            is_active: item?.is_active ?? undefined,
+          }))
+          .filter((item: any) => item.id && item.name)
+        this.loaded.cashflowItems = true
+      } catch (e) {
+        console.error('Failed to load cashflow items', e)
+        this.cashflowItems = []
+        this.loaded.cashflowItems = true
       }
     },
     async loadSaleTypes() {
@@ -234,6 +265,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loadCompanies(),
         this.loadSpendingFunds(),
         this.loadSpendingItems(),
+        this.loadCashflowItems(),
         this.loadSaleTypes(),
         this.loadPaymentMethods(),
         this.loadTransactionTypes(),

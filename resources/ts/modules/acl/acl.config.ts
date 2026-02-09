@@ -21,6 +21,7 @@ export const ACL_RESOURCE_PATHS: AclResourcePath[] = [
   { resource: 'settings.companies', paths: ['/settings/companies'] },
   { resource: 'settings.spending_funds', paths: ['/settings/spending-funds'] },
   { resource: 'settings.spending_items', paths: ['/settings/spending-items'] },
+  { resource: 'settings.cashflow_items', paths: ['/settings/cashflow-items'] },
   { resource: 'settings.contract_statuses', paths: ['/settings/contract-statuses'] },
   { resource: 'settings.transaction_types', paths: ['/settings/transaction-types'] },
   { resource: 'settings.sale_types', paths: ['/settings/sale-types'] },

@@ -13,6 +13,7 @@ export type Transaction = {
   cashbox_id?: number
   transaction_type_id?: number | string
   payment_method_id?: number | string
+  cashflow_item_id?: number
   company_id?: number
   counterparty_id?: number
   contract_id?: number
@@ -34,6 +35,7 @@ export type Receipt = {
   company_id?: number
   cashbox_id?: number
   transaction_id?: number
+  cashflow_item_id?: number | null
   contract_id?: number
   counterparty_id?: number
   description?: string
@@ -53,6 +55,7 @@ export type Spending = {
   transaction_id?: number
   fond_id?: number
   spending_item_id?: number
+  cashflow_item_id?: number | null
   contract_id?: number
   counterparty_id?: number
   spent_to_user_id?: number
@@ -162,8 +165,60 @@ export type SpendingItem = {
   id: number
   name: string
   fond_id?: number
+  cashflow_item_id?: number | null
   description?: string
   is_active?: boolean
+}
+
+export type CashflowItem = {
+  id: number
+  parent_id?: number | null
+  code: string
+  name: string
+  section: 'OPERATING' | 'INVESTING' | 'FINANCING'
+  direction: 'IN' | 'OUT'
+  is_active?: boolean
+  sort_order?: number | null
+}
+
+export type CashflowReportSummary = {
+  date_from: string
+  date_to: string
+  opening_balance: number
+  inflow: number
+  outflow: number
+  net: number
+  closing_balance: number
+  currency?: string
+}
+
+export type CashflowReportItem = {
+  id: number
+  code?: string
+  name: string
+  direction: 'IN' | 'OUT'
+  amount_in: number
+  amount_out: number
+  net: number
+}
+
+export type CashflowReportSection = {
+  section: 'OPERATING' | 'INVESTING' | 'FINANCING'
+  items: CashflowReportItem[]
+  totals: { in: number; out: number; net: number }
+}
+
+export type CashflowReportTimeline = {
+  period: string
+  inflow: number
+  outflow: number
+  net: number
+}
+
+export type CashflowReport = {
+  summary: CashflowReportSummary
+  rows: CashflowReportSection[]
+  timeline?: CashflowReportTimeline[] | null
 }
 export type ContractStatus = {
   id: number

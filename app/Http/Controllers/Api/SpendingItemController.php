@@ -23,6 +23,10 @@ class SpendingItemController extends Controller
             $query->where('fond_id', $fundId);
         }
 
+        if ($cashflowId = $request->integer('cashflow_item_id')) {
+            $query->where('cashflow_item_id', $cashflowId);
+        }
+
         if ($search = $request->string('q')->toString()) {
             $query->where('name', 'like', "%{$search}%");
         }
