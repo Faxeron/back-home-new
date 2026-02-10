@@ -212,6 +212,10 @@ class FilterBuilder
             $query->where('receipts.contract_id', $f->contractId);
         }
 
+        if ($f->cashflowItemId) {
+            $query->where('receipts.cashflow_item_id', $f->cashflowItemId);
+        }
+
         if ($f->counterpartyId) {
             $query->where('receipts.counterparty_id', $f->counterpartyId);
         }

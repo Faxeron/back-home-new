@@ -16,6 +16,7 @@ import type { Receipt } from '@/types/finance'
 
 type ReceiptRow = Receipt & {
   counterparty_name?: string
+  cashflow_name?: string
 }
 
 const props = defineProps<{
@@ -48,6 +49,14 @@ const counterpartyMap = computed(
   () => new Map(dictionaries.counterparties.map(item => [String(item.id), item.name])),
 )
 
+const cashflowMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const item of dictionaries.cashflowItems) {
+    map.set(String(item.id), item.name ?? '')
+  }
+  return map
+})
+
 const cashboxInlineSize = computed(() => {
   const names = dictionaries.cashBoxes.map(item => item.name ?? '')
   const maxLength = names.reduce((max, name) => Math.max(max, name.length), 0)
@@ -67,6 +76,10 @@ const rows = computed<ReceiptRow[]>(() =>
     return {
       ...row,
       counterparty_name: counterpartyName,
+      cashflow_name:
+        row.cashflow_item_id != null
+          ? cashflowMap.value.get(String(row.cashflow_item_id)) ?? ''
+          : '',
     }
   }),
 )
@@ -173,6 +186,26 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
       <template #body="{ data }">
         <CashboxCell :cashbox="data.cashbox" size="sm" />
+      </template>
+    </Column>
+
+    <Column
+      :field="RECEIPT_COLUMNS.cashflow.field"
+      :header="RECEIPT_COLUMNS.cashflow.header"
+      :showFilterMenu="false"
+    >
+      <template #filter="{ filterModel, filterCallback }">
+        <Select
+          v-model="filterModel.value"
+          :options="dictionaries.cashflowItems.filter(item => item.direction === 'IN')"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          @change="filterCallback()"
+        />
+      </template>
+      <template #body="{ data }">
+        {{ data.cashflow_name ?? '' }}
       </template>
     </Column>
 

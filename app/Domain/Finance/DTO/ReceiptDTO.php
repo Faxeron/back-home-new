@@ -33,7 +33,7 @@ class ReceiptDTO
             companyId: $receipt->company_id,
             cashBoxId: $receipt->cashbox_id,
             transactionId: $receipt->transaction_id,
-            cashflowItemId: $receipt->transaction?->cashflow_item_id ? (int) $receipt->transaction->cashflow_item_id : null,
+            cashflowItemId: $receipt->cashflow_item_id ? (int) $receipt->cashflow_item_id : null,
             sum: $sumValue,
             contractId: $receipt->contract_id,
             counterpartyId: $receipt->counterparty_id,

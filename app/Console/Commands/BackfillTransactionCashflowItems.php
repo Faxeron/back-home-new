@@ -31,16 +31,15 @@ class BackfillTransactionCashflowItems extends Command
         $chunk = (int) ($this->option('chunk') ?? 200);
         $chunk = $chunk > 0 ? $chunk : 200;
 
-        $opClientPayment = $this->getCashflowItemId('OP_IN_CLIENT_PAYMENT');
         $opInOther = $this->getCashflowItemId('OP_IN_OTHER');
 
-        if (!$opClientPayment || !$opInOther) {
-            $this->error('Required cashflow items not found: OP_IN_CLIENT_PAYMENT / OP_IN_OTHER.');
+        if (!$opInOther) {
+            $this->error('Required cashflow item not found: OP_IN_OTHER.');
             return self::FAILURE;
         }
 
         $updatedSpendings = $this->backfillFromSpendings($tenantId, $companyId, $chunk);
-        $updatedReceipts = $this->backfillFromReceipts($tenantId, $companyId, $chunk, $opClientPayment, $opInOther);
+        $updatedReceipts = $this->backfillFromReceipts($tenantId, $companyId, $chunk, $opInOther);
 
         $this->info("Updated transactions from spendings: {$updatedSpendings}");
         $this->info("Updated transactions from receipts: {$updatedReceipts}");
@@ -66,24 +65,23 @@ class BackfillTransactionCashflowItems extends Command
 
         $updated = 0;
 
-        $query->orderBy('s.id')->chunkById($chunk, function ($rows) use (&$updated): void {
-            foreach ($rows as $row) {
-                $affected = DB::connection('legacy_new')
-                    ->table('transactions')
-                    ->where('id', $row->transaction_id)
-                    ->where(function ($q) {
-                        $q->whereNull('cashflow_item_id')->orWhere('cashflow_item_id', 0);
-                    })
-                    ->update(['cashflow_item_id' => $row->cashflow_item_id]);
+        // Use cursor instead of chunkById because of alias in select
+        foreach ($query->orderBy('s.id')->cursor() as $row) {
+            $affected = DB::connection('legacy_new')
+                ->table('transactions')
+                ->where('id', $row->transaction_id)
+                ->where(function ($q) {
+                    $q->whereNull('cashflow_item_id')->orWhere('cashflow_item_id', 0);
+                })
+                ->update(['cashflow_item_id' => $row->cashflow_item_id]);
 
-                $updated += (int) $affected;
-            }
-        }, 's.id');
+            $updated += (int) $affected;
+        }
 
         return $updated;
     }
 
-    private function backfillFromReceipts(?int $tenantId, ?int $companyId, int $chunk, int $opClientPayment, int $opInOther): int
+    private function backfillFromReceipts(?int $tenantId, ?int $companyId, int $chunk, int $opInOther): int
     {
         $query = DB::connection('legacy_new')
             ->table('receipts')
@@ -99,17 +97,23 @@ class BackfillTransactionCashflowItems extends Command
 
         $updated = 0;
 
-        $query->orderBy('id')->chunkById($chunk, function ($rows) use (&$updated, $opClientPayment, $opInOther): void {
+        $query->orderBy('id')->chunkById($chunk, function ($rows) use (&$updated, $opInOther): void {
             foreach ($rows as $row) {
-                $target = $row->contract_id ? $opClientPayment : $opInOther;
-
                 $affected = DB::connection('legacy_new')
                     ->table('transactions')
                     ->where('id', $row->transaction_id)
                     ->where(function ($q) {
                         $q->whereNull('cashflow_item_id')->orWhere('cashflow_item_id', 0);
                     })
-                    ->update(['cashflow_item_id' => $target]);
+                    ->update(['cashflow_item_id' => $opInOther]);
+
+                DB::connection('legacy_new')
+                    ->table('receipts')
+                    ->where('id', $row->id)
+                    ->where(function ($q) {
+                        $q->whereNull('cashflow_item_id')->orWhere('cashflow_item_id', 0);
+                    })
+                    ->update(['cashflow_item_id' => $opInOther]);
 
                 $updated += (int) $affected;
             }

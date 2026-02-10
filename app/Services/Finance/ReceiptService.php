@@ -5,6 +5,7 @@ namespace App\Services\Finance;
 use App\Domain\Finance\DTO\ReceiptData;
 use App\Domain\Finance\DTO\ReceiptFilterDTO;
 use App\Domain\Finance\Models\Receipt;
+use App\Domain\Finance\Models\Transaction;
 use App\Events\PaymentAppliedToContract;
 use App\Events\ReceiptCreated;
 use App\Services\Finance\Filters\FilterBuilder;
@@ -56,9 +57,18 @@ class ReceiptService
     public function update(Receipt $receipt, ReceiptData|array $payload): Receipt
     {
         return DB::connection('legacy_new')->transaction(function () use ($receipt, $payload) {
+            $previousCashflowId = $receipt->cashflow_item_id;
             $receipt->update($this->normalize($payload));
+            $receipt->refresh();
 
-            return $receipt->refresh();
+            if ($receipt->transaction_id) {
+                $nextCashflowId = $receipt->cashflow_item_id ?? $previousCashflowId;
+                Transaction::query()
+                    ->where('id', $receipt->transaction_id)
+                    ->update(['cashflow_item_id' => $nextCashflowId]);
+            }
+
+            return $receipt;
         });
     }
 

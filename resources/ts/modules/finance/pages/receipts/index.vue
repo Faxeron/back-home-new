@@ -51,6 +51,7 @@ onMounted(async () => {
   await Promise.all([
     dictionaries.loadCashBoxes(true),
     dictionaries.loadCounterparties(),
+    dictionaries.loadCashflowItems(),
   ])
   await resetData()
   await nextTick()
