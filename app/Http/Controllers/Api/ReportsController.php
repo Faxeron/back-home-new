@@ -416,6 +416,7 @@ class ReportsController extends Controller
         // Build only for days that actually have paid transactions with a cashflow item.
         $dates = (clone $txBase)
             ->whereNotNull('cashflow_item_id')
+            ->where('cashflow_item_id', '>', 0)
             ->distinct()
             ->orderBy('date_is_paid', 'asc')
             ->pluck('date_is_paid')

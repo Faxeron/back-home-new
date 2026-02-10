@@ -59,6 +59,7 @@ class ReportBuilderService
                 ->where('t.is_paid', 1)
                 ->where('t.date_is_paid', $dateYmd)
                 ->whereNotNull('t.cashflow_item_id')
+                ->where('t.cashflow_item_id', '>', 0)
                 ->where('t.tenant_id', $this->tenantId)
                 ->where('t.company_id', $this->companyId)
                 ->whereNotIn('t.id', function ($q) {

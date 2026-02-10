@@ -64,6 +64,7 @@ const debtsSummary = ref<DebtsSummaryPoint[]>([])
 
 const rebuilding = ref(false)
 const rebuildError = ref('')
+const rebuildResult = ref<any>(null)
 
 const monthRangeLabel = computed(() => {
   if (!cashflowPoints.value.length)
@@ -163,13 +164,14 @@ const refreshAll = async () => {
 const rebuildAndRefresh = async () => {
   rebuilding.value = true
   rebuildError.value = ''
+  rebuildResult.value = null
   try {
     const body: Record<string, any> = {}
     if (filters.company_id) body.company_id = filters.company_id
     if (filters.from_month) body.from_month = filters.from_month
     if (filters.to_month) body.to_month = filters.to_month
-
-    await $api('reports/rebuild', { method: 'POST', body })
+ 
+    rebuildResult.value = await $api('reports/rebuild', { method: 'POST', body })
     await refreshAll()
   } catch (error: any) {
     rebuildError.value =
@@ -362,6 +364,22 @@ const pnlOptions = computed(() => {
           class="mb-4"
         >
           {{ rebuildError }}
+        </VAlert>
+
+        <VAlert
+          v-else-if="rebuildResult"
+          type="success"
+          variant="tonal"
+          class="mb-4"
+        >
+          <div class="text-body-2">
+            Пересчёт выполнен.
+          </div>
+          <div class="text-caption text-medium-emphasis mt-1">
+            Paid: {{ rebuildResult?.source_stats?.paid_total ?? 0 }},
+            с ДДС: {{ rebuildResult?.source_stats?.paid_with_cashflow_item ?? 0 }},
+            без ДДС: {{ rebuildResult?.source_stats?.paid_without_cashflow_item ?? 0 }}.
+          </div>
         </VAlert>
 
         <VRow dense>
