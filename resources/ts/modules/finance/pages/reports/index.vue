@@ -93,9 +93,8 @@ const loadCashflow = async () => {
     if (filters.to_month)
       params.to_month = filters.to_month
 
-    const response: any = await $api('reports/cashflow/monthly-summary', { params })
-    const data = response?.data ?? response
-    cashflowPoints.value = Array.isArray(data?.data) ? data.data : []
+    const payload: any = await $api('reports/cashflow/monthly-summary', { params })
+    cashflowPoints.value = Array.isArray(payload?.data) ? payload.data : []
   } catch (error: any) {
     cashflowError.value =
       error?.response?.data?.message ??
@@ -119,10 +118,9 @@ const loadPnl = async () => {
     if (filters.to_month)
       params.to_month = filters.to_month
 
-    const response: any = await $api('reports/pnl/monthly', { params })
-    const data = response?.data ?? response
-    pnlPoints.value = Array.isArray(data?.data) ? data.data : []
-    pnlTotals.value = data?.totals ?? null
+    const payload: any = await $api('reports/pnl/monthly', { params })
+    pnlPoints.value = Array.isArray(payload?.data) ? payload.data : []
+    pnlTotals.value = payload?.totals ?? null
   } catch (error: any) {
     pnlError.value =
       error?.response?.data?.message ??
@@ -143,9 +141,8 @@ const loadDebts = async () => {
     if (filters.company_id)
       params.company_id = filters.company_id
 
-    const response: any = await $api('reports/debts/summary', { params })
-    const data = response?.data ?? response
-    debtsSummary.value = Array.isArray(data?.data) ? data.data : []
+    const payload: any = await $api('reports/debts/summary', { params })
+    debtsSummary.value = Array.isArray(payload?.data) ? payload.data : []
   } catch (error: any) {
     debtsError.value =
       error?.response?.data?.message ??
