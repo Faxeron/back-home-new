@@ -13,7 +13,7 @@ import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Popover from 'primevue/popover'
 import Select from 'primevue/select'
-import { computed, reactive, ref, watchEffect } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 type ReceiptRow = Receipt & {
   counterparty_name?: string
@@ -39,37 +39,53 @@ const emit = defineEmits<{
 const filtersModel = reactive<ReturnType<typeof defaultReceiptFilters>>(defaultReceiptFilters())
 
 // Полностью переписываем объект при изменении props.filters (безопасное копирование)
-watchEffect(() => {
-  const incoming = props.filters ?? {}
-  const defaultFilters = defaultReceiptFilters()
-  
-  // Копируем все поля, применяя defaults для всех undefined
-  Object.assign(filtersModel, {
-    search: incoming.search ?? defaultFilters.search,
-    status: incoming.status ?? defaultFilters.status,
-    cashbox_id: incoming.cashbox_id ?? defaultFilters.cashbox_id,
-    cashflow_id: incoming.cashflow_id ?? defaultFilters.cashflow_id,
-    counterparty_id: incoming.counterparty_id ?? defaultFilters.counterparty_id,
-    
-    // Вложенные структуры: сначала применяем defaults, потом override
-    payment_date: {
-      ...defaultFilters.payment_date,
-      ...(incoming.payment_date ?? {}),
-      value: {
-        ...defaultFilters.payment_date.value,
-        ...(incoming.payment_date?.value ?? {}),
-      },
-    },
-    sum: {
-      ...defaultFilters.sum,
-      ...(incoming.sum ?? {}),
-      value: {
-        ...defaultFilters.sum.value,
-        ...(incoming.sum?.value ?? {}),
-      },
-    },
-  })
-})
+const syncFiltersFromProps = (value: any) => {
+  const incoming = (value ?? {}) as Record<string, any>
+  const defaults = defaultReceiptFilters() as Record<string, any>
+
+  const mergeFilterMeta = (base: any, next: any) => {
+    if (!next || typeof next !== 'object') return { ...base }
+
+    const merged: any = { ...base, ...next }
+
+    // Merge nested "value" object for range filters (date/sum).
+    const baseValue = base?.value
+    const nextValue = next?.value
+    if (nextValue === undefined) {
+      merged.value = baseValue
+    } else if (
+      baseValue &&
+      typeof baseValue === 'object' &&
+      !Array.isArray(baseValue) &&
+      nextValue &&
+      typeof nextValue === 'object' &&
+      !Array.isArray(nextValue)
+    ) {
+      merged.value = { ...baseValue, ...nextValue }
+    }
+
+    if (next?.matchMode === undefined) merged.matchMode = base?.matchMode
+
+    return merged
+  }
+
+  const allowedKeys = Object.keys(defaults)
+
+  // Drop any unknown keys to avoid PrimeVue DataTable crashes (e.g. undefined filter meta).
+  for (const key of Object.keys(filtersModel as any)) {
+    if (!allowedKeys.includes(key)) delete (filtersModel as any)[key]
+  }
+
+  for (const key of allowedKeys) {
+    ;(filtersModel as any)[key] = mergeFilterMeta(defaults[key], incoming[key])
+  }
+}
+
+watch(
+  () => props.filters,
+  value => syncFiltersFromProps(value),
+  { deep: true, immediate: true },
+)
 
 // Отправляем обновления родителю с задержкой, чтобы избежать race conditions
 let updateTimeout: any = null

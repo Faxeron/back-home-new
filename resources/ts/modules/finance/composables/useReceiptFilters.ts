@@ -62,6 +62,7 @@ export const defaultReceiptFilters = () => ({
   id: { value: '', matchMode: 'contains' },
   payment_date: { value: { from: null, to: null }, matchMode: 'custom' },
   cashbox_id: { value: null, matchMode: 'equals' },
+  cashflow_item_id: { value: null, matchMode: 'equals' },
   sum: { value: { min: null, max: null }, matchMode: 'custom' },
   contract_id: { value: null, matchMode: 'equals' },
   counterparty_name: { value: '', matchMode: 'contains' },
@@ -117,6 +118,7 @@ export const useReceiptFilters = (options: UseReceiptFiltersOptions = {}) => {
     if (paidTo) params.payment_date_to = paidTo
 
     if (current.cashbox_id?.value !== null) params.cashbox_id = current.cashbox_id.value
+    if (current.cashflow_item_id?.value !== null) params.cashflow_item_id = current.cashflow_item_id.value
     if (current.contract_id?.value !== null) params.contract_id = current.contract_id.value
 
     const sumMin = toNumberParam(current.sum?.value?.min)
