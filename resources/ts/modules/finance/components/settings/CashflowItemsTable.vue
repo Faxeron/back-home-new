@@ -65,6 +65,8 @@ const dialogOpen = ref(false)
 const saving = ref(false)
 const deletingId = ref<number | null>(null)
 const errorMessage = ref('')
+const confirmDeleteOpen = ref(false)
+const pendingDelete = ref<CashflowItemRow | null>(null)
 
 const form = reactive({
   id: null as number | null,
@@ -182,9 +184,15 @@ const submit = async () => {
   }
 }
 
-const removeItem = async (row: CashflowItemRow) => {
+const requestRemoveItem = (row: CashflowItemRow) => {
   if (!canDelete.value) return
-  if (!window.confirm('Удалить статью ДДС?')) return
+  pendingDelete.value = row
+  confirmDeleteOpen.value = true
+}
+
+const removeItem = async () => {
+  const row = pendingDelete.value
+  if (!row) return
   deletingId.value = row.id
   try {
     await $api(`cashflow-items/${row.id}`, { method: 'DELETE' })
@@ -195,6 +203,8 @@ const removeItem = async (row: CashflowItemRow) => {
       error?.data?.message ?? error?.response?.data?.message ?? 'Не удалось удалить статью.'
   } finally {
     deletingId.value = null
+    confirmDeleteOpen.value = false
+    pendingDelete.value = null
   }
 }
 </script>
@@ -380,7 +390,7 @@ const removeItem = async (row: CashflowItemRow) => {
               text
               severity="danger"
               :loading="deletingId === data.id"
-              @click="removeItem(data)"
+              @click="requestRemoveItem(data)"
             />
           </div>
         </template>
@@ -448,6 +458,18 @@ const removeItem = async (row: CashflowItemRow) => {
       <VCardActions class="justify-end gap-2">
         <VBtn variant="text" @click="dialogOpen = false">Отмена</VBtn>
         <VBtn color="primary" :loading="saving" :disabled="isReadOnly" @click="submit">Сохранить</VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
+
+  <VDialog v-model="confirmDeleteOpen" max-width="420">
+    <VCard>
+      <VCardTitle>Удалить статью ДДС?</VCardTitle>
+      <VCardText>Статья будет удалена без восстановления.</VCardText>
+      <VCardActions>
+        <VSpacer />
+        <VBtn variant="text" @click="confirmDeleteOpen = false">Отмена</VBtn>
+        <VBtn color="error" :loading="deletingId !== null" @click="removeItem">Удалить</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>
