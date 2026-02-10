@@ -64,15 +64,19 @@ class ReportBuilderService
                 ->where('t.company_id', $this->companyId)
                 ->whereNotIn('t.id', function ($q) {
                     // Exclude transactions that are part of cash_transfers (as transaction_in_id)
+                    // IMPORTANT: exclude NULLs, otherwise SQL NOT IN (NULL, ...) filters out everything.
                     $q->select('transaction_in_id')->from('cash_transfers')
                         ->where('tenant_id', $this->tenantId)
-                        ->where('company_id', $this->companyId);
+                        ->where('company_id', $this->companyId)
+                        ->whereNotNull('transaction_in_id');
                 })
                 ->whereNotIn('t.id', function ($q) {
                     // Exclude transactions that are part of cash_transfers (as transaction_out_id)
+                    // IMPORTANT: exclude NULLs, otherwise SQL NOT IN (NULL, ...) filters out everything.
                     $q->select('transaction_out_id')->from('cash_transfers')
                         ->where('tenant_id', $this->tenantId)
-                        ->where('company_id', $this->companyId);
+                        ->where('company_id', $this->companyId)
+                        ->whereNotNull('transaction_out_id');
                 })
                 ->groupBy('t.cashflow_item_id', 'c.section', 'c.direction', 'c.code', 'c.name')
                 ->get();
@@ -414,12 +418,14 @@ class ReportBuilderService
             ->whereNotIn('t.id', function ($q) {
                 $q->select('transaction_in_id')->from('cash_transfers')
                     ->where('tenant_id', $this->tenantId)
-                    ->where('company_id', $this->companyId);
+                    ->where('company_id', $this->companyId)
+                    ->whereNotNull('transaction_in_id');
             })
             ->whereNotIn('t.id', function ($q) {
                 $q->select('transaction_out_id')->from('cash_transfers')
                     ->where('tenant_id', $this->tenantId)
-                    ->where('company_id', $this->companyId);
+                    ->where('company_id', $this->companyId)
+                    ->whereNotNull('transaction_out_id');
             })
             ->where('is_paid', 1)
             ->where('t.tenant_id', $this->tenantId)

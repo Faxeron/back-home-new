@@ -380,7 +380,11 @@ const pnlOptions = computed(() => {
             с ДДС: {{ rebuildResult?.source_stats?.paid_with_cashflow_item ?? 0 }},
             без ДДС: {{ rebuildResult?.source_stats?.paid_without_cashflow_item ?? 0 }}.
           </div>
-        </VAlert>
+                  <div class="text-caption text-medium-emphasis mt-1">
+            Р”РЅРё: {{ rebuildResult?.built?.days_success ?? 0 }},
+            РјРµСЃСЏС†С‹ Р”Р”РЎ: {{ rebuildResult?.built?.months_success ?? 0 }},
+            P&amp;L: {{ rebuildResult?.built?.pnl_months_success ?? 0 }}.
+          </div></VAlert>
 
         <VRow dense>
           <VCol
