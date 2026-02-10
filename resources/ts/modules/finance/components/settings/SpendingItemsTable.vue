@@ -54,8 +54,7 @@ const cashflowMap = computed(() => {
   const list = dictionaries.cashflowItems
   const map = new Map<string, string>()
   for (const item of list) {
-    const label = [item.code, item.name].filter(Boolean).join(' — ')
-    map.set(String(item.id), label)
+    map.set(String(item.id), item.name ?? '')
   }
   return map
 })
@@ -76,7 +75,7 @@ const cashflowOptions = computed(() =>
     .filter(item => String(item.direction ?? '') === 'OUT' && item.is_active !== false)
     .map(item => ({
       id: item.id,
-      label: [item.code, item.name].filter(Boolean).join(' — '),
+      label: item.name ?? '',
     })),
 )
 
