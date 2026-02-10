@@ -111,5 +111,11 @@
         "borderStyle": "solid"
       }
     ]
+  },
+  "chat.tools.terminal.autoApprove": {
+    "/^php artisan migrate:rollback --database=legacy_new --path=database/migrations_new --step=1$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
   }
 }
