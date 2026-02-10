@@ -62,6 +62,9 @@ const loadingDebts = ref(false)
 const debtsError = ref('')
 const debtsSummary = ref<DebtsSummaryPoint[]>([])
 
+const rebuilding = ref(false)
+const rebuildError = ref('')
+
 const monthRangeLabel = computed(() => {
   if (!cashflowPoints.value.length)
     return 'Нет данных'
@@ -155,6 +158,27 @@ const loadDebts = async () => {
 
 const refreshAll = async () => {
   await Promise.all([loadCashflow(), loadPnl(), loadDebts()])
+}
+
+const rebuildAndRefresh = async () => {
+  rebuilding.value = true
+  rebuildError.value = ''
+  try {
+    const body: Record<string, any> = {}
+    if (filters.company_id) body.company_id = filters.company_id
+    if (filters.from_month) body.from_month = filters.from_month
+    if (filters.to_month) body.to_month = filters.to_month
+
+    await $api('reports/rebuild', { method: 'POST', body })
+    await refreshAll()
+  } catch (error: any) {
+    rebuildError.value =
+      error?.response?.data?.message ??
+      error?.data?.message ??
+      'Не удалось пересчитать отчёты.'
+  } finally {
+    rebuilding.value = false
+  }
 }
 
 const initFilters = () => {
@@ -322,13 +346,24 @@ const pnlOptions = computed(() => {
         <VBtn
           color="primary"
           variant="tonal"
-          @click="refreshAll"
+          :loading="rebuilding"
+          :disabled="rebuilding"
+          @click="rebuildAndRefresh"
         >
           Обновить
         </VBtn>
       </VCardTitle>
 
       <VCardText>
+        <VAlert
+          v-if="rebuildError"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
+          {{ rebuildError }}
+        </VAlert>
+
         <VRow dense>
           <VCol
             cols="12"
@@ -520,4 +555,3 @@ const pnlOptions = computed(() => {
     </VCard>
   </div>
 </template>
-

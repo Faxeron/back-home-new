@@ -332,6 +332,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
 
     // Financial Reports - Read-Only Endpoints (CEO-level, finance permission required)
     Route::prefix('reports')->name('reports.')->middleware('permission:view,finance')->group(function () {
+        Route::post('rebuild', [ReportsController::class, 'rebuild'])->name('rebuild');
         Route::get('cashflow/daily', [ReportsController::class, 'cashflowDaily'])->name('cashflow.daily');
         Route::get('cashflow/monthly-summary', [ReportsController::class, 'cashflowMonthlySummary'])->name('cashflow.monthly-summary');
         Route::get('pnl/monthly', [ReportsController::class, 'pnlMonthly'])->name('pnl.monthly');

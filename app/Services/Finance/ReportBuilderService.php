@@ -35,6 +35,14 @@ class ReportBuilderService
         $yearMonth = $date->format('Y-m');
 
         return DB::connection('legacy_new')->transaction(function () use ($date, $yearMonth, $dateYmd) {
+            // Clear old snapshot for the day to avoid stale rows when transactions are edited.
+            DB::connection('legacy_new')
+                ->table('report_cashflow_daily')
+                ->where('tenant_id', $this->tenantId)
+                ->where('company_id', $this->companyId)
+                ->where('day_date', $dateYmd)
+                ->delete();
+
             // Get aggregated transactions for the day, excluding transfers
             $data = DB::connection('legacy_new')
                 ->table('transactions as t')
@@ -50,7 +58,7 @@ class ReportBuilderService
                 ->leftJoin('cashflow_items as c', 't.cashflow_item_id', '=', 'c.id')
                 ->where('t.is_paid', 1)
                 ->where('t.date_is_paid', $dateYmd)
-                ->where('t.cashflow_item_id', '!=', null)
+                ->whereNotNull('t.cashflow_item_id')
                 ->where('t.tenant_id', $this->tenantId)
                 ->where('t.company_id', $this->companyId)
                 ->whereNotIn('t.id', function ($q) {
@@ -101,6 +109,14 @@ class ReportBuilderService
         }
 
         return DB::connection('legacy_new')->transaction(function () use ($yearMonth) {
+            // Clear old month rows to avoid stale rows when day-level data changes.
+            DB::connection('legacy_new')
+                ->table('report_cashflow_monthly')
+                ->where('tenant_id', $this->tenantId)
+                ->where('company_id', $this->companyId)
+                ->where('year_month', $yearMonth)
+                ->delete();
+
             // Aggregate from daily to monthly
             $data = DB::connection('legacy_new')
                 ->table('report_cashflow_daily')
@@ -203,6 +219,14 @@ class ReportBuilderService
         }
 
         return DB::connection('legacy_new')->transaction(function () use ($yearMonth) {
+            // Clear old by-item rows to avoid stale items when monthly cashflow changes.
+            DB::connection('legacy_new')
+                ->table('report_pnl_monthly_by_item')
+                ->where('tenant_id', $this->tenantId)
+                ->where('company_id', $this->companyId)
+                ->where('year_month', $yearMonth)
+                ->delete();
+
             // Revenue: OPERATING + IN
             $revenue = DB::connection('legacy_new')
                 ->table('report_cashflow_monthly')
@@ -297,6 +321,15 @@ class ReportBuilderService
     {
         return DB::connection('legacy_new')->transaction(function () use ($dateYmd) {
             $count = 0;
+
+            // Clear old snapshot for the date to avoid stale rows when debts are repaid.
+            DB::connection('legacy_new')
+                ->table('report_debts_daily')
+                ->where('tenant_id', $this->tenantId)
+                ->where('company_id', $this->companyId)
+                ->where('snapshot_date', $dateYmd)
+                ->where('type', 'AR')
+                ->delete();
 
             // AR: Accounts Receivable (contracts with debt)
             $receivables = DB::connection('legacy_new')

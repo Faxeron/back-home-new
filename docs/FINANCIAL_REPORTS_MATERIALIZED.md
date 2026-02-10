@@ -361,6 +361,27 @@ php artisan reports:initialize --company=1 --days=90
 php artisan reports:initialize --company=1 --force
 ```
 
+## API: Manual Rebuild (UI Button)
+
+**REALITY STATUS**: ✅ IMPLEMENTED (2026-02-10)
+
+The CEO reports page has a single "Обновить" button which triggers a server-side rebuild of materialized tables.
+
+- Endpoint: `POST /api/reports/rebuild`
+- Auth: Bearer token (same as other `/api/reports/*`)
+- Permissions: `permission:view,finance`
+- Params (optional): `company_id`, `from_month` (YYYY-MM), `to_month` (YYYY-MM), `force` (bool)
+Default period is last 12 months to current month.
+
+Example:
+
+```bash
+curl -X POST "/api/reports/rebuild" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"company_id\":1,\"from_month\":\"2025-03\",\"to_month\":\"2026-02\",\"force\":false}"
+```
+
 ## Examples & Use Cases
 
 ### Dashboard Card: Monthly Cashflow Summary
