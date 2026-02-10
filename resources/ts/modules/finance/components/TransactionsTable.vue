@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Calendar from 'primevue/calendar'
-import Button from 'primevue/button'
-import Popover from 'primevue/popover'
-import { useDictionariesStore } from '@/stores/dictionaries'
-import { formatSum, statusLines } from '@/utils/formatters/finance'
-import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
-import { defaultTransactionFilters } from '@/modules/finance/composables/useTransactionFilters'
 import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
+import { defaultTransactionFilters } from '@/modules/finance/composables/useTransactionFilters'
+import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
+import { useDictionariesStore } from '@/stores/dictionaries'
 import type { Transaction } from '@/types/finance'
+import { formatSum, statusLines } from '@/utils/formatters/finance'
+import Button from 'primevue/button'
+import Calendar from 'primevue/calendar'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Popover from 'primevue/popover'
+import Select from 'primevue/select'
+import { computed, reactive, ref, watchEffect } from 'vue'
 
 type TransactionRow = Transaction & {
   contract_or_counterparty?: string
@@ -37,44 +37,61 @@ const emit = defineEmits<{
   (e: 'delete', row: Transaction): void
 }>()
 
-const mergeFilters = (value: any) => {
-  const base = defaultTransactionFilters()
-  const source = value ?? {}
+// Реактивный объект с гарантированной полной структурой — БАЗА ИСТИНЫ
+const filtersModel = reactive<ReturnType<typeof defaultTransactionFilters>>(defaultTransactionFilters())
 
-  return {
-    ...base,
-    ...source,
+// Полностью переписываем объект при изменении props.filters (безопасное копирование)
+watchEffect(() => {
+  const incoming = props.filters ?? {}
+  const defaultFilters = defaultTransactionFilters()
+  
+  // Копируем все поля, применяя defaults для всех undefined
+  Object.assign(filtersModel, {
+    search: incoming.search ?? defaultFilters.search,
+    payment_method: incoming.payment_method ?? defaultFilters.payment_method,
+    status: incoming.status ?? defaultFilters.status,
+    is_paid: incoming.is_paid ?? defaultFilters.is_paid,
+    is_completed: incoming.is_completed ?? defaultFilters.is_completed,
+    cashbox_id: incoming.cashbox_id ?? defaultFilters.cashbox_id,
+    
+    // Вложенные структуры: сначала применяем defaults, потом override
     date_is_paid: {
-      ...base.date_is_paid,
-      ...(source.date_is_paid ?? {}),
+      ...defaultFilters.date_is_paid,
+      ...(incoming.date_is_paid ?? {}),
       value: {
-        ...base.date_is_paid.value,
-        ...(source.date_is_paid?.value ?? {}),
+        ...defaultFilters.date_is_paid.value,
+        ...(incoming.date_is_paid?.value ?? {}),
       },
     },
     date_is_completed: {
-      ...base.date_is_completed,
-      ...(source.date_is_completed ?? {}),
+      ...defaultFilters.date_is_completed,
+      ...(incoming.date_is_completed ?? {}),
       value: {
-        ...base.date_is_completed.value,
-        ...(source.date_is_completed?.value ?? {}),
+        ...defaultFilters.date_is_completed.value,
+        ...(incoming.date_is_completed?.value ?? {}),
       },
     },
     sum: {
-      ...base.sum,
-      ...(source.sum ?? {}),
+      ...defaultFilters.sum,
+      ...(incoming.sum ?? {}),
       value: {
-        ...base.sum.value,
-        ...(source.sum?.value ?? {}),
+        ...defaultFilters.sum.value,
+        ...(incoming.sum?.value ?? {}),
       },
     },
-  }
-}
-
-const filtersModel = computed({
-  get: () => mergeFilters(props.filters),
-  set: value => emit('update:filters', mergeFilters(value)),
+  })
 })
+
+// Отправляем обновления родителю с задержкой, чтобы избежать race conditions
+let updateTimeout: any = null
+const notifyParent = () => {
+  clearTimeout(updateTimeout)
+  updateTimeout = setTimeout(() => {
+    // Глубокое копирование для изоляции от реактивности
+    const snapshot = JSON.parse(JSON.stringify(filtersModel))
+    emit('update:filters', snapshot)
+  }, 0)
+}
 
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))
 
@@ -141,7 +158,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
     </Column>
@@ -159,7 +176,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
             optionLabel="label"
             optionValue="value"
             class="w-full"
-            @change="filterCallback()"
+            @change="() => { filterCallback(); notifyParent(); }"
           />
           <Button
             icon="pi pi-calendar"
@@ -172,13 +189,13 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
                 v-model="filtersModel.date_is_paid.value.from"
                 placeholder="С"
                 dateFormat="yy-mm-dd"
-                @update:modelValue="filterCallback()"
+                @update:modelValue="() => { filterCallback(); notifyParent(); }"
               />
               <Calendar
                 v-model="filtersModel.date_is_paid.value.to"
                 placeholder="По"
                 dateFormat="yy-mm-dd"
-                @update:modelValue="filterCallback()"
+                @update:modelValue="() => { filterCallback(); notifyParent(); }"
               />
             </div>
           </Popover>
@@ -210,7 +227,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
             optionLabel="label"
             optionValue="value"
             class="w-full"
-            @change="filterCallback()"
+            @change="() => { filterCallback(); notifyParent(); }"
           />
           <Button
             icon="pi pi-calendar"
@@ -223,13 +240,13 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
                 v-model="filtersModel.date_is_completed.value.from"
                 placeholder="С"
                 dateFormat="yy-mm-dd"
-                @update:modelValue="filterCallback()"
+                @update:modelValue="() => { filterCallback(); notifyParent(); }"
               />
               <Calendar
                 v-model="filtersModel.date_is_completed.value.to"
                 placeholder="По"
                 dateFormat="yy-mm-dd"
-                @update:modelValue="filterCallback()"
+                @update:modelValue="() => { filterCallback(); notifyParent(); }"
               />
             </div>
           </Popover>
@@ -260,7 +277,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
             optionLabel="name"
             optionValue="id"
             class="w-full"
-            @change="filterCallback()"
+            @change="() => { filterCallback(); notifyParent(); }"
           />
           <Button
             icon="pi pi-wallet"
@@ -274,7 +291,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
               optionLabel="name"
               optionValue="id"
               class="w-full"
-              @change="filterCallback()"
+              @change="() => { filterCallback(); notifyParent(); }"
             />
           </Popover>
         </div>
@@ -298,7 +315,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -326,7 +343,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
           optionLabel="name"
           optionValue="id"
           class="w-full"
-          @change="filterCallback()"
+          @change="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -350,12 +367,12 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
             <InputNumber
               v-model="filtersModel.sum.value.min"
               placeholder="Мин"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
             <InputNumber
               v-model="filtersModel.sum.value.max"
               placeholder="Макс"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
           </div>
         </Popover>
@@ -373,7 +390,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
     </Column>
@@ -386,7 +403,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -446,3 +463,4 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
   font-size: 0.85em;
 }
 </style>
+

@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Calendar from 'primevue/calendar'
-import Button from 'primevue/button'
-import Popover from 'primevue/popover'
-import { useDictionariesStore } from '@/stores/dictionaries'
-import { formatDateShort, formatSum } from '@/utils/formatters/finance'
-import { SPENDING_COLUMNS } from '@/modules/finance/config/spendingsTable.config'
-import { defaultSpendingFilters } from '@/modules/finance/composables/useSpendingFilters'
 import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
+import { defaultSpendingFilters } from '@/modules/finance/composables/useSpendingFilters'
+import { SPENDING_COLUMNS } from '@/modules/finance/config/spendingsTable.config'
+import { useDictionariesStore } from '@/stores/dictionaries'
 import type { Spending } from '@/types/finance'
+import { formatDateShort, formatSum } from '@/utils/formatters/finance'
+import Button from 'primevue/button'
+import Calendar from 'primevue/calendar'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
+import Popover from 'primevue/popover'
+import Select from 'primevue/select'
+import { computed, reactive, ref, watchEffect } from 'vue'
 
 type SpendingRow = Spending & {
   fund_name?: string
@@ -36,36 +36,53 @@ const emit = defineEmits<{
   (e: 'reset-filters'): void
 }>()
 
-const mergeFilters = (value: any) => {
-  const base = defaultSpendingFilters()
-  const source = value ?? {}
+// Реактивный объект с гарантированной полной структурой — БАЗА ИСТИНЫ
+const filtersModel = reactive<ReturnType<typeof defaultSpendingFilters>>(defaultSpendingFilters())
 
-  return {
-    ...base,
-    ...source,
+// Полностью переписываем объект при изменении props.filters (безопасное копирование)
+watchEffect(() => {
+  const incoming = props.filters ?? {}
+  const defaultFilters = defaultSpendingFilters()
+  
+  // Копируем все поля, применяя defaults для всех undefined
+  Object.assign(filtersModel, {
+    search: incoming.search ?? defaultFilters.search,
+    fund_id: incoming.fund_id ?? defaultFilters.fund_id,
+    item_id: incoming.item_id ?? defaultFilters.item_id,
+    status: incoming.status ?? defaultFilters.status,
+    cashbox_id: incoming.cashbox_id ?? defaultFilters.cashbox_id,
+    counterparty_id: incoming.counterparty_id ?? defaultFilters.counterparty_id,
+    
+    // Вложенные структуры: сначала применяем defaults, потом override
     payment_date: {
-      ...base.payment_date,
-      ...(source.payment_date ?? {}),
+      ...defaultFilters.payment_date,
+      ...(incoming.payment_date ?? {}),
       value: {
-        ...base.payment_date.value,
-        ...(source.payment_date?.value ?? {}),
+        ...defaultFilters.payment_date.value,
+        ...(incoming.payment_date?.value ?? {}),
       },
     },
     sum: {
-      ...base.sum,
-      ...(source.sum ?? {}),
+      ...defaultFilters.sum,
+      ...(incoming.sum ?? {}),
       value: {
-        ...base.sum.value,
-        ...(source.sum?.value ?? {}),
+        ...defaultFilters.sum.value,
+        ...(incoming.sum?.value ?? {}),
       },
     },
-  }
-}
-
-const filtersModel = computed({
-  get: () => mergeFilters(props.filters),
-  set: value => emit('update:filters', mergeFilters(value)),
+  })
 })
+
+// Отправляем обновления родителю с задержкой, чтобы избежать race conditions
+let updateTimeout: any = null
+const notifyParent = () => {
+  clearTimeout(updateTimeout)
+  updateTimeout = setTimeout(() => {
+    // Глубокое копирование для изоляции от реактивности
+    const snapshot = JSON.parse(JSON.stringify(filtersModel))
+    emit('update:filters', snapshot)
+  }, 0)
+}
 
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))
 
@@ -172,7 +189,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
     </Column>
@@ -196,13 +213,13 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
               v-model="filtersModel.payment_date.value.from"
               placeholder="С"
               dateFormat="yy-mm-dd"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
             <Calendar
               v-model="filtersModel.payment_date.value.to"
               placeholder="По"
               dateFormat="yy-mm-dd"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
           </div>
         </Popover>
@@ -227,7 +244,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
           optionLabel="name"
           optionValue="id"
           :style="{ inlineSize: cashboxInlineSize }"
-          @change="filterCallback()"
+          @change="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -253,12 +270,12 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
             <InputNumber
               v-model="filtersModel.sum.value.min"
               placeholder="Мин"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
             <InputNumber
               v-model="filtersModel.sum.value.max"
               placeholder="Макс"
-              @update:modelValue="filterCallback()"
+              @update:modelValue="() => { filterCallback(); notifyParent(); }"
             />
           </div>
         </Popover>
@@ -280,7 +297,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
           optionLabel="name"
           optionValue="id"
           class="w-full"
-          @change="filterCallback()"
+          @change="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -300,7 +317,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
           optionLabel="name"
           optionValue="id"
           class="w-full"
-          @change="filterCallback()"
+          @change="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -321,7 +338,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
           v-model="filterModel.value"
           :style="{ inlineSize: '7ch' }"
           :inputStyle="{ inlineSize: '7ch' }"
-          @update:modelValue="filterCallback()"
+          @update:modelValue="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -338,7 +355,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -355,7 +372,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         <InputText
           v-model="filterModel.value"
           class="w-full"
-          @input="filterCallback()"
+          @input="() => { filterCallback(); notifyParent(); }"
         />
       </template>
       <template #body="{ data }">
@@ -372,3 +389,4 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
     </template>
   </DataTable>
 </template>
+
