@@ -19,6 +19,15 @@
 /storage/pail
 /storage/contracts/
 /storage/app/pricebooks/
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/testing/
+
+# Bootstrap cache (auto-generated)
+/bootstrap/cache/*
+!.gitkeep
+
 /vendor
 Homestead.json
 Homestead.yaml
