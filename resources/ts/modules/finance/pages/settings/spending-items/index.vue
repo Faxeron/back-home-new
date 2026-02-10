@@ -45,9 +45,10 @@ reloadRef.value = () => {
 }
 
 const updateScrollHeight = () => {
-  const tableEl = tableRef.value?.$el as HTMLElement | undefined
-  if (!tableEl) return
-  const rect = tableEl.getBoundingClientRect()
+  const rawEl = tableRef.value?.$el
+  const tableEl = Array.isArray(rawEl) ? rawEl[0] : rawEl
+  if (!tableEl || typeof (tableEl as HTMLElement).getBoundingClientRect !== 'function') return
+  const rect = (tableEl as HTMLElement).getBoundingClientRect()
   const padding = 24
   const nextHeight = Math.max(320, window.innerHeight - rect.top - padding)
   scrollHeight.value = `${Math.floor(nextHeight)}px`
