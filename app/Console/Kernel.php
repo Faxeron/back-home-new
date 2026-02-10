@@ -25,7 +25,43 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Financial Reports - Materialized Tables Scheduler
+        // Default to company_id = 1 (can be extended to multiple companies)
+
+        // Hourly: Rebuild today + yesterday cashflow (for dashboard realtime updates)
+        $schedule->command('reports:build-day --company=1 --date=' . date('Y-m-d'))
+            ->hourly()
+            ->withoutOverlapping(10)
+            ->onSuccess(function () {
+                \Log::channel('finance')->info('Hourly cashflow rebuild completed');
+            })
+            ->onFailure(function () {
+                \Log::channel('finance')->error('Hourly cashflow rebuild failed');
+            });
+
+        // Nightly (00:05): Rebuild current month cashflow
+        $schedule->command('reports:build-month --company=1 --month=' . date('Y-m'))
+            ->dailyAt('00:05')
+            ->withoutOverlapping(20)
+            ->onSuccess(function () {
+                \Log::channel('finance')->info('Nightly monthly cashflow rebuild completed');
+            });
+
+        // Nightly (00:10): Rebuild P&L for current month
+        $schedule->command('reports:build-pnl --company=1 --month=' . date('Y-m'))
+            ->dailyAt('00:10')
+            ->withoutOverlapping(20)
+            ->onSuccess(function () {
+                \Log::channel('finance')->info('Nightly P&L rebuild completed');
+            });
+
+        // Daily (03:00): Snapshot AR/AP debt state
+        $schedule->command('reports:snapshot-debts --company=1 --date=' . date('Y-m-d'))
+            ->dailyAt('03:00')
+            ->withoutOverlapping(15)
+            ->onSuccess(function () {
+                \Log::channel('finance')->info('Daily debt snapshot completed');
+            });
     }
 
     /**

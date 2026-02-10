@@ -11,6 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import { RECEIPT_COLUMNS } from '@/modules/finance/config/receiptsTable.config'
+import { defaultReceiptFilters } from '@/modules/finance/composables/useReceiptFilters'
 import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 import type { Receipt } from '@/types/finance'
 
@@ -34,9 +35,35 @@ const emit = defineEmits<{
   (e: 'reset-filters'): void
 }>()
 
+const mergeFilters = (value: any) => {
+  const base = defaultReceiptFilters()
+  const source = value ?? {}
+
+  return {
+    ...base,
+    ...source,
+    payment_date: {
+      ...base.payment_date,
+      ...(source.payment_date ?? {}),
+      value: {
+        ...base.payment_date.value,
+        ...(source.payment_date?.value ?? {}),
+      },
+    },
+    sum: {
+      ...base.sum,
+      ...(source.sum ?? {}),
+      value: {
+        ...base.sum.value,
+        ...(source.sum?.value ?? {}),
+      },
+    },
+  }
+}
+
 const filtersModel = computed({
-  get: () => props.filters,
-  set: value => emit('update:filters', value),
+  get: () => mergeFilters(props.filters),
+  set: value => emit('update:filters', mergeFilters(value)),
 })
 
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))

@@ -89,6 +89,7 @@ declare module 'vue-router/auto-routes' {
     'finance-balance': RouteRecordInfo<'finance-balance', '/finance/balance', Record<never, never>, Record<never, never>>,
     'finance-cashflow': RouteRecordInfo<'finance-cashflow', '/finance/cashflow', Record<never, never>, Record<never, never>>,
     'finance-receipts': RouteRecordInfo<'finance-receipts', '/finance/receipts', Record<never, never>, Record<never, never>>,
+    'finance-reports': RouteRecordInfo<'finance-reports', '/finance/reports', Record<never, never>, Record<never, never>>,
     'finance-spendings': RouteRecordInfo<'finance-spendings', '/finance/spendings', Record<never, never>, Record<never, never>>,
     'finance-transactions': RouteRecordInfo<'finance-transactions', '/finance/transactions', Record<never, never>, Record<never, never>>,
     'forgot-password': RouteRecordInfo<'forgot-password', '/forgot-password', Record<never, never>, Record<never, never>>,

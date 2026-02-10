@@ -11,6 +11,7 @@ import Popover from 'primevue/popover'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatSum, statusLines } from '@/utils/formatters/finance'
 import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
+import { defaultTransactionFilters } from '@/modules/finance/composables/useTransactionFilters'
 import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 import type { Transaction } from '@/types/finance'
 
@@ -36,9 +37,43 @@ const emit = defineEmits<{
   (e: 'delete', row: Transaction): void
 }>()
 
+const mergeFilters = (value: any) => {
+  const base = defaultTransactionFilters()
+  const source = value ?? {}
+
+  return {
+    ...base,
+    ...source,
+    date_is_paid: {
+      ...base.date_is_paid,
+      ...(source.date_is_paid ?? {}),
+      value: {
+        ...base.date_is_paid.value,
+        ...(source.date_is_paid?.value ?? {}),
+      },
+    },
+    date_is_completed: {
+      ...base.date_is_completed,
+      ...(source.date_is_completed ?? {}),
+      value: {
+        ...base.date_is_completed.value,
+        ...(source.date_is_completed?.value ?? {}),
+      },
+    },
+    sum: {
+      ...base.sum,
+      ...(source.sum ?? {}),
+      value: {
+        ...base.sum.value,
+        ...(source.sum?.value ?? {}),
+      },
+    },
+  }
+}
+
 const filtersModel = computed({
-  get: () => props.filters,
-  set: value => emit('update:filters', value),
+  get: () => mergeFilters(props.filters),
+  set: value => emit('update:filters', mergeFilters(value)),
 })
 
 const totalLabel = computed(() => Number(props.totalRecords ?? 0).toLocaleString('ru-RU'))

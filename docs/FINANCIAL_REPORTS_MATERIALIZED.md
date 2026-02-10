@@ -482,8 +482,8 @@ report_cashflow_daily: 0 records
 
 ## Future Enhancements
 
-- [ ] Scheduler integration (hourly/daily automated builds)
-- [ ] API endpoints for ApexCharts integration
+- [x] Scheduler integration (hourly/daily automated builds)
+- [x] API endpoints for ApexCharts integration
 - [ ] Period close workflow (UI for status transitions)
 - [ ] Audit trail (who closed what period, when)
 - [ ] Multi-currency support (if needed)

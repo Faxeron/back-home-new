@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ContractTemplateFileController;
 use App\Http\Controllers\Api\DevControlController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\API\Common\CompanyLookupController;
 use App\Http\Controllers\API\Finance\CashBoxController as FinanceCashBoxController;
 use App\Http\Controllers\API\Finance\CashTransferController;
@@ -328,4 +329,13 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
     Route::patch('installations/{contract}', [InstallationController::class, 'update'])
         ->whereNumber('contract')
         ->middleware('permission:assign,installations');
+
+    // Financial Reports - Read-Only Endpoints (CEO-level, finance permission required)
+    Route::prefix('reports')->name('reports.')->middleware('permission:view,finance')->group(function () {
+        Route::get('cashflow/daily', [ReportsController::class, 'cashflowDaily'])->name('cashflow.daily');
+        Route::get('cashflow/monthly-summary', [ReportsController::class, 'cashflowMonthlySummary'])->name('cashflow.monthly-summary');
+        Route::get('pnl/monthly', [ReportsController::class, 'pnlMonthly'])->name('pnl.monthly');
+        Route::get('debts/daily', [ReportsController::class, 'debtsDaily'])->name('debts.daily');
+        Route::get('debts/summary', [ReportsController::class, 'debtsSummary'])->name('debts.summary');
+    });
 });
