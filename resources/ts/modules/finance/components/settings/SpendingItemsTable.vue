@@ -84,6 +84,8 @@ const dialogOpen = ref(false)
 const saving = ref(false)
 const deletingId = ref<number | null>(null)
 const errorMessage = ref('')
+const cashflowOverrides = reactive<Record<number, number | null>>({})
+const inlineSaving = reactive<Record<number, boolean>>({})
 
 const form = reactive({
   id: null as number | null,
@@ -126,6 +128,45 @@ const openEdit = async (row: SpendingItemRow) => {
   await Promise.all([dictionaries.loadSpendingFunds(), dictionaries.loadCashflowItems()])
   dialogOpen.value = true
 }
+
+const getCashflowValue = (row: SpendingItemRow) => {
+  if (!row?.id) return row?.cashflow_item_id ?? null
+  if (Object.prototype.hasOwnProperty.call(cashflowOverrides, row.id)) {
+    return cashflowOverrides[row.id] ?? null
+  }
+  return row.cashflow_item_id ?? null
+}
+
+const setInlineSaving = (rowId: number, value: boolean) => {
+  inlineSaving[rowId] = value
+}
+
+const updateCashflow = async (row: SpendingItemRow, nextId: number | null) => {
+  if (!canEdit.value) return
+  if (!row?.id) return
+  const currentValue = row.cashflow_item_id ?? null
+  if (currentValue === nextId) return
+  cashflowOverrides[row.id] = nextId ?? null
+  setInlineSaving(row.id, true)
+  errorMessage.value = ''
+  try {
+    await $api(`settings/spending-items/${row.id}`, {
+      method: 'PATCH',
+      body: { cashflow_item_id: nextId ?? null },
+    })
+    await dictionaries.loadSpendingItems(true)
+    emit('reload')
+    delete cashflowOverrides[row.id]
+  } catch (error: any) {
+    errorMessage.value =
+      error?.data?.message ?? error?.response?.data?.message ?? 'Не удалось обновить статью ДДС.'
+    cashflowOverrides[row.id] = currentValue
+  } finally {
+    setInlineSaving(row.id, false)
+  }
+}
+
+const isInlineSaving = (row: SpendingItemRow) => (row?.id ? Boolean(inlineSaving[row.id]) : false)
 
 const submit = async () => {
   if (!canSave.value) return
@@ -289,7 +330,15 @@ const removeItem = async (row: SpendingItemRow) => {
           />
         </template>
         <template #body="{ data }">
-          {{ data.cashflow_name ?? '' }}
+          <Select
+            :modelValue="getCashflowValue(data)"
+            :options="cashflowOptions"
+            optionLabel="label"
+            optionValue="id"
+            class="w-full"
+            :disabled="!canEdit || isInlineSaving(data)"
+            @update:modelValue="updateCashflow(data, $event ?? null)"
+          />
         </template>
       </Column>
 
