@@ -5,6 +5,7 @@
   { title: 'Расходы', icon: { icon: 'tabler-arrow-up-right' }, to: { path: '/finance/spendings' } },
   { title: 'Баланс', icon: { icon: 'tabler-scale' }, to: { path: '/finance/balance' } },
   { title: 'ОДДС', icon: { icon: 'tabler-report-money' }, to: { path: '/finance/cashflow' } },
+  { title: 'CEO отчёты', icon: { icon: 'tabler-chart-line' }, to: { path: '/finance/reports' } },
   { heading: 'Товары' },
   { title: 'Товары', icon: { icon: 'tabler-box' }, to: { path: '/products' } },
   { title: 'Прайс', icon: { icon: 'tabler-currency-rubel' }, to: { path: '/products/price' } },
