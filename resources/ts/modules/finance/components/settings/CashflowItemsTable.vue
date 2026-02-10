@@ -184,7 +184,7 @@ const submit = async () => {
 
 const removeItem = async (row: CashflowItemRow) => {
   if (!canDelete.value) return
-  if (!window.confirm('Отключить статью ДДС?')) return
+  if (!window.confirm('Удалить статью ДДС?')) return
   deletingId.value = row.id
   try {
     await $api(`cashflow-items/${row.id}`, { method: 'DELETE' })

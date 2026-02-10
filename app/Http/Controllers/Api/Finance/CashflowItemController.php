@@ -106,12 +106,7 @@ class CashflowItemController extends Controller
 
     public function destroy(Request $request, CashflowItem $cashflowItem): JsonResponse
     {
-        $user = $request->user();
-        $cashflowItem->is_active = false;
-        $cashflowItem->updated_by = $user?->id;
-        $cashflowItem->updated_at = now();
-        $cashflowItem->save();
-
+        $cashflowItem->delete();
         return response()->json(['status' => 'ok']);
     }
 }
