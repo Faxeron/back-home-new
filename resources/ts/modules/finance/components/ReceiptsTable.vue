@@ -4,6 +4,7 @@ import { defaultReceiptFilters } from '@/modules/finance/composables/useReceiptF
 import { RECEIPT_COLUMNS } from '@/modules/finance/config/receiptsTable.config'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import type { Receipt } from '@/types/finance'
+import { $api } from '@/utils/api'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
@@ -33,6 +34,7 @@ const emit = defineEmits<{
   (e: 'update:filters', value: any): void
   (e: 'sort', event: any): void
   (e: 'reset-filters'): void
+  (e: 'reload'): void
 }>()
 
 // Реактивный объект с гарантированной полной структурой — БАЗА ИСТИНЫ
@@ -128,6 +130,9 @@ const cashboxInlineSize = computed(() => {
   const ch = Math.max(maxLength, 6)
   return `calc(${ch}ch + 56px)`
 })
+const cashflowOptionsIn = computed(() =>
+  dictionaries.cashflowItems.filter(item => item.direction === 'IN'),
+)
 
 const rows = computed<ReceiptRow[]>(() =>
   (props.rows || []).map(row => {
@@ -151,6 +156,72 @@ const rows = computed<ReceiptRow[]>(() =>
 
 const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Event) => {
   panel?.toggle(event)
+}
+
+const savingFields = reactive<Record<string, boolean>>({})
+
+const fieldKey = (id: number, field: string) => `${id}:${field}`
+const isSavingField = (id: number, field: string) => savingFields[fieldKey(id, field)] === true
+const setSavingField = (id: number, field: string, value: boolean) => {
+  savingFields[fieldKey(id, field)] = value
+}
+
+const toDateTimeInput = (value?: string | null) => {
+  if (!value) return ''
+  const source = String(value).trim()
+  if (!source) return ''
+  const normalized = source.replace(' ', 'T')
+  return normalized.length >= 16 ? normalized.slice(0, 16) : normalized
+}
+
+const toApiDateTime = (value: string) => {
+  const normalized = String(value ?? '').trim()
+  if (!normalized) return null
+  const withSpace = normalized.replace('T', ' ')
+  return withSpace.length === 16 ? `${withSpace}:00` : withSpace
+}
+
+const updateReceipt = async (id: number, payload: Record<string, unknown>, field: string) => {
+  setSavingField(id, field, true)
+  try {
+    await $api(`finance/receipts/${id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+    emit('reload')
+  } catch (error) {
+    console.error('Failed to update receipt row', error)
+  } finally {
+    setSavingField(id, field, false)
+  }
+}
+
+const updateReceiptTimestamp = async (
+  row: ReceiptRow,
+  field: 'created_at' | 'updated_at',
+  value: string,
+) => {
+  if (value === toDateTimeInput((row as any)[field] ?? null)) return
+  await updateReceipt(row.id, { [field]: toApiDateTime(value) }, field)
+}
+
+const handleTimestampChange = (
+  row: ReceiptRow,
+  field: 'created_at' | 'updated_at',
+  event: Event,
+) => {
+  const target = event.target as HTMLInputElement | null
+  updateReceiptTimestamp(row, field, target?.value ?? '')
+}
+
+const updateReceiptCashflow = async (row: ReceiptRow, nextValue: number | string | null) => {
+  const normalized =
+    nextValue === null || nextValue === undefined || nextValue === ''
+      ? null
+      : Number(nextValue)
+  const current = row.cashflow_item_id ?? null
+  if (normalized === current) return
+  await updateReceipt(row.id, { cashflow_item_id: normalized }, 'cashflow_item_id')
 }
 </script>
 
@@ -262,7 +333,7 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       <template #filter="{ filterModel, filterCallback }">
         <Select
           v-model="filterModel.value"
-          :options="dictionaries.cashflowItems.filter(item => item.direction === 'IN')"
+          :options="cashflowOptionsIn"
           optionLabel="name"
           optionValue="id"
           class="w-full"
@@ -270,7 +341,15 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
         />
       </template>
       <template #body="{ data }">
-        {{ data.cashflow_name ?? '' }}
+        <Select
+          :modelValue="data.cashflow_item_id ?? null"
+          :options="cashflowOptionsIn"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          :disabled="isSavingField(data.id, 'cashflow_item_id')"
+          @update:modelValue="updateReceiptCashflow(data, $event)"
+        />
       </template>
     </Column>
 
@@ -362,6 +441,30 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
     </Column>
 
+    <Column field="created_at" header="created_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.created_at)"
+          :disabled="isSavingField(data.id, 'created_at')"
+          @change="handleTimestampChange(data, 'created_at', $event)"
+        >
+      </template>
+    </Column>
+
+    <Column field="updated_at" header="updated_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.updated_at)"
+          :disabled="isSavingField(data.id, 'updated_at')"
+          @change="handleTimestampChange(data, 'updated_at', $event)"
+        >
+      </template>
+    </Column>
+
     <template #empty>
       <div class="text-center py-6 text-muted">Нет данных</div>
     </template>
@@ -371,3 +474,15 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
     </template>
   </DataTable>
 </template>
+
+<style scoped>
+.finance-datetime-input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  background: #fff;
+}
+</style>

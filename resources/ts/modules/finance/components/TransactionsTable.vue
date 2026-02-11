@@ -4,7 +4,8 @@ import { defaultTransactionFilters } from '@/modules/finance/composables/useTran
 import { TRANSACTION_BOOLEAN_OPTIONS, TRANSACTION_COLUMNS } from '@/modules/finance/config/transactionsTable.config'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import type { Transaction } from '@/types/finance'
-import { formatSum, statusLines } from '@/utils/formatters/finance'
+import { $api } from '@/utils/api'
+import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
 import Column from 'primevue/column'
@@ -35,6 +36,7 @@ const emit = defineEmits<{
   (e: 'sort', event: any): void
   (e: 'reset-filters'): void
   (e: 'delete', row: Transaction): void
+  (e: 'reload'): void
 }>()
 
 // Реактивный объект с гарантированной полной структурой — БАЗА ИСТИНЫ
@@ -127,6 +129,78 @@ const rows = computed<TransactionRow[]>(() =>
 const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Event) => {
   panel?.toggle(event)
 }
+
+const rowBooleanOptions = [
+  { label: 'Да', value: true },
+  { label: 'Нет', value: false },
+]
+
+const savingFields = reactive<Record<string, boolean>>({})
+
+const fieldKey = (id: number, field: string) => `${id}:${field}`
+const isSavingField = (id: number, field: string) => savingFields[fieldKey(id, field)] === true
+const setSavingField = (id: number, field: string, value: boolean) => {
+  savingFields[fieldKey(id, field)] = value
+}
+
+const toDateTimeInput = (value?: string | null) => {
+  if (!value) return ''
+  const source = String(value).trim()
+  if (!source) return ''
+  const normalized = source.replace(' ', 'T')
+  return normalized.length >= 16 ? normalized.slice(0, 16) : normalized
+}
+
+const toApiDateTime = (value: string) => {
+  const normalized = String(value ?? '').trim()
+  if (!normalized) return null
+  const withSpace = normalized.replace('T', ' ')
+  return withSpace.length === 16 ? `${withSpace}:00` : withSpace
+}
+
+const updateTransaction = async (id: number, payload: Record<string, unknown>, field: string) => {
+  setSavingField(id, field, true)
+  try {
+    await $api(`finance/transactions/${id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+    emit('reload')
+  } catch (error) {
+    console.error('Failed to update transaction row', error)
+  } finally {
+    setSavingField(id, field, false)
+  }
+}
+
+const updateBooleanField = async (
+  row: TransactionRow,
+  field: 'is_paid' | 'is_completed',
+  value: boolean | null,
+) => {
+  if (value === null || value === undefined) return
+  const current = field === 'is_paid' ? row.is_paid : row.is_completed
+  if (Boolean(current) === Boolean(value)) return
+  await updateTransaction(row.id, { [field]: Boolean(value) }, field)
+}
+
+const updateTransactionTimestamp = async (
+  row: TransactionRow,
+  field: 'created_at' | 'updated_at',
+  value: string,
+) => {
+  if (value === toDateTimeInput((row as any)[field] ?? null)) return
+  await updateTransaction(row.id, { [field]: toApiDateTime(value) }, field)
+}
+
+const handleTimestampChange = (
+  row: TransactionRow,
+  field: 'created_at' | 'updated_at',
+  event: Event,
+) => {
+  const target = event.target as HTMLInputElement | null
+  updateTransactionTimestamp(row, field, target?.value ?? '')
+}
 </script>
 
 <template>
@@ -170,6 +244,30 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
     </Column>
 
+    <Column field="created_at" header="created_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.created_at)"
+          :disabled="isSavingField(data.id, 'created_at')"
+          @change="handleTimestampChange(data, 'created_at', $event)"
+        >
+      </template>
+    </Column>
+
+    <Column field="updated_at" header="updated_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.updated_at)"
+          :disabled="isSavingField(data.id, 'updated_at')"
+          @change="handleTimestampChange(data, 'updated_at', $event)"
+        >
+      </template>
+    </Column>
+
     <Column
       :field="TRANSACTION_COLUMNS.isPaid.field"
       :header="TRANSACTION_COLUMNS.isPaid.header"
@@ -210,12 +308,17 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
       <template #body="{ data }">
         <div class="leading-tight py-1">
-          <div
-            v-for="(line, index) in statusLines(data.is_paid, data.date_is_paid)"
-            :key="index"
-            :class="line.className"
-          >
-            {{ line.text }}
+          <Select
+            :modelValue="Boolean(data.is_paid)"
+            :options="rowBooleanOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            :disabled="isSavingField(data.id, 'is_paid')"
+            @update:modelValue="updateBooleanField(data, 'is_paid', $event)"
+          />
+          <div class="status-date mt-1">
+            {{ formatDateShort(data.date_is_paid) }}
           </div>
         </div>
       </template>
@@ -261,12 +364,17 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
       <template #body="{ data }">
         <div class="leading-tight py-1">
-          <div
-            v-for="(line, index) in statusLines(data.is_completed, data.date_is_completed)"
-            :key="index"
-            :class="line.className"
-          >
-            {{ line.text }}
+          <Select
+            :modelValue="Boolean(data.is_completed)"
+            :options="rowBooleanOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            :disabled="isSavingField(data.id, 'is_completed')"
+            @update:modelValue="updateBooleanField(data, 'is_completed', $event)"
+          />
+          <div class="status-date mt-1">
+            {{ formatDateShort(data.date_is_completed) }}
           </div>
         </div>
       </template>
@@ -448,6 +556,16 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
 <style scoped>
 .whitespace-pre-line {
   white-space: pre-line;
+}
+
+.finance-datetime-input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  background: #fff;
 }
 
 .status-yes {

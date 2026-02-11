@@ -4,6 +4,7 @@ import { defaultSpendingFilters } from '@/modules/finance/composables/useSpendin
 import { SPENDING_COLUMNS } from '@/modules/finance/config/spendingsTable.config'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import type { Spending } from '@/types/finance'
+import { $api } from '@/utils/api'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
@@ -34,6 +35,7 @@ const emit = defineEmits<{
   (e: 'update:filters', value: any): void
   (e: 'sort', event: any): void
   (e: 'reset-filters'): void
+  (e: 'reload'): void
 }>()
 
 // Реактивный объект с гарантированной полной структурой — БАЗА ИСТИНЫ
@@ -163,6 +165,62 @@ watch(selectedFundId, () => {
 
 const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Event) => {
   panel?.toggle(event)
+}
+
+const savingFields = reactive<Record<string, boolean>>({})
+
+const fieldKey = (id: number, field: string) => `${id}:${field}`
+const isSavingField = (id: number, field: string) => savingFields[fieldKey(id, field)] === true
+const setSavingField = (id: number, field: string, value: boolean) => {
+  savingFields[fieldKey(id, field)] = value
+}
+
+const toDateTimeInput = (value?: string | null) => {
+  if (!value) return ''
+  const source = String(value).trim()
+  if (!source) return ''
+  const normalized = source.replace(' ', 'T')
+  return normalized.length >= 16 ? normalized.slice(0, 16) : normalized
+}
+
+const toApiDateTime = (value: string) => {
+  const normalized = String(value ?? '').trim()
+  if (!normalized) return null
+  const withSpace = normalized.replace('T', ' ')
+  return withSpace.length === 16 ? `${withSpace}:00` : withSpace
+}
+
+const updateSpending = async (id: number, payload: Record<string, unknown>, field: string) => {
+  setSavingField(id, field, true)
+  try {
+    await $api(`finance/spendings/${id}`, {
+      method: 'PUT',
+      body: payload,
+    })
+    emit('reload')
+  } catch (error) {
+    console.error('Failed to update spending row', error)
+  } finally {
+    setSavingField(id, field, false)
+  }
+}
+
+const updateSpendingTimestamp = async (
+  row: SpendingRow,
+  field: 'created_at' | 'updated_at',
+  value: string,
+) => {
+  if (value === toDateTimeInput((row as any)[field] ?? null)) return
+  await updateSpending(row.id, { [field]: toApiDateTime(value) }, field)
+}
+
+const handleTimestampChange = (
+  row: SpendingRow,
+  field: 'created_at' | 'updated_at',
+  event: Event,
+) => {
+  const target = event.target as HTMLInputElement | null
+  updateSpendingTimestamp(row, field, target?.value ?? '')
 }
 </script>
 
@@ -395,6 +453,30 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
       </template>
     </Column>
 
+    <Column field="created_at" header="created_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.created_at)"
+          :disabled="isSavingField(data.id, 'created_at')"
+          @change="handleTimestampChange(data, 'created_at', $event)"
+        >
+      </template>
+    </Column>
+
+    <Column field="updated_at" header="updated_at" style="inline-size: 14rem;">
+      <template #body="{ data }">
+        <input
+          type="datetime-local"
+          class="finance-datetime-input"
+          :value="toDateTimeInput(data.updated_at)"
+          :disabled="isSavingField(data.id, 'updated_at')"
+          @change="handleTimestampChange(data, 'updated_at', $event)"
+        >
+      </template>
+    </Column>
+
     <template #empty>
       <div class="text-center py-6 text-muted">Нет данных</div>
     </template>
@@ -404,4 +486,16 @@ const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Ev
     </template>
   </DataTable>
 </template>
+
+<style scoped>
+.finance-datetime-input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  background: #fff;
+}
+</style>
 

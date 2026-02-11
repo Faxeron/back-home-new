@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('transactions', [TransactionController::class, 'index'])->middleware('permission:view,finance');
         Route::get('transactions/summary', [TransactionController::class, 'summary'])->middleware('permission:view,finance');
         Route::get('transactions/cashflow-series', [TransactionController::class, 'cashflowSeries'])->middleware('permission:view,finance');
+        Route::put('transactions/{transaction}', [TransactionController::class, 'update'])->middleware('permission:edit,finance');
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy'])->middleware('permission:delete,finance');
 
         Route::get('cashboxes', [FinanceCashBoxController::class, 'index'])->middleware('permission:view,finance');
@@ -110,9 +111,11 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('receipts', [ReceiptController::class, 'index'])->middleware('permission:view,finance');
         Route::post('receipts/contract', [ReceiptController::class, 'storeContract'])->middleware('permission:create,finance');
         Route::post('receipts/director-loan', [ReceiptController::class, 'storeDirectorLoan'])->middleware('permission:create,finance');
+        Route::put('receipts/{receipt}', [ReceiptController::class, 'update'])->middleware('permission:edit,finance');
 
         Route::get('spendings', [SpendingController::class, 'index'])->middleware('permission:view,finance');
         Route::post('spendings', [SpendingController::class, 'store'])->middleware('permission:create,finance');
+        Route::put('spendings/{spending}', [SpendingController::class, 'update'])->middleware('permission:edit,finance');
         Route::delete('spendings/{spending}', [SpendingController::class, 'destroy'])->middleware('permission:delete,finance');
 
         Route::post('director-withdrawal', [DirectorController::class, 'withdrawal'])->middleware('permission:create,finance');

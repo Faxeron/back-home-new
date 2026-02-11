@@ -28,6 +28,7 @@ class SpendingResource extends JsonResource
             'description' => $this->description,
             'sum' => $this->money($this->sum),
             'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
             'payment_date' => $this->payment_date?->toDateString(),
             'counterparty_id' => $this->counterparty_id,
             'spent_to_user_id' => $this->spent_to_user_id,

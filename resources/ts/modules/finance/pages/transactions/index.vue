@@ -119,6 +119,7 @@ onBeforeUnmount(() => {
     :canDelete="canDelete"
     @sort="handleSort"
     @reset-filters="resetFilters"
+    @reload="resetData"
     @delete="requestDeleteTransaction"
   />
 

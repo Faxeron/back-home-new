@@ -32,6 +32,8 @@ export type Receipt = {
   id: number
   sum: Money
   payment_date?: string
+  created_at?: string
+  updated_at?: string
   company_id?: number
   cashbox_id?: number
   transaction_id?: number
@@ -50,6 +52,8 @@ export type Spending = {
   id: number
   sum: Money
   payment_date?: string
+  created_at?: string
+  updated_at?: string
   company_id?: number
   cashbox_id?: number
   transaction_id?: number
@@ -62,6 +66,7 @@ export type Spending = {
   description?: string
   company?: { id: number; name: string }
   cashbox?: { id: number; name: string }
+  counterparty?: { id: number; name?: string; phone?: string }
   fund?: { id: number; name: string }
   item?: { id: number; name: string }
   creator?: { id: number; name?: string | null; email?: string | null }

@@ -4,6 +4,9 @@ namespace App\Http\Controllers\API\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Domain\Finance\DTO\SpendingFilterDTO;
+use App\Domain\Finance\Models\Spending;
+use App\Domain\Finance\Models\Transaction;
+use App\Http\Requests\Finance\UpdateSpendingRequest;
 use App\Http\Resources\SpendingResource;
 use App\Http\Requests\Finance\CreateSpendingRequest;
 use App\Services\Finance\FinanceService;
@@ -64,6 +67,83 @@ class SpendingController extends Controller
         $spending = $this->financeService->createSpending($payload);
 
         return response()->json($spending, 201);
+    }
+
+    public function update(UpdateSpendingRequest $request, int $spending): JsonResponse
+    {
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        $record = Spending::query()
+            ->where('id', $spending)
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Spending not found'], 404);
+        }
+
+        $payload = $request->validated();
+        if (empty($payload)) {
+            return response()->json(['message' => 'No fields provided for update.'], 422);
+        }
+
+        DB::connection('legacy_new')->transaction(function () use ($record, $payload, $tenantId, $companyId) {
+            $spendingUpdates = [];
+
+            if (array_key_exists('created_at', $payload)) {
+                $spendingUpdates['created_at'] = $payload['created_at'];
+            }
+            if (array_key_exists('updated_at', $payload)) {
+                $spendingUpdates['updated_at'] = $payload['updated_at'];
+            }
+
+            if (!array_key_exists('updated_at', $spendingUpdates)) {
+                $spendingUpdates['updated_at'] = now();
+            }
+
+            if (!empty($spendingUpdates)) {
+                Spending::query()
+                    ->where('id', $record->id)
+                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
+                    ->update($spendingUpdates);
+            }
+
+            if ($record->transaction_id) {
+                $transactionUpdates = [];
+
+                if (array_key_exists('created_at', $payload)) {
+                    $transactionUpdates['created_at'] = $payload['created_at'];
+                }
+                if (array_key_exists('updated_at', $payload)) {
+                    $transactionUpdates['updated_at'] = $payload['updated_at'];
+                }
+
+                if (!empty($transactionUpdates) && !array_key_exists('updated_at', $transactionUpdates)) {
+                    $transactionUpdates['updated_at'] = now();
+                }
+
+                if (!empty($transactionUpdates)) {
+                    Transaction::query()
+                        ->where('id', $record->transaction_id)
+                        ->where('tenant_id', $tenantId)
+                        ->where('company_id', $companyId)
+                        ->update($transactionUpdates);
+                }
+            }
+        });
+
+        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'contract', 'item', 'fund', 'creator']);
+
+        return response()->json([
+            'data' => (new SpendingResource($record))->toArray($request),
+        ]);
     }
 
     public function destroy(Request $request, int $spending): JsonResponse

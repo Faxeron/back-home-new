@@ -76,5 +76,6 @@ onBeforeUnmount(() => {
     :virtualScrollerOptions="virtualScrollerOptions"
     @sort="handleSort"
     @reset-filters="resetFilters"
+    @reload="resetData"
   />
 </template>

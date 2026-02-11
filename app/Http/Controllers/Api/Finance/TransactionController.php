@@ -7,6 +7,7 @@ use App\Domain\Finance\Models\CashboxHistory;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\Models\Transaction;
+use App\Http\Requests\Finance\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Domain\Finance\DTO\TransactionFilterDTO;
 use App\Services\Finance\FinanceService;
@@ -95,6 +96,108 @@ class TransactionController extends Controller
                 'net_sum' => $incomes - $expenses,
                 'transactions_count' => (int) ($row?->transactions_count ?? 0),
             ],
+        ]);
+    }
+
+    public function update(UpdateTransactionRequest $request, int $transaction): JsonResponse
+    {
+        $tenantId = $request->user()?->tenant_id;
+        $companyId = $request->user()?->default_company_id ?? $request->user()?->company_id;
+
+        if (!$tenantId || !$companyId) {
+            return response()->json(['message' => 'Missing tenant/company context.'], 403);
+        }
+
+        $record = Transaction::query()
+            ->where('id', $transaction)
+            ->where('tenant_id', $tenantId)
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        $payload = $request->validated();
+        if (empty($payload)) {
+            return response()->json(['message' => 'No fields provided for update.'], 422);
+        }
+
+        DB::connection('legacy_new')->transaction(function () use ($payload, $record, $tenantId, $companyId) {
+            $transactionUpdates = [];
+
+            if (array_key_exists('created_at', $payload)) {
+                $transactionUpdates['created_at'] = $payload['created_at'];
+            }
+            if (array_key_exists('updated_at', $payload)) {
+                $transactionUpdates['updated_at'] = $payload['updated_at'];
+            }
+            if (array_key_exists('is_paid', $payload)) {
+                $nextPaid = (bool) $payload['is_paid'];
+                $transactionUpdates['is_paid'] = $nextPaid;
+                if ($nextPaid) {
+                    if (!$record->is_paid || !$record->date_is_paid) {
+                        $transactionUpdates['date_is_paid'] = now()->toDateString();
+                    }
+                } else {
+                    $transactionUpdates['date_is_paid'] = null;
+                }
+            }
+            if (array_key_exists('is_completed', $payload)) {
+                $nextCompleted = (bool) $payload['is_completed'];
+                $transactionUpdates['is_completed'] = $nextCompleted;
+                if ($nextCompleted) {
+                    if (!$record->is_completed || !$record->date_is_completed) {
+                        $transactionUpdates['date_is_completed'] = now()->toDateString();
+                    }
+                } else {
+                    $transactionUpdates['date_is_completed'] = null;
+                }
+            }
+
+            if (!array_key_exists('updated_at', $transactionUpdates)) {
+                $transactionUpdates['updated_at'] = now();
+            }
+
+            if (!empty($transactionUpdates)) {
+                Transaction::query()
+                    ->where('id', $record->id)
+                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
+                    ->update($transactionUpdates);
+            }
+
+            $relatedUpdates = [];
+            if (array_key_exists('created_at', $payload)) {
+                $relatedUpdates['created_at'] = $payload['created_at'];
+            }
+            if (array_key_exists('updated_at', $payload)) {
+                $relatedUpdates['updated_at'] = $payload['updated_at'];
+            }
+
+            if (!empty($relatedUpdates) && !array_key_exists('updated_at', $relatedUpdates)) {
+                $relatedUpdates['updated_at'] = now();
+            }
+
+            if (!empty($relatedUpdates)) {
+                Receipt::query()
+                    ->where('transaction_id', $record->id)
+                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
+                    ->update($relatedUpdates);
+
+                Spending::query()
+                    ->where('transaction_id', $record->id)
+                    ->where('tenant_id', $tenantId)
+                    ->where('company_id', $companyId)
+                    ->update($relatedUpdates);
+            }
+        });
+
+        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'transactionType', 'paymentMethod']);
+
+        return response()->json([
+            'data' => (new TransactionResource($record))->toArray($request),
         ]);
     }
 
