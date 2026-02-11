@@ -216,9 +216,9 @@ class TransactionController extends Controller
 
         $driver = DB::connection()->getDriverName();
         $monthExpr = match ($driver) {
-            'pgsql' => "to_char(transactions.created_at, 'YYYY-MM')",
-            'sqlite' => "strftime('%Y-%m', transactions.created_at)",
-            default => "DATE_FORMAT(transactions.created_at, '%Y-%m')",
+            'pgsql' => "to_char(transactions.date_is_paid, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', transactions.date_is_paid)",
+            default => "DATE_FORMAT(transactions.date_is_paid, '%Y-%m')",
         };
 
         /** @var Collection<int, object> $rows */
@@ -226,7 +226,7 @@ class TransactionController extends Controller
             ->leftJoin('transaction_types as tt', 'tt.id', '=', 'transactions.transaction_type_id')
             ->where('transactions.tenant_id', $tenantId)
             ->where('transactions.company_id', $companyId)
-            ->whereBetween('transactions.created_at', [$from, $to])
+            ->whereBetween('transactions.date_is_paid', [$from, $to])
             ->groupByRaw($monthExpr)
             ->orderByRaw($monthExpr)
             ->selectRaw("$monthExpr as ym")
