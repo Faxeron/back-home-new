@@ -18,6 +18,7 @@ import { useDictionariesStore } from '@/stores/dictionaries'
 import AppDateTimePicker from '@/@core/components/app-form-elements/AppDateTimePicker.vue'
 import AppSelect from '@/@core/components/app-form-elements/AppSelect.vue'
 import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
+import ContractReceiptDialog from '@/modules/production/components/contracts/ContractReceiptDialog.vue'
 
 type ContractDocument = {
   id: number
@@ -185,6 +186,7 @@ const payrollRecalcLoading = ref(false)
 const payrollType = ref<'bonus' | 'penalty'>('bonus')
 const payrollAmount = ref<number | null>(null)
 const payrollComment = ref('')
+const receiptDialogOpen = ref(false)
 const editForm = reactive({
   contract_date: '',
   total_amount: null as number | null,
@@ -338,6 +340,16 @@ const spendingAmount = (value?: any) => {
 type SpendingRow = SpendingDraft
 
 const spendingsRows = computed<SpendingRow[]>(() => spendingsDraft.value as SpendingRow[])
+const cashflowItemNameById = computed(() => {
+  const map = new Map<number, string>()
+  dictionaries.cashflowItems.forEach(item => {
+    const id = Number(item.id)
+    if (Number.isFinite(id)) {
+      map.set(id, item.name)
+    }
+  })
+  return map
+})
 const receiptsTotal = computed(() =>
   receipts.value.reduce((sum, row) => sum + receiptAmount(row.sum), 0),
 )
@@ -384,6 +396,28 @@ const normalizeFinanceError = (message?: string | null) => {
   if (!message) return null
   if (message === 'Insufficient funds') return 'Недостаточно средств в кассе.'
   return message
+}
+
+const receiptCashflowItemLabel = (row: Receipt) => {
+  const id = row.cashflow_item_id != null ? Number(row.cashflow_item_id) : null
+  if (!id) return '-'
+  return cashflowItemNameById.value.get(id) ?? `#${id}`
+}
+
+const openReceiptDialog = async () => {
+  if (!canCreateFinance.value) return
+  await Promise.all([
+    dictionaries.loadCashBoxes(),
+    dictionaries.loadPaymentMethods(),
+    dictionaries.loadCashflowItems(),
+  ])
+  receiptDialogOpen.value = true
+}
+
+const handleReceiptCreated = async () => {
+  showSnackbar('Оплата добавлена.', 'success')
+  await loadReceipts()
+  await loadAnalysis()
 }
 
 const currentUserLabel = computed(() => {
@@ -1022,7 +1056,14 @@ watch(contractId, async () => {
 })
 
 onMounted(async () => {
-  await Promise.all([dictionaries.loadSaleTypes(), dictionaries.loadCities()])
+  const preload: Promise<unknown>[] = [
+    dictionaries.loadSaleTypes(),
+    dictionaries.loadCities(),
+  ]
+  if (canViewFinance.value) {
+    preload.push(dictionaries.loadCashflowItems())
+  }
+  await Promise.all(preload)
   await loadMarginSettings()
   await loadContract()
   await loadHistory()
@@ -1268,6 +1309,16 @@ onMounted(async () => {
       <VWindowItem v-if="canViewFinance" value="payments">
         <Card>
           <template #content>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <VBtn
+                color="primary"
+                prepend-icon="tabler-plus"
+                :disabled="!canCreateFinance"
+                @click="openReceiptDialog"
+              >
+                Добавить оплату
+              </VBtn>
+            </div>
             <div v-if="receiptsError" class="text-sm" style="color: #b91c1c;">
               {{ receiptsError }}
             </div>
@@ -1306,6 +1357,11 @@ onMounted(async () => {
               <Column field="cashbox" header="Касса">
                 <template #body="{ data: row }">
                   <CashboxCell :cashbox="row.cashbox" size="sm" />
+                </template>
+              </Column>
+              <Column field="cashflow_item_id" header="Статья ДДС">
+                <template #body="{ data: row }">
+                  {{ receiptCashflowItemLabel(row) }}
                 </template>
               </Column>
               <Column field="creator" header="Кто добавил">
@@ -1741,6 +1797,13 @@ onMounted(async () => {
             </Card>
           </VWindowItem>
     </VWindow>
+
+    <ContractReceiptDialog
+      v-model="receiptDialogOpen"
+      :contract="contract"
+      simple
+      @created="handleReceiptCreated"
+    />
 
     <VDialog v-model="confirmDeleteOpen" max-width="420">
       <VCard>

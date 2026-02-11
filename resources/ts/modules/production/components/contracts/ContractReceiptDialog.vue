@@ -10,6 +10,7 @@ import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
 const props = defineProps<{
   modelValue: boolean
   contract: Contract | null
+  simple?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -55,9 +56,14 @@ const resetForm = () => {
   validationErrors.value = {}
 }
 
-const cashflowItemsIn = computed(() =>
-  dictionaries.cashflowItems.filter(item => item.direction === 'IN' && item.is_active !== false),
+const operatingInCashflowItems = computed(() =>
+  dictionaries.cashflowItems
+    .filter(item => item.section === 'OPERATING' && item.direction === 'IN' && item.is_active !== false)
+    .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)),
 )
+
+const dialogTitle = computed(() => (props.simple ? 'Добавить оплату' : 'Добавить приход'))
+const submitButtonLabel = computed(() => (props.simple ? 'Добавить оплату' : 'Добавить'))
 
 const normalizeDateValue = (value?: string | null) => {
   const trimmed = (value ?? '').trim()
@@ -70,8 +76,39 @@ const normalizeDateValue = (value?: string | null) => {
   return trimmed
 }
 
+const resolveDefaultCashflowItemId = () => {
+  const items = operatingInCashflowItems.value
+  if (!items.length) return null
+
+  const byCode = items.find(item => String(item.code ?? '').toUpperCase().includes('ADVANCE'))
+  if (byCode?.id !== undefined && byCode?.id !== null) return Number(byCode.id)
+
+  const byName = items.find(item => String(item.name ?? '').toLowerCase().includes('аванс'))
+  if (byName?.id !== undefined && byName?.id !== null) return Number(byName.id)
+
+  const first = items[0]?.id
+  return first !== undefined && first !== null ? Number(first) : null
+}
+
+const applyDefaults = () => {
+  const firstPaymentMethodId = dictionaries.paymentMethods[0]?.id
+  if (!form.payment_method_id && firstPaymentMethodId !== undefined && firstPaymentMethodId !== null) {
+    form.payment_method_id = Number(firstPaymentMethodId)
+  }
+
+  if (!form.cashflow_item_id) {
+    form.cashflow_item_id = resolveDefaultCashflowItemId()
+  }
+}
+
 const submit = async () => {
   if (!props.contract?.id) return
+  const paymentMethodId = form.payment_method_id ?? (dictionaries.paymentMethods[0]?.id ? Number(dictionaries.paymentMethods[0].id) : null)
+  if (!paymentMethodId) {
+    errorMessage.value = 'Не найден способ оплаты.'
+    return
+  }
+
   saving.value = true
   errorMessage.value = ''
   validationErrors.value = {}
@@ -79,7 +116,7 @@ const submit = async () => {
     await createContractReceipt({
       contract_id: props.contract.id,
       cashbox_id: form.cashbox_id,
-      payment_method_id: form.payment_method_id,
+      payment_method_id: paymentMethodId,
       cashflow_item_id: form.cashflow_item_id,
       sum: form.sum,
       payment_date: normalizeDateValue(form.payment_date),
@@ -111,6 +148,7 @@ watch(
       dictionaries.loadPaymentMethods(),
       dictionaries.loadCashflowItems(),
     ])
+    applyDefaults()
   },
 )
 </script>
@@ -119,7 +157,7 @@ watch(
   <VDialog v-model="isOpen" max-width="520">
     <VCard>
       <VCardTitle class="d-flex align-center justify-between">
-        <span>Добавить приход</span>
+        <span>{{ dialogTitle }}</span>
         <VBtn icon="tabler-x" variant="text" @click="isOpen = false" />
       </VCardTitle>
       <VCardText class="d-flex flex-column gap-3">
@@ -130,6 +168,13 @@ watch(
         <div v-if="Object.keys(validationErrors).length" class="text-sm text-error">
           Проверьте обязательные поля.
         </div>
+
+        <VTextField
+          v-model.number="form.sum"
+          type="number"
+          label="Сумма"
+          hide-details
+        />
 
         <AppSelect
           v-model="form.cashbox_id"
@@ -148,7 +193,24 @@ watch(
           </template>
         </AppSelect>
 
+        <AppDateTimePicker
+          v-model="form.payment_date"
+          label="Дата"
+          placeholder="ДД.ММ.ГГГГ"
+          :config="datePickerConfig"
+          hide-details
+        />
+
         <AppSelect
+          v-model="form.cashflow_item_id"
+          :items="operatingInCashflowItems"
+          item-title="name"
+          item-value="id"
+          label="Статья ДДС"
+        />
+
+        <AppSelect
+          v-if="!props.simple"
           v-model="form.payment_method_id"
           :items="dictionaries.paymentMethods"
           item-title="name"
@@ -156,30 +218,8 @@ watch(
           label="Способ оплаты"
         />
 
-        <AppSelect
-          v-model="form.cashflow_item_id"
-          :items="cashflowItemsIn"
-          item-title="name"
-          item-value="id"
-          label="Статья ДДС"
-        />
-
-        <VTextField
-          v-model.number="form.sum"
-          type="number"
-          label="Сумма"
-          hide-details
-        />
-
-        <AppDateTimePicker
-          v-model="form.payment_date"
-          label="Дата оплаты"
-          placeholder="ДД.ММ.ГГГГ"
-          :config="datePickerConfig"
-          hide-details
-        />
-
         <VTextarea
+          v-if="!props.simple"
           v-model="form.description"
           label="Описание"
           rows="2"
@@ -189,7 +229,7 @@ watch(
       </VCardText>
       <VCardActions class="justify-end gap-2">
         <VBtn variant="text" @click="isOpen = false">Отмена</VBtn>
-        <VBtn color="primary" :loading="saving" @click="submit">Добавить</VBtn>
+        <VBtn color="primary" :loading="saving" @click="submit">{{ submitButtonLabel }}</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>
