@@ -1,19 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
 import { $api } from '@/utils/api'
-import { formatSum } from '@/utils/formatters/finance'
-import CashboxCell from '@/components/cashboxes/CashboxCell.vue'
+import NewCashboxesBalance, { type CashboxBalanceRow } from '@/views/dashboards/new/NewCashboxesBalance.vue'
 
-type CashboxBalance = {
-  id: number
-  name?: string | null
-  balance?: number | null
-  logo_url?: string | null
-}
-
-const rows = ref<CashboxBalance[]>([])
+const rows = ref<CashboxBalanceRow[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -27,10 +17,12 @@ const loadBalances = async () => {
   try {
     const response: any = await $api('finance/cashboxes')
     rows.value = response?.data ?? []
-  } catch (error: any) {
-    errorMessage.value = error?.response?.data?.message ?? 'Не удалось загрузить баланс.'
+  }
+  catch (error: any) {
+    errorMessage.value = error?.response?.data?.message ?? 'Не удалось загрузить баланс касс.'
     rows.value = []
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -39,39 +31,11 @@ onMounted(loadBalances)
 </script>
 
 <template>
-  <VCard>
-    <VCardTitle class="d-flex align-center justify-space-between">
-      <span>Баланс</span>
-      <VBtn color="primary" variant="tonal" @click="loadBalances">Обновить</VBtn>
-    </VCardTitle>
-    <VCardText>
-      <div v-if="errorMessage" class="text-sm mb-3" style="color: #b91c1c;">
-        {{ errorMessage }}
-      </div>
-      <DataTable
-        :value="rows"
-        dataKey="id"
-        class="p-datatable-sm"
-        :loading="loading"
-      >
-        <Column field="name" header="Касса">
-          <template #body="{ data }">
-            <CashboxCell :cashbox="data" size="sm" />
-          </template>
-        </Column>
-        <Column field="balance" header="Баланс" style="inline-size: 16ch;">
-          <template #body="{ data }">
-            {{ formatSum(Number(data.balance ?? 0)) }}
-          </template>
-        </Column>
-        <template #empty>
-          <div class="text-center py-6 text-muted">Нет данных.</div>
-        </template>
-      </DataTable>
-      <VDivider class="my-4" />
-      <div class="d-flex justify-end text-sm font-semibold">
-        Итог: {{ formatSum(totalBalance) }}
-      </div>
-    </VCardText>
-  </VCard>
+  <NewCashboxesBalance
+    :rows="rows"
+    :total="totalBalance"
+    :loading="loading"
+    :error="errorMessage"
+    @refresh="loadBalances"
+  />
 </template>
