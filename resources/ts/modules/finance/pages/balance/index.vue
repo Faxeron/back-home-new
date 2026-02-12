@@ -31,11 +31,15 @@ onMounted(loadBalances)
 </script>
 
 <template>
-  <NewCashboxesBalance
-    :rows="rows"
-    :total="totalBalance"
-    :loading="loading"
-    :error="errorMessage"
-    @refresh="loadBalances"
-  />
+  <VRow>
+    <VCol cols="12" md="6">
+      <NewCashboxesBalance
+        :rows="rows"
+        :total="totalBalance"
+        :loading="loading"
+        :error="errorMessage"
+        @refresh="loadBalances"
+      />
+    </VCol>
+  </VRow>
 </template>
