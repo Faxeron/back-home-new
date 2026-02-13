@@ -159,11 +159,11 @@ class RolesPermissionsController extends Controller
 
         $now = now();
         $roles = [
-            ['code' => 'superadmin', 'name' => 'РЎСѓРїРµСЂР°РґРјРёРЅ'],
-            ['code' => 'admin', 'name' => 'РђРґРјРёРЅ'],
-            ['code' => 'manager', 'name' => 'РњРµРЅРµРґР¶РµСЂ'],
-            ['code' => 'measurer', 'name' => 'Р—Р°РјРµСЂС‰РёРє'],
-            ['code' => 'worker', 'name' => 'РњРѕРЅС‚Р°Р¶РЅРёРє'],
+            ['code' => 'superadmin', 'name' => 'Суперадмин'],
+            ['code' => 'admin', 'name' => 'Админ'],
+            ['code' => 'manager', 'name' => 'Менеджер'],
+            ['code' => 'measurer', 'name' => 'Замерщик'],
+            ['code' => 'worker', 'name' => 'Монтажник'],
         ];
 
         $db = DB::connection('legacy_new');
