@@ -40,7 +40,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         /** @var User|null $user */
-        $user = $request->user();
+        $user = Auth::guard('web')->user();
         if (!$user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }

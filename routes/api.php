@@ -68,10 +68,10 @@ use App\Modules\PublicApi\Controllers\PublicLeadController;
 use App\Modules\PublicApi\Controllers\PublicProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('auth/login', [AuthController::class, 'login']);
-Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::post('auth/logout-all', [AuthController::class, 'logoutAll'])->middleware('auth:sanctum');
-Route::get('user', [AuthController::class, 'me'])->middleware('auth:sanctum');
+Route::post('auth/login', [AuthController::class, 'login'])->middleware('web');
+Route::post('auth/logout', [AuthController::class, 'logout'])->middleware(['web', 'auth:sanctum']);
+Route::post('auth/logout-all', [AuthController::class, 'logoutAll'])->middleware(['web', 'auth:sanctum']);
+Route::get('user', [AuthController::class, 'me'])->middleware(['web', 'auth:sanctum']);
 
 Route::get('estimate/{randomId}mnt', [EstimatePublicController::class, 'montaj']);
 Route::get('estimate/{randomId}', [EstimatePublicController::class, 'show']);
