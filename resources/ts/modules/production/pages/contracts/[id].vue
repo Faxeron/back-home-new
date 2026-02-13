@@ -959,11 +959,10 @@ const downloadDocument = async (doc: ContractDocument) => {
   downloadingId.value = doc.id
   documentsError.value = ''
   try {
-    const accessToken = useCookie('accessToken').value
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
     const url = `${baseUrl}/contracts/${contractId.value}/documents/${doc.id}/download`
     const response = await fetch(url, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      credentials: 'include',
     })
 
     if (!response.ok) {

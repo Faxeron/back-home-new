@@ -27,7 +27,7 @@
 - Проверка членства: `user_company` + `EnsureCompanyContext`.
 
 ## API (обзор)
-- Auth: `POST /api/auth/login`.
+- Auth (Sanctum stateful session): `GET /sanctum/csrf-cookie` -> `POST /login` (или legacy `POST /api/auth/login`) -> `GET /api/user`.
 - Finance: `/api/finance/*`.
 - Catalog/Products: `/api/products/*` + `/api/products/pricebook/*`.
 - Estimates: `/api/estimates/*`, `/api/estimate-templates/*`.

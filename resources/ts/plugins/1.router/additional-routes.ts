@@ -58,7 +58,10 @@ export const redirects: RouteRecordRaw[] = [
       const userData = useCookie<Record<string, unknown> | null | undefined>('userData')
       const userAbilityRules = useCookie<AbilityRule[] | null | undefined>('userAbilityRules')
 
-      if (!accessToken.value || !userData.value)
+      if (accessToken.value)
+        accessToken.value = null
+
+      if (!userData.value)
         return { name: 'login', query: to.query }
 
       const homePath = resolveHomePath(userAbilityRules.value ?? [])

@@ -368,7 +368,7 @@ php artisan reports:initialize --company=1 --force
 The CEO reports page has a single "Обновить" button which triggers a server-side rebuild of materialized tables.
 
 - Endpoint: `POST /api/reports/rebuild`
-- Auth: Bearer token (same as other `/api/reports/*`)
+- Auth: Sanctum stateful session cookie (`laravel_session` + CSRF), Bearer не используется
 - Permissions: `permission:view,finance`
 - Params (optional): `company_id`, `from_month` (YYYY-MM), `to_month` (YYYY-MM), `force` (bool)
 Default period is last 12 months to current month.
@@ -377,7 +377,9 @@ Example:
 
 ```bash
 curl -X POST "/api/reports/rebuild" \
-  -H "Authorization: Bearer <token>" \
+  -H "X-Requested-With: XMLHttpRequest" \
+  -H "X-XSRF-TOKEN: <xsrf-token>" \
+  -H "Cookie: laravel_session=<session-cookie>; XSRF-TOKEN=<xsrf-token>" \
   -H "Content-Type: application/json" \
   -d "{\"company_id\":1,\"from_month\":\"2025-03\",\"to_month\":\"2026-02\",\"force\":false}"
 ```

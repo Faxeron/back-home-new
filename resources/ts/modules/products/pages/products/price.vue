@@ -176,11 +176,10 @@ const downloadFile = async (endpoint: string, fallbackName: string, setLoading: 
   setLoading(true)
   errorMessage.value = ''
   try {
-    const accessToken = useCookie('accessToken').value
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
     const url = `${baseUrl}/${endpoint}`
     const response = await fetch(url, {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      credentials: 'include',
     })
     if (!response.ok)
       throw new Error('Download failed')

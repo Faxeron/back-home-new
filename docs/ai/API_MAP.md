@@ -4,7 +4,6 @@ Base prefix
 - `/api`
 
 Public (без auth)
-- POST `/api/auth/login`
 - GET `/api/estimate/{randomId}`
 - GET `/api/estimate/{randomId}mnt`
 - GET `/api/public/cities`
@@ -16,6 +15,16 @@ Public (без auth)
 - GET `/api/public/products`
 - GET `/api/public/products/{slug}`
 - POST `/api/public/leads`
+
+Auth (SPA cookie session, Sanctum stateful)
+- GET `/sanctum/csrf-cookie`
+- POST `/login`
+- POST `/logout`
+- POST `/logout-all`
+- POST `/api/auth/login` (legacy alias, kept for compatibility)
+- POST `/api/auth/logout` (legacy alias, kept for compatibility)
+- POST `/api/auth/logout-all` (legacy alias, kept for compatibility)
+- GET `/api/user`
 
 Public catalog rules (для сайта)
 - Для всех catalog/products endpoints обязателен контекст `city` или `company_id` (иначе 400).

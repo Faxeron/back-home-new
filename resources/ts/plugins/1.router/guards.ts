@@ -13,11 +13,13 @@ export const setupGuards = (router: _RouterTyped<RouteNamedMap & { [key: string]
     if (to.meta.public)
       return
 
-    /**
-     * Check if user is logged in by checking if token & user data exists in local storage
-     * Feel free to update this logic to suit your needs
-     */
-    const isLoggedIn = !!(useCookie('userData').value && useCookie('accessToken').value)
+    // Cleanup of legacy bearer-token cookie after migration to session cookies.
+    const legacyToken = useCookie('accessToken')
+    if (legacyToken.value)
+      legacyToken.value = null
+
+    // Session auth is now cookie-based (Sanctum stateful), userData is the frontend auth marker.
+    const isLoggedIn = !!useCookie('userData').value
 
     /*
       If user is logged in and is trying to access login like page, redirect to home

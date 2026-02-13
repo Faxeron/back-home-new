@@ -8,11 +8,16 @@ const ability = useAbility()
 const userData = useCookie<any>('userData')
 
 const logout = async () => {
-  // Remove "accessToken" from cookie
-  useCookie('accessToken').value = null
+  try {
+    await $api('/auth/logout', { method: 'POST' })
+  }
+  catch (error) {
+    console.error('Logout request failed', error)
+  }
 
   // Remove "userData" from cookie
   userData.value = null
+  useCookie('accessToken').value = null
 
   // Redirect to login page
   await router.push('/login')
