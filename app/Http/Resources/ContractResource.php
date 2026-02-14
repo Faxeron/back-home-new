@@ -22,6 +22,7 @@ class ContractResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'finance_object_id' => $this->finance_object_id,
             'counterparty_id' => $this->counterparty_id,
             'counterparty' => $this->whenLoaded('counterparty', fn () => $this->counterparty ? [
                 'id' => $this->counterparty->id,
@@ -89,6 +90,13 @@ class ContractResource extends JsonResource
             'work_end_date' => $this->work_end_date?->toDateString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+            'finance_object' => $this->whenLoaded('financeObject', fn () => [
+                'id' => $this->financeObject->id,
+                'type' => $this->financeObject->type?->value ?? $this->financeObject->type,
+                'name' => $this->financeObject->name,
+                'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
+                'code' => $this->financeObject->code,
+            ]),
         ];
     }
 }

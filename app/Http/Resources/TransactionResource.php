@@ -30,6 +30,7 @@ class TransactionResource extends JsonResource
             'company_id' => $this->company_id,
             'counterparty_id' => $this->counterparty_id,
             'contract_id' => $this->contract_id,
+            'finance_object_id' => $this->finance_object_id,
             'related_id' => $this->related_id,
             'notes' => $this->notes,
             'created_by' => $this->created_by,
@@ -61,6 +62,29 @@ class TransactionResource extends JsonResource
                 'code' => $this->paymentMethod->code,
                 'name' => $this->paymentMethod->name,
             ]),
+            'finance_object' => $this->whenLoaded('financeObject', fn () => [
+                'id' => $this->financeObject->id,
+                'type' => $this->financeObject->type?->value ?? $this->financeObject->type,
+                'name' => $this->financeObject->name,
+                'code' => $this->financeObject->code,
+                'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
+            ]),
+            'finance_object_allocations' => $this->whenLoaded('financeObjectAllocations', fn () => $this->financeObjectAllocations->map(
+                static fn ($allocation) => [
+                    'id' => $allocation->id,
+                    'finance_object_id' => $allocation->finance_object_id,
+                    'amount' => (float) $allocation->amount,
+                    'comment' => $allocation->comment,
+                    'finance_object' => $allocation->relationLoaded('financeObject') && $allocation->financeObject
+                        ? [
+                            'id' => $allocation->financeObject->id,
+                            'name' => $allocation->financeObject->name,
+                            'type' => $allocation->financeObject->type?->value ?? $allocation->financeObject->type,
+                            'status' => $allocation->financeObject->status?->value ?? $allocation->financeObject->status,
+                        ]
+                        : null,
+                ]
+            )),
         ];
     }
 

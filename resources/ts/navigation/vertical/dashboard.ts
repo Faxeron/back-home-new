@@ -77,6 +77,7 @@
   { heading: 'Продажи' },
   { title: 'Сметы', icon: { icon: 'tabler-file-invoice' }, to: { path: '/estimates' } },
   { title: 'Договоры', icon: { icon: 'tabler-briefcase' }, to: { path: '/operations/contracts' } },
+  { title: 'Объекты учета', icon: { icon: 'tabler-building-bank' }, to: { path: '/operations/finance-objects' } },
   { title: 'Замеры', icon: { icon: 'tabler-ruler-measure' }, to: { path: '/operations/measurements' } },
   { title: 'Монтажи', icon: { icon: 'tabler-tools' }, to: { path: '/operations/installations' } },
   { title: 'База знаний', icon: { icon: 'tabler-books' }, to: { path: '/sales/knowledge' } },

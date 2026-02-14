@@ -52,6 +52,7 @@ onMounted(async () => {
     dictionaries.loadCashBoxes(true),
     dictionaries.loadSpendingFunds(),
     dictionaries.loadSpendingItems(),
+    dictionaries.loadFinanceObjects(),
     dictionaries.loadCounterparties(),
   ])
   await resetData()

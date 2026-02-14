@@ -126,6 +126,24 @@ const rows = computed<TransactionRow[]>(() =>
   })),
 )
 
+const financeObjectCaption = (row: TransactionRow) => {
+  if (row.finance_object?.name)
+    return row.finance_object.name
+
+  const allocations = Array.isArray(row.finance_object_allocations) ? row.finance_object_allocations : []
+  if (!allocations.length)
+    return 'UNASSIGNED'
+
+  const parts = allocations
+    .map(item => {
+      const name = item.finance_object?.name ?? `#${item.finance_object_id}`
+      return `${name}: ${Number(item.amount ?? 0).toFixed(2)}`
+    })
+    .filter(Boolean)
+
+  return parts.join(', ')
+}
+
 const togglePanel = (panel: { toggle: (event: Event) => void } | null, event: Event) => {
   panel?.toggle(event)
 }
@@ -200,6 +218,16 @@ const handleTimestampChange = (
 ) => {
   const target = event.target as HTMLInputElement | null
   updateTransactionTimestamp(row, field, target?.value ?? '')
+}
+
+const updateTransactionFinanceObject = async (row: TransactionRow, nextValue: number | string | null) => {
+  const normalized =
+    nextValue === null || nextValue === undefined || nextValue === ''
+      ? null
+      : Number(nextValue)
+  const current = row.finance_object_id ?? null
+  if (normalized === current) return
+  await updateTransaction(row.id, { finance_object_id: normalized }, 'finance_object_id')
 }
 </script>
 
@@ -440,6 +468,38 @@ const handleTimestampChange = (
               .filter(Boolean)
               .join('\n')
           }}
+        </div>
+      </template>
+    </Column>
+
+    <Column
+      :field="TRANSACTION_COLUMNS.financeObject.field"
+      :header="TRANSACTION_COLUMNS.financeObject.header"
+    >
+      <template #filter="{ filterModel, filterCallback }">
+        <Select
+          v-model="filterModel.value"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          @change="() => { filterCallback(); notifyParent(); }"
+        />
+      </template>
+      <template #body="{ data }">
+        <Select
+          :modelValue="data.finance_object_id ?? null"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          :disabled="isSavingField(data.id, 'finance_object_id')"
+          @update:modelValue="updateTransactionFinanceObject(data, $event)"
+        />
+        <div v-if="!data.finance_object_id" class="status-date mt-1">
+          {{ financeObjectCaption(data) }}
         </div>
       </template>
     </Column>

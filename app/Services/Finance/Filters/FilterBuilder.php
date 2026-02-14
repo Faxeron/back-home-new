@@ -124,6 +124,30 @@ class FilterBuilder
             });
         }
 
+        if ($f->financeObjectId) {
+            $query->where('transactions.finance_object_id', $f->financeObjectId);
+        }
+
+        if ($f->unassigned !== null) {
+            if ($f->unassigned) {
+                $query->whereNull('transactions.finance_object_id')
+                    ->whereNotExists(function ($sub) {
+                        $sub->selectRaw('1')
+                            ->from('finance_object_allocations as foa')
+                            ->whereColumn('foa.transaction_id', 'transactions.id');
+                    });
+            } else {
+                $query->where(function (Builder $q) {
+                    $q->whereNotNull('transactions.finance_object_id')
+                        ->orWhereExists(function ($sub) {
+                            $sub->selectRaw('1')
+                                ->from('finance_object_allocations as foa')
+                                ->whereColumn('foa.transaction_id', 'transactions.id');
+                        });
+                });
+            }
+        }
+
         if ($f->relatedId) {
             $query->where('transactions.related_id', $f->relatedId);
         }
@@ -210,6 +234,10 @@ class FilterBuilder
 
         if ($f->contractId) {
             $query->where('receipts.contract_id', $f->contractId);
+        }
+
+        if ($f->financeObjectId) {
+            $query->where('receipts.finance_object_id', $f->financeObjectId);
         }
 
         if ($f->cashflowItemId) {
@@ -302,6 +330,10 @@ class FilterBuilder
 
         if ($f->contractId) {
             $query->where('spendings.contract_id', $f->contractId);
+        }
+
+        if ($f->financeObjectId) {
+            $query->where('spendings.finance_object_id', $f->financeObjectId);
         }
 
         if ($f->counterpartyId) {

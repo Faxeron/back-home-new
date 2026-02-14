@@ -12,6 +12,7 @@ use App\Domain\Finance\Models\CashBox;
 use App\Domain\Finance\Models\SpendingFund;
 use App\Domain\Finance\Models\SpendingItem;
 use App\Domain\Finance\Models\FinanceAllocation;
+use App\Domain\Finance\Models\FinanceObject;
 use App\Domain\CRM\Models\Contract;
 use App\Domain\CRM\Models\Counterparty;
 use App\Domain\Common\Models\User;
@@ -72,6 +73,11 @@ class Spending extends Model
     public function counterparty(): BelongsTo
     {
         return $this->belongsTo(Counterparty::class, 'counterparty_id');
+    }
+
+    public function financeObject(): BelongsTo
+    {
+        return $this->belongsTo(FinanceObject::class, 'finance_object_id');
     }
 
     public function spentToUser(): BelongsTo

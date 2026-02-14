@@ -95,6 +95,7 @@ onMounted(async () => {
     dictionaries.loadCashBoxes(true),
     dictionaries.loadTransactionTypes(),
     dictionaries.loadPaymentMethods(),
+    dictionaries.loadFinanceObjects(),
   ])
   await resetData()
   await nextTick()

@@ -1,6 +1,7 @@
 ﻿export default [
   { heading: 'Финансы' },
   { title: 'Транзакции', icon: { icon: 'tabler-arrows-right-left' }, to: { path: '/finance/transactions' } },
+  { title: 'Неразнесенные', icon: { icon: 'tabler-inbox' }, to: { path: '/finance/unassigned' } },
   { title: 'Приходы', icon: { icon: 'tabler-arrow-down-right' }, to: { path: '/finance/receipts' } },
   { title: 'Расходы', icon: { icon: 'tabler-arrow-up-right' }, to: { path: '/finance/spendings' } },
   { title: 'Баланс', icon: { icon: 'tabler-scale' }, to: { path: '/finance/balance' } },

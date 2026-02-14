@@ -10,6 +10,7 @@ use App\Http\Requests\Finance\UpdateSpendingRequest;
 use App\Http\Resources\SpendingResource;
 use App\Http\Requests\Finance\CreateSpendingRequest;
 use App\Services\Finance\FinanceService;
+use App\Services\Finance\FinanceObjectAssignmentService;
 use App\Services\Finance\SpendingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class SpendingController extends Controller
     public function __construct(
         private readonly SpendingService $spendingService,
         private readonly FinanceService $financeService,
+        private readonly FinanceObjectAssignmentService $assignmentService,
     )
     {
     }
@@ -139,7 +141,27 @@ class SpendingController extends Controller
             }
         });
 
-        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'contract', 'item', 'fund', 'creator']);
+        if (array_key_exists('finance_object_id', $payload)) {
+            if ($record->transaction_id) {
+                try {
+                    $this->assignmentService->assignTransaction(
+                        Transaction::query()->findOrFail($record->transaction_id),
+                        $payload['finance_object_id'] !== null ? (int) $payload['finance_object_id'] : null,
+                        [],
+                        (int) $tenantId,
+                        (int) $companyId,
+                    );
+                } catch (RuntimeException $exception) {
+                    return response()->json(['message' => $exception->getMessage()], 422);
+                }
+            } else {
+                $record->forceFill([
+                    'finance_object_id' => $payload['finance_object_id'] !== null ? (int) $payload['finance_object_id'] : null,
+                ])->save();
+            }
+        }
+
+        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'contract', 'financeObject', 'item', 'fund', 'creator']);
 
         return response()->json([
             'data' => (new SpendingResource($record))->toArray($request),

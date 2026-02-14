@@ -13,6 +13,7 @@ class CreateContractReceiptRequest extends FormRequest
             'tenant_id' => ['nullable', 'integer'],
             'company_id' => ['nullable', 'integer'],
             'contract_id' => ['required', 'integer', 'exists:legacy_new.contracts,id'],
+            'finance_object_id' => ['nullable', 'integer', 'exists:legacy_new.finance_objects,id'],
             'cashbox_id' => ['required', 'integer', 'exists:legacy_new.cashboxes,id'],
             'payment_method_id' => ['required', 'integer', 'exists:legacy_new.payment_methods,id'],
             'cashflow_item_id' => [

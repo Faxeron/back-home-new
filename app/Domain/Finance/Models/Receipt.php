@@ -11,6 +11,7 @@ use App\Domain\CRM\Models\Counterparty;
 use App\Domain\Finance\Casts\MoneyCast;
 use App\Domain\Finance\Models\CashBox;
 use App\Domain\Finance\Models\FinanceAllocation;
+use App\Domain\Finance\Models\FinanceObject;
 use App\Domain\Finance\Models\Transaction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -58,6 +59,11 @@ class Receipt extends Model
     public function counterparty(): BelongsTo
     {
         return $this->belongsTo(Counterparty::class, 'counterparty_id');
+    }
+
+    public function financeObject(): BelongsTo
+    {
+        return $this->belongsTo(FinanceObject::class, 'finance_object_id');
     }
 
     public function allocations(): HasMany

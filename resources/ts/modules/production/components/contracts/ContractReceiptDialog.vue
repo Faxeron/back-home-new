@@ -115,6 +115,7 @@ const submit = async () => {
   try {
     await createContractReceipt({
       contract_id: props.contract.id,
+      finance_object_id: props.contract.finance_object_id ?? null,
       cashbox_id: form.cashbox_id,
       payment_method_id: paymentMethodId,
       cashflow_item_id: form.cashflow_item_id,

@@ -65,6 +65,7 @@ export const defaultSpendingFilters = () => ({
   sum: { value: { min: null, max: null }, matchMode: 'custom' },
   fond_id: { value: null, matchMode: 'equals' },
   spending_item_id: { value: null, matchMode: 'equals' },
+  finance_object_id: { value: null, matchMode: 'equals' },
   contract_id: { value: null, matchMode: 'equals' },
   counterparty_name: { value: '', matchMode: 'contains' },
   description: { value: '', matchMode: 'contains' },
@@ -121,6 +122,7 @@ export const useSpendingFilters = (options: UseSpendingFiltersOptions = {}) => {
     if (current.cashbox_id?.value !== null) params.cashbox_id = current.cashbox_id.value
     if (current.fond_id?.value !== null) params.fond_id = current.fond_id.value
     if (current.spending_item_id?.value !== null) params.spending_item_id = current.spending_item_id.value
+    if (current.finance_object_id?.value !== null) params.finance_object_id = current.finance_object_id.value
     if (current.contract_id?.value !== null) params.contract_id = current.contract_id.value
 
     const sumMin = toNumberParam(current.sum?.value?.min)
@@ -169,7 +171,7 @@ export const useSpendingFilters = (options: UseSpendingFiltersOptions = {}) => {
         triggerImmediate()
         return
       }
-      const changedKeys = Object.keys(next).filter(key => {
+      const changedKeys = (Object.keys(next) as Array<keyof typeof next>).filter(key => {
         const nextValue = next[key]?.value
         const prevValue = prev[key]?.value
         return !isSameFilterValue(nextValue, prevValue)

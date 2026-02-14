@@ -16,6 +16,7 @@ class UpdateSpendingRequest extends FormRequest
         return [
             'created_at' => ['sometimes', 'nullable', 'date'],
             'updated_at' => ['sometimes', 'nullable', 'date'],
+            'finance_object_id' => ['sometimes', 'nullable', 'integer', 'exists:legacy_new.finance_objects,id'],
         ];
     }
 }

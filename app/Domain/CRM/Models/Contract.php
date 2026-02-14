@@ -4,6 +4,7 @@ namespace App\Domain\CRM\Models;
 
 use App\Domain\Finance\Enums\ContractSystemStatusEnum;
 use App\Domain\Common\Models\User;
+use App\Domain\Finance\Models\FinanceObject;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\Models\Transaction;
@@ -63,6 +64,11 @@ class Contract extends Model
     public function worker(): BelongsTo
     {
         return $this->belongsTo(User::class, 'worker_id');
+    }
+
+    public function financeObject(): BelongsTo
+    {
+        return $this->belongsTo(FinanceObject::class, 'finance_object_id');
     }
 
     public function transactions(): HasMany

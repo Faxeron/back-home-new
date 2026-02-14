@@ -19,6 +19,7 @@ import { computed, reactive, ref, watch } from 'vue'
 type ReceiptRow = Receipt & {
   counterparty_name?: string
   cashflow_name?: string
+  finance_object_name?: string
 }
 
 const props = defineProps<{
@@ -123,6 +124,9 @@ const cashflowMap = computed(() => {
   }
   return map
 })
+const financeObjectMap = computed(
+  () => new Map(dictionaries.financeObjects.map(item => [String(item.id), item.name])),
+)
 
 const cashboxInlineSize = computed(() => {
   const names = dictionaries.cashBoxes.map(item => item.name ?? '')
@@ -150,6 +154,12 @@ const rows = computed<ReceiptRow[]>(() =>
         row.cashflow_item_id != null
           ? cashflowMap.value.get(String(row.cashflow_item_id)) ?? ''
           : '',
+      finance_object_name:
+        row.finance_object?.name ??
+        (row.finance_object_id != null
+          ? financeObjectMap.value.get(String(row.finance_object_id))
+          : undefined) ??
+        '',
     }
   }),
 )
@@ -222,6 +232,16 @@ const updateReceiptCashflow = async (row: ReceiptRow, nextValue: number | string
   const current = row.cashflow_item_id ?? null
   if (normalized === current) return
   await updateReceipt(row.id, { cashflow_item_id: normalized }, 'cashflow_item_id')
+}
+
+const updateReceiptFinanceObject = async (row: ReceiptRow, nextValue: number | string | null) => {
+  const normalized =
+    nextValue === null || nextValue === undefined || nextValue === ''
+      ? null
+      : Number(nextValue)
+  const current = row.finance_object_id ?? null
+  if (normalized === current) return
+  await updateReceipt(row.id, { finance_object_id: normalized }, 'finance_object_id')
 }
 </script>
 
@@ -383,6 +403,36 @@ const updateReceiptCashflow = async (row: ReceiptRow, nextValue: number | string
       </template>
       <template #body="{ data }">
         {{ formatSum(data.sum) }}
+      </template>
+    </Column>
+
+    <Column
+      :field="RECEIPT_COLUMNS.financeObject.field"
+      :header="RECEIPT_COLUMNS.financeObject.header"
+      :showFilterMenu="false"
+    >
+      <template #filter="{ filterModel, filterCallback }">
+        <Select
+          v-model="filterModel.value"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          @change="() => { filterCallback(); notifyParent(); }"
+        />
+      </template>
+      <template #body="{ data }">
+        <Select
+          :modelValue="data.finance_object_id ?? null"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          :disabled="isSavingField(data.id, 'finance_object_id')"
+          @update:modelValue="updateReceiptFinanceObject(data, $event)"
+        />
       </template>
     </Column>
 

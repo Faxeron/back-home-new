@@ -6,9 +6,12 @@ interface NamedItem {
   id: number | string
   name: string
   code?: string
+  type?: string
+  status?: string
   color?: string
   sign?: number | string | null
   fond_id?: number | string | null
+  counterparty_id?: number | string | null
   logo_url?: string | null
   section?: string
   direction?: string
@@ -27,6 +30,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
     saleTypes: [] as NamedItem[],
     transactionTypes: [] as NamedItem[],
     paymentMethods: [] as NamedItem[],
+    financeObjects: [] as NamedItem[],
     counterparties: [] as NamedItem[],
     cities: [] as NamedItem[],
     contractStatuses: [] as ContractStatus[],
@@ -39,6 +43,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
       saleTypes: false,
       transactionTypes: false,
       paymentMethods: false,
+      financeObjects: false,
       counterparties: false,
       cities: false,
       contractStatuses: false,
@@ -180,9 +185,31 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loaded.paymentMethods = true
       }
     },
+    async loadFinanceObjects(force = false) {
+      if (!force && this.loaded.financeObjects) return
+      try {
+        const res: any = await $api('finance/objects', { params: { per_page: 200, sort: 'updated_at', direction: 'desc' } })
+        const list = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : []
+        this.financeObjects = list
+          .map((item: any) => ({
+            id: item?.id ?? item?.value,
+            name: item?.name ?? item?.label,
+            code: item?.code ?? undefined,
+            type: item?.type ?? undefined,
+            status: item?.status ?? undefined,
+            counterparty_id: item?.counterparty_id ?? null,
+          }))
+          .filter((item: any) => item.id && item.name)
+        this.loaded.financeObjects = true
+      } catch (e) {
+        console.error('Failed to load finance objects', e)
+        this.financeObjects = []
+        this.loaded.financeObjects = true
+      }
+    },
     async loadTransactionTypes() {
       if (this.loaded.transactionTypes) return
-      const fallback = [
+      const fallback: NamedItem[] = [
         // Add enum-based items here if API is unavailable
       ]
       try {
@@ -268,6 +295,7 @@ export const useDictionariesStore = defineStore('dictionaries', {
         this.loadCashflowItems(),
         this.loadSaleTypes(),
         this.loadPaymentMethods(),
+        this.loadFinanceObjects(),
         this.loadTransactionTypes(),
         this.loadCounterparties(),
         this.loadCities(),

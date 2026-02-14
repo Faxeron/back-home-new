@@ -11,6 +11,7 @@ use App\Http\Requests\Finance\UpdateTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Domain\Finance\DTO\TransactionFilterDTO;
 use App\Services\Finance\FinanceService;
+use App\Services\Finance\FinanceObjectAssignmentService;
 use App\Services\Finance\TransactionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class TransactionController extends Controller
     public function __construct(
         private readonly TransactionService $transactionService,
         private readonly FinanceService $financeService,
+        private readonly FinanceObjectAssignmentService $assignmentService,
     )
     {
     }
@@ -123,6 +125,8 @@ class TransactionController extends Controller
             return response()->json(['message' => 'No fields provided for update.'], 422);
         }
 
+        $hasAssignmentPayload = array_key_exists('finance_object_id', $payload) || array_key_exists('allocations', $payload);
+
         DB::connection('legacy_new')->transaction(function () use ($payload, $record, $tenantId, $companyId) {
             $transactionUpdates = [];
 
@@ -194,7 +198,23 @@ class TransactionController extends Controller
             }
         });
 
-        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'transactionType', 'paymentMethod']);
+        if ($hasAssignmentPayload) {
+            try {
+                $this->assignmentService->assignTransaction(
+                    $record->refresh(),
+                    array_key_exists('finance_object_id', $payload) && $payload['finance_object_id'] !== null
+                        ? (int) $payload['finance_object_id']
+                        : null,
+                    is_array($payload['allocations'] ?? null) ? $payload['allocations'] : [],
+                    (int) $tenantId,
+                    (int) $companyId,
+                );
+            } catch (RuntimeException $exception) {
+                return response()->json(['message' => $exception->getMessage()], 422);
+            }
+        }
+
+        $record->refresh()->loadMissing(['cashbox', 'company', 'counterparty', 'contract', 'financeObject', 'transactionType', 'paymentMethod', 'financeObjectAllocations.financeObject']);
 
         return response()->json([
             'data' => (new TransactionResource($record))->toArray($request),

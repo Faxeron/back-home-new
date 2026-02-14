@@ -50,6 +50,7 @@ const handleResize = () => {
 onMounted(async () => {
   await Promise.all([
     dictionaries.loadCashBoxes(true),
+    dictionaries.loadFinanceObjects(),
     dictionaries.loadCounterparties(),
     dictionaries.loadCashflowItems(),
   ])

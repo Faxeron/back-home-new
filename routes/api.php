@@ -21,6 +21,9 @@ use App\Http\Controllers\API\Finance\CashBoxController as FinanceCashBoxControll
 use App\Http\Controllers\API\Finance\CashTransferController;
 use App\Http\Controllers\API\Finance\CashflowItemController;
 use App\Http\Controllers\API\Finance\DirectorController;
+use App\Http\Controllers\API\Finance\FinanceObjectController;
+use App\Http\Controllers\API\Finance\FinanceObjectInboxController;
+use App\Http\Controllers\API\Finance\FinanceObjectLookupController;
 use App\Http\Controllers\Api\SaleTypeController;
 use App\Http\Controllers\Api\SpendingFundController;
 use App\Http\Controllers\Api\SpendingItemController;
@@ -98,8 +101,18 @@ Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
         Route::get('transactions', [TransactionController::class, 'index'])->middleware('permission:view,finance');
         Route::get('transactions/summary', [TransactionController::class, 'summary'])->middleware('permission:view,finance');
         Route::get('transactions/cashflow-series', [TransactionController::class, 'cashflowSeries'])->middleware('permission:view,finance');
+        Route::get('transactions/unassigned', [FinanceObjectInboxController::class, 'unassigned'])->middleware('permission:view,finance');
+        Route::post('transactions/unassigned/bulk-assign', [FinanceObjectInboxController::class, 'bulkAssign'])->middleware('permission:edit,finance');
+        Route::post('transactions/{transaction}/assign-object', [FinanceObjectInboxController::class, 'assign'])->whereNumber('transaction')->middleware('permission:edit,finance');
         Route::put('transactions/{transaction}', [TransactionController::class, 'update'])->middleware('permission:edit,finance');
         Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy'])->middleware('permission:delete,finance');
+
+        Route::get('objects/lookup', [FinanceObjectLookupController::class, 'index'])->middleware('permission:view,finance');
+        Route::get('objects', [FinanceObjectController::class, 'index'])->middleware('permission:view,finance');
+        Route::post('objects', [FinanceObjectController::class, 'store'])->middleware('permission:create,finance');
+        Route::get('objects/{financeObject}', [FinanceObjectController::class, 'show'])->whereNumber('financeObject')->middleware('permission:view,finance');
+        Route::put('objects/{financeObject}', [FinanceObjectController::class, 'update'])->whereNumber('financeObject')->middleware('permission:edit,finance');
+        Route::get('objects/{financeObject}/transactions', [FinanceObjectController::class, 'transactions'])->whereNumber('financeObject')->middleware('permission:view,finance');
 
         Route::get('cashboxes', [FinanceCashBoxController::class, 'index'])->middleware('permission:view,finance');
         Route::get('cashboxes/{cashBoxId}/balance', [FinanceCashBoxController::class, 'balance'])->middleware('permission:view,finance');

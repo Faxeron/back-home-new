@@ -2,10 +2,12 @@
 
 namespace App\Services\Finance;
 
+use App\Domain\CRM\Models\Contract;
 use App\Domain\Finance\Models\CashBox;
 use App\Domain\Finance\Models\CashTransfer;
 use App\Domain\Finance\Models\CashboxHistory;
 use App\Domain\Finance\Models\FinanceAllocation;
+use App\Domain\Finance\Models\FinanceObject;
 use App\Domain\Finance\Models\Receipt;
 use App\Domain\Finance\Models\Spending;
 use App\Domain\Finance\Models\SpendingItem;
@@ -30,12 +32,19 @@ class FinanceService
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('INCOME');
             $this->lockCashBoxes([$cashboxId]);
+            $financeObjectId = $this->resolveFinanceObjectId(
+                isset($data['finance_object_id']) ? (int) $data['finance_object_id'] : null,
+                isset($data['contract_id']) ? (int) $data['contract_id'] : null,
+                isset($data['tenant_id']) ? (int) $data['tenant_id'] : null,
+                isset($data['company_id']) ? (int) $data['company_id'] : null,
+            );
 
             $receipt = Receipt::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'cashbox_id' => $cashboxId,
                 'contract_id' => $data['contract_id'] ?? null,
+                'finance_object_id' => $financeObjectId,
                 'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
                 'payment_date' => $data['payment_date'] ?? now()->toDateString(),
@@ -55,6 +64,7 @@ class FinanceService
                 'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
                 'contract_id' => $receipt->contract_id,
+                'finance_object_id' => $financeObjectId,
                 'related_id' => $receipt->id,
                 'is_completed' => 0,
                 'notes' => $receipt->description,
@@ -92,12 +102,19 @@ class FinanceService
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_LOAN');
             $this->lockCashBoxes([$cashboxId]);
+            $financeObjectId = $this->resolveFinanceObjectId(
+                isset($data['finance_object_id']) ? (int) $data['finance_object_id'] : null,
+                null,
+                isset($data['tenant_id']) ? (int) $data['tenant_id'] : null,
+                isset($data['company_id']) ? (int) $data['company_id'] : null,
+            );
 
             $receipt = Receipt::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'cashbox_id' => $cashboxId,
                 'contract_id' => null,
+                'finance_object_id' => $financeObjectId,
                 'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
                 'payment_date' => $data['payment_date'] ?? now()->toDateString(),
@@ -117,6 +134,7 @@ class FinanceService
                 'cashflow_item_id' => $data['cashflow_item_id'] ?? null,
                 'counterparty_id' => $receipt->counterparty_id,
                 'contract_id' => null,
+                'finance_object_id' => $financeObjectId,
                 'related_id' => $receipt->id,
                 'is_completed' => 0,
                 'notes' => $receipt->description,
@@ -151,12 +169,19 @@ class FinanceService
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('OUTCOME');
             $this->lockCashBoxes([$cashboxId]);
+            $financeObjectId = $this->resolveFinanceObjectId(
+                isset($data['finance_object_id']) ? (int) $data['finance_object_id'] : null,
+                isset($data['contract_id']) ? (int) $data['contract_id'] : null,
+                isset($data['tenant_id']) ? (int) $data['tenant_id'] : null,
+                isset($data['company_id']) ? (int) $data['company_id'] : null,
+            );
 
             $spending = Spending::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'cashbox_id' => $cashboxId,
                 'contract_id' => $data['contract_id'] ?? null,
+                'finance_object_id' => $financeObjectId,
                 'fond_id' => $data['fond_id'] ?? null,
                 'spending_item_id' => $data['spending_item_id'] ?? null,
                 'sum' => $data['sum'] ?? 0,
@@ -184,6 +209,7 @@ class FinanceService
                 'cashflow_item_id' => $cashflowItemId,
                 'counterparty_id' => $spending->counterparty_id,
                 'contract_id' => $spending->contract_id,
+                'finance_object_id' => $financeObjectId,
                 'related_id' => $spending->id,
                 'is_completed' => 0,
                 'notes' => $spending->description,
@@ -305,12 +331,19 @@ class FinanceService
         return $this->transaction(function () use ($data, $cashboxId) {
             $type = $this->getTransactionType('DIRECTOR_WITHDRAWAL');
             $this->lockCashBoxes([$cashboxId]);
+            $financeObjectId = $this->resolveFinanceObjectId(
+                isset($data['finance_object_id']) ? (int) $data['finance_object_id'] : null,
+                null,
+                isset($data['tenant_id']) ? (int) $data['tenant_id'] : null,
+                isset($data['company_id']) ? (int) $data['company_id'] : null,
+            );
 
             $spending = Spending::create([
                 'tenant_id' => $data['tenant_id'] ?? null,
                 'company_id' => $data['company_id'] ?? null,
                 'cashbox_id' => $cashboxId,
                 'contract_id' => null,
+                'finance_object_id' => $financeObjectId,
                 'fond_id' => 1,
                 'spending_item_id' => 1,
                 'sum' => $data['sum'] ?? 0,
@@ -338,6 +371,7 @@ class FinanceService
                 'cashflow_item_id' => $cashflowItemId,
                 'counterparty_id' => null,
                 'contract_id' => null,
+                'finance_object_id' => $financeObjectId,
                 'related_id' => $spending->id,
                 'is_completed' => 0,
                 'notes' => $spending->description,
@@ -735,5 +769,60 @@ class FinanceService
         }
 
         return $cashflowItemId;
+    }
+
+    private function resolveFinanceObjectId(
+        ?int $financeObjectId,
+        ?int $contractId,
+        ?int $tenantId,
+        ?int $companyId
+    ): ?int {
+        if ($financeObjectId) {
+            $object = $this->findFinanceObject($financeObjectId, $tenantId, $companyId);
+            $this->assertFinanceObjectWritable($object);
+
+            return (int) $object->id;
+        }
+
+        if (!$contractId) {
+            return null;
+        }
+
+        $contractObjectId = Contract::query()
+            ->where('id', $contractId)
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->value('finance_object_id');
+
+        if (!$contractObjectId) {
+            return null;
+        }
+
+        $object = $this->findFinanceObject((int) $contractObjectId, $tenantId, $companyId);
+        $this->assertFinanceObjectWritable($object);
+
+        return (int) $object->id;
+    }
+
+    private function findFinanceObject(int $financeObjectId, ?int $tenantId, ?int $companyId): FinanceObject
+    {
+        $object = FinanceObject::query()
+            ->where('id', $financeObjectId)
+            ->when($tenantId, fn ($query) => $query->where('tenant_id', $tenantId))
+            ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->first();
+
+        if (!$object) {
+            throw new RuntimeException('Finance object not found');
+        }
+
+        return $object;
+    }
+
+    private function assertFinanceObjectWritable(FinanceObject $object): void
+    {
+        if (!$object->canAcceptNewMoney()) {
+            throw new RuntimeException('Selected finance object cannot accept new operations');
+        }
     }
 }

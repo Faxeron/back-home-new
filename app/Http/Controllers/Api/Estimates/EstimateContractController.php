@@ -12,6 +12,7 @@ use App\Domain\CRM\Models\Counterparty;
 use App\Domain\CRM\Models\CounterpartyCompany;
 use App\Domain\CRM\Models\CounterpartyIndividual;
 use App\Domain\Estimates\Models\Estimate;
+use App\Domain\Finance\Models\FinanceObject;
 use App\Domain\Finance\Models\FinanceAuditLog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contracts\StoreEstimateContractsRequest;
@@ -187,6 +188,28 @@ class EstimateContractController extends Controller
                 'created_by' => $user?->id,
                 'updated_by' => $user?->id,
             ]);
+
+            $financeObject = FinanceObject::query()->create([
+                'tenant_id' => $tenantId,
+                'company_id' => $companyId,
+                'type' => 'CONTRACT',
+                'name' => $contract->title ?: ('Договор #' . $contract->id),
+                'code' => 'CTR-' . $contract->id,
+                'status' => 'DRAFT',
+                'date_from' => $contract->contract_date?->toDateString() ?? now()->toDateString(),
+                'date_to' => $contract->work_end_date?->toDateString(),
+                'counterparty_id' => $contract->counterparty_id,
+                'legal_contract_id' => $contract->id,
+                'description' => $contract->address,
+                'created_by' => $user?->id,
+                'updated_by' => $user?->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $contract->forceFill([
+                'finance_object_id' => $financeObject->id,
+            ])->save();
 
             $estimateModel->contract_id = $contract->id;
             $estimateModel->save();

@@ -52,7 +52,7 @@ class ContractController extends Controller
         $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Contract::query()
-            ->with(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer'])
+            ->with(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer', 'financeObject'])
             ->withSum('receipts as receipts_total', 'sum')
             ->orderByDesc('id');
 
@@ -102,7 +102,7 @@ class ContractController extends Controller
         $companyId = $user?->default_company_id ?? $user?->company_id;
 
         $query = Contract::query()
-            ->with(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer'])
+            ->with(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer', 'financeObject'])
             ->withSum('receipts as receipts_total', 'sum')
             ->where('id', $contract);
 
@@ -315,7 +315,7 @@ class ContractController extends Controller
 
         app(PayrollService::class)->handleStatusChange($model, $previousStatusId, $nextStatusId, $user?->id);
 
-        $model->load(['counterparty', 'status', 'saleType', 'manager', 'measurer']);
+        $model->load(['counterparty', 'status', 'saleType', 'manager', 'measurer', 'financeObject']);
         $model->loadSum('receipts as receipts_total', 'sum');
 
         return response()->json((new ContractResource($model))->toArray($request));
@@ -710,7 +710,7 @@ class ContractController extends Controller
             ]);
         }
 
-        $model->load(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer']);
+        $model->load(['counterparty.individual', 'counterparty.company', 'status', 'saleType', 'manager', 'measurer', 'financeObject']);
         $model->loadSum('receipts as receipts_total', 'sum');
 
         return response()->json((new ContractResource($model))->toArray($request));

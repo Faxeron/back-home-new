@@ -66,6 +66,7 @@ export const defaultTransactionFilters = () => ({
   date_is_completed: { value: { from: null, to: null }, matchMode: 'custom' },
   transaction_type_id: { value: null, matchMode: 'equals' },
   payment_method_id: { value: null, matchMode: 'equals' },
+  finance_object_id: { value: null, matchMode: 'equals' },
   contract_or_counterparty: { value: '', matchMode: 'custom' },
   cashbox_id: { value: null, matchMode: 'equals' },
   sum: { value: { min: null, max: null }, matchMode: 'custom' },
@@ -135,6 +136,9 @@ export const useTransactionFilters = (options: UseTransactionFiltersOptions = {}
     if (current.payment_method_id?.value !== null) {
       params.payment_method_id = current.payment_method_id.value
     }
+    if (current.finance_object_id?.value !== null) {
+      params.finance_object_id = current.finance_object_id.value
+    }
     if (current.cashbox_id?.value !== null) {
       params.cashbox_id = current.cashbox_id.value
     }
@@ -188,7 +192,7 @@ export const useTransactionFilters = (options: UseTransactionFiltersOptions = {}
         triggerImmediate()
         return
       }
-      const changedKeys = Object.keys(next).filter(key => {
+      const changedKeys = (Object.keys(next) as Array<keyof typeof next>).filter(key => {
         const nextValue = next[key]?.value
         const prevValue = prev[key]?.value
         return !isSameFilterValue(nextValue, prevValue)

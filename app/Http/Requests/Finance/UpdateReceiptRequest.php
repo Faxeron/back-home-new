@@ -25,6 +25,12 @@ class UpdateReceiptRequest extends FormRequest
                     ->where('direction', 'IN')
                     ->where('is_active', 1),
             ],
+            'finance_object_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:legacy_new.finance_objects,id',
+            ],
         ];
     }
 }

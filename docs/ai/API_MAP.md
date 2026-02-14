@@ -37,7 +37,16 @@ Finance (auth:sanctum + tenant.company)
 - GET `/api/finance/transactions`
 - GET `/api/finance/transactions/summary`
 - GET `/api/finance/transactions/cashflow-series`
+- GET `/api/finance/transactions/unassigned`
+- POST `/api/finance/transactions/unassigned/bulk-assign`
+- POST `/api/finance/transactions/{transaction}/assign-object`
 - DELETE `/api/finance/transactions/{transaction}`
+- GET `/api/finance/objects`
+- POST `/api/finance/objects`
+- GET `/api/finance/objects/lookup`
+- GET `/api/finance/objects/{financeObject}`
+- PUT `/api/finance/objects/{financeObject}`
+- GET `/api/finance/objects/{financeObject}/transactions`
 - GET `/api/finance/cashboxes`
 - GET `/api/finance/cashboxes/{cashBoxId}/balance`
 - GET `/api/finance/transaction-types`
@@ -154,6 +163,6 @@ Installations
 - PATCH `/api/installations/{contract}`
 
 ## REALITY STATUS
-- Реально реализовано: маршруты перечислены в `routes/api.php` и отражены в этом списке.
+- Реально реализовано: маршруты перечислены в `routes/api.php` и отражены в этом списке, включая новый контур `finance_objects`.
 - Легаси: `/api/finances/*` алиасы для старых клиентов.
 - Не сделано: отсутствует отдельный публичный API для компаний вне tenant=1 (не требуется сейчас).

@@ -18,6 +18,7 @@ class CreateSpendingRequest extends FormRequest
             'fond_id' => ['required', 'integer', 'exists:legacy_new.spending_funds,id'],
             'spending_item_id' => ['required', 'integer', 'exists:legacy_new.spending_items,id'],
             'contract_id' => ['nullable', 'integer', 'exists:legacy_new.contracts,id'],
+            'finance_object_id' => ['nullable', 'integer', 'exists:legacy_new.finance_objects,id'],
             'counterparty_id' => ['nullable', 'integer', 'exists:legacy_new.counterparties,id'],
             'spent_to_user_id' => ['nullable', 'integer', 'exists:legacy_new.users,id'],
             'description' => ['nullable', 'string'],

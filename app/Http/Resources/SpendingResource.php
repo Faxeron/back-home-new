@@ -25,6 +25,7 @@ class SpendingResource extends JsonResource
             'spending_item_id' => $this->spending_item_id,
             'cashflow_item_id' => $this->item?->cashflow_item_id,
             'contract_id' => $this->contract_id,
+            'finance_object_id' => $this->finance_object_id,
             'description' => $this->description,
             'sum' => $this->money($this->sum),
             'created_at' => $this->created_at?->toISOString(),
@@ -53,6 +54,13 @@ class SpendingResource extends JsonResource
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
                 'email' => $this->creator->email,
+            ]),
+            'finance_object' => $this->whenLoaded('financeObject', fn () => [
+                'id' => $this->financeObject->id,
+                'type' => $this->financeObject->type?->value ?? $this->financeObject->type,
+                'name' => $this->financeObject->name,
+                'code' => $this->financeObject->code,
+                'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
             ]),
         ];
     }

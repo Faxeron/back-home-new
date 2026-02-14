@@ -20,6 +20,7 @@ type SpendingRow = Spending & {
   fund_name?: string
   item_name?: string
   counterparty_name?: string
+  finance_object_name?: string
 }
 
 const props = defineProps<{
@@ -116,6 +117,9 @@ const itemMap = computed(
 const counterpartyMap = computed(
   () => new Map(dictionaries.counterparties.map(item => [String(item.id), item.name])),
 )
+const financeObjectMap = computed(
+  () => new Map(dictionaries.financeObjects.map(item => [String(item.id), item.name])),
+)
 
 const rows = computed<SpendingRow[]>(() =>
   (props.rows || []).map(row => ({
@@ -134,6 +138,12 @@ const rows = computed<SpendingRow[]>(() =>
       row.counterparty?.name ??
       (row.counterparty_id != null
         ? counterpartyMap.value.get(String(row.counterparty_id))
+        : undefined) ??
+      '',
+    finance_object_name:
+      row.finance_object?.name ??
+      (row.finance_object_id != null
+        ? financeObjectMap.value.get(String(row.finance_object_id))
         : undefined) ??
       '',
   })),
@@ -221,6 +231,16 @@ const handleTimestampChange = (
 ) => {
   const target = event.target as HTMLInputElement | null
   updateSpendingTimestamp(row, field, target?.value ?? '')
+}
+
+const updateSpendingFinanceObject = async (row: SpendingRow, nextValue: number | string | null) => {
+  const normalized =
+    nextValue === null || nextValue === undefined || nextValue === ''
+      ? null
+      : Number(nextValue)
+  const current = row.finance_object_id ?? null
+  if (normalized === current) return
+  await updateSpending(row.id, { finance_object_id: normalized }, 'finance_object_id')
 }
 </script>
 
@@ -395,6 +415,36 @@ const handleTimestampChange = (
       </template>
       <template #body="{ data }">
         {{ data.item_name ?? '' }}
+      </template>
+    </Column>
+
+    <Column
+      :field="SPENDING_COLUMNS.financeObject.field"
+      :header="SPENDING_COLUMNS.financeObject.header"
+      :showFilterMenu="false"
+    >
+      <template #filter="{ filterModel, filterCallback }">
+        <Select
+          v-model="filterModel.value"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          @change="() => { filterCallback(); notifyParent(); }"
+        />
+      </template>
+      <template #body="{ data }">
+        <Select
+          :modelValue="data.finance_object_id ?? null"
+          :options="dictionaries.financeObjects"
+          optionLabel="name"
+          optionValue="id"
+          class="w-full"
+          filter
+          :disabled="isSavingField(data.id, 'finance_object_id')"
+          @update:modelValue="updateSpendingFinanceObject(data, $event)"
+        />
       </template>
     </Column>
 

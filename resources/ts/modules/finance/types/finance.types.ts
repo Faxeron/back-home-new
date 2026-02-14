@@ -17,15 +17,18 @@ export type Transaction = {
   company_id?: number
   counterparty_id?: number
   contract_id?: number
+  finance_object_id?: number | null
   related_id?: number
   notes?: string
   created_at?: string
   updated_at?: string
+  finance_object_allocations?: FinanceObjectAllocation[]
   company?: { id: number; name: string }
   cashbox?: { id: number; name: string }
   counterparty?: { id: number; name?: string; phone?: string }
   transaction_type?: { id?: number; code?: string; name?: string; sign?: number }
   payment_method?: { id?: number; code?: string; name?: string }
+  finance_object?: FinanceObjectShort | null
 }
 
 export type Receipt = {
@@ -39,6 +42,7 @@ export type Receipt = {
   transaction_id?: number
   cashflow_item_id?: number | null
   contract_id?: number
+  finance_object_id?: number | null
   counterparty_id?: number
   description?: string
   company?: { id: number; name: string }
@@ -46,6 +50,7 @@ export type Receipt = {
   counterparty?: { id: number; name?: string; phone?: string }
   contract?: { id: number; counterparty_id?: number }
   creator?: { id: number; name?: string | null; email?: string | null }
+  finance_object?: FinanceObjectShort | null
 }
 
 export type Spending = {
@@ -61,6 +66,7 @@ export type Spending = {
   spending_item_id?: number
   cashflow_item_id?: number | null
   contract_id?: number
+  finance_object_id?: number | null
   counterparty_id?: number
   spent_to_user_id?: number
   description?: string
@@ -70,6 +76,7 @@ export type Spending = {
   fund?: { id: number; name: string }
   item?: { id: number; name: string }
   creator?: { id: number; name?: string | null; email?: string | null }
+  finance_object?: FinanceObjectShort | null
 }
 
 export type Contract = {
@@ -81,6 +88,7 @@ export type Contract = {
   system_status_code?: string
   contract_status_id?: number
   counterparty_id?: number
+  finance_object_id?: number | null
   company_id?: number
   address?: string
   contract_date?: string
@@ -129,6 +137,64 @@ export type Contract = {
   sale_type?: { id: number; name: string }
   manager?: { id: number; name: string }
   measurer?: { id: number; name: string }
+  finance_object?: FinanceObjectShort | null
+}
+
+export type FinanceObjectType =
+  | 'CONTRACT'
+  | 'PROJECT'
+  | 'EVENT'
+  | 'ORDER'
+  | 'SUBSCRIPTION'
+  | 'TENDER'
+  | 'SERVICE'
+  | 'INTERNAL'
+  | 'LEGACY_IMPORT'
+
+export type FinanceObjectStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'ON_HOLD'
+  | 'DONE'
+  | 'CANCELED'
+  | 'ARCHIVED'
+
+export type FinanceObjectShort = {
+  id: number
+  type: FinanceObjectType
+  name: string
+  code?: string | null
+  status: FinanceObjectStatus
+}
+
+export type FinanceObject = FinanceObjectShort & {
+  tenant_id?: number | null
+  company_id?: number | null
+  date_from?: string
+  date_to?: string | null
+  counterparty_id?: number | null
+  legal_contract_id?: number | null
+  description?: string | null
+  counterparty?: { id: number; name: string; phone?: string | null } | null
+  legal_contract?: { id: number; title?: string; contract_date?: string | null } | null
+  kpi?: {
+    income_fact: number
+    expense_fact: number
+    net_fact: number
+    income_plan: number
+    expense_plan: number
+    net_plan: number
+    debitor: number
+    creditor: number
+  }
+}
+
+export type FinanceObjectAllocation = {
+  id: number
+  finance_object_id: number
+  amount: number
+  comment?: string | null
+  finance_object?: FinanceObjectShort | null
 }
 
 export type CashBox = {

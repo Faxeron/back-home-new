@@ -81,6 +81,7 @@ const submit = async () => {
   try {
     await createContractSpending({
       contract_id: props.contract.id,
+      finance_object_id: props.contract.finance_object_id ?? null,
       cashbox_id: form.cashbox_id,
       payment_method_id: form.payment_method_id,
       fond_id: form.fond_id,
