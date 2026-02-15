@@ -501,7 +501,7 @@ const deletePayout = async (row: PayrollPayoutRow) => {
 
 const fundOptions = computed(() => funds.value)
 const spendingItemOptions = computed(() =>
-  spendingItems.value.filter(item => Number(item.fond_id ?? item.fund_id ?? 0) === payoutFundId.value),
+  spendingItems.value.filter(item => Number(item.fond_id ?? 0) === payoutFundId.value),
 )
 
 const ensurePayoutDefaults = () => {

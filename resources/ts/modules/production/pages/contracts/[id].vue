@@ -34,7 +34,13 @@ type ContractDocument = {
   created_at?: string | null
 }
 
-type SpendingDraft = Spending & {
+type SpendingDraft = Omit<Spending, 'sum' | 'cashbox_id' | 'contract_id' | 'counterparty_id' | 'fond_id' | 'spending_item_id'> & {
+  sum?: Spending['sum'] | number | null
+  cashbox_id?: number | null
+  contract_id?: number | null
+  counterparty_id?: number | null
+  fond_id?: number | null
+  spending_item_id?: number | null
   isNew?: boolean
   isDirty?: boolean
   payment_method_id?: number | null
@@ -197,8 +203,21 @@ const editForm = reactive({
   work_end_date: '',
 })
 
-const updateEditField = (field: keyof typeof editForm, value: any) => {
-  ;(editForm as any)[field] = value
+type EditFieldKey = keyof typeof editForm
+
+const isEditFieldKey = (value: unknown): value is EditFieldKey =>
+  typeof value === 'string' && value in editForm
+
+const getEditFieldValue = (field: unknown) =>
+  isEditFieldKey(field) ? editForm[field] : undefined
+
+const updateEditField = (field: EditFieldKey, value: unknown) => {
+  ;(editForm as Record<EditFieldKey, unknown>)[field] = value
+}
+
+const setEditFieldValue = (field: unknown, value: unknown) => {
+  if (!isEditFieldKey(field)) return
+  updateEditField(field, value)
 }
 
 const datePickerConfig = {
@@ -436,7 +455,7 @@ const statusColor = computed(() => contract.value?.status?.color ?? '#94a3b8')
 const canRecalcPayroll = computed(() => {
   const status = contract.value?.status
   if (!status) return false
-  const code = String(status.code ?? '').toUpperCase()
+  const code = String(contract.value?.system_status_code ?? '').toUpperCase()
   if (['COMPLETED', 'DONE', 'FINISHED', 'DONE_WORK', 'DONE_MONTAGE'].includes(code)) return true
   const name = String(status.name ?? '').toLowerCase()
   return name.includes('выполн')
@@ -837,8 +856,8 @@ const addSpendingRow = async () => {
     sum: null,
     payment_date: new Date().toISOString().slice(0, 10),
     description: '',
-    contract_id: contractId.value ? Number(contractId.value) : undefined,
-    counterparty_id: contract.value?.counterparty_id,
+    contract_id: contractId.value ? Number(contractId.value) : null,
+    counterparty_id: contract.value?.counterparty_id ?? null,
     isNew: true,
     isDirty: true,
   }
@@ -1170,27 +1189,27 @@ onMounted(async () => {
                   <template v-if="editMode && row.editable">
                     <AppDateTimePicker
                       v-if="row.type === 'date'"
-                      :model-value="editForm[row.field]"
+                      :model-value="getEditFieldValue(row.field)"
                       placeholder="ДД.ММ.ГГГГ"
                       :config="datePickerConfig"
                       hide-details
-                      @update:modelValue="updateEditField(row.field, $event)"
+                      @update:modelValue="setEditFieldValue(row.field, $event)"
                     />
                     <AppSelect
                       v-else-if="row.type === 'select'"
-                      :model-value="editForm[row.field]"
+                      :model-value="getEditFieldValue(row.field)"
                       :items="dictionaries.saleTypes"
                       item-title="name"
                       item-value="id"
                       hide-details
-                      @update:modelValue="updateEditField(row.field, $event)"
+                      @update:modelValue="setEditFieldValue(row.field, $event)"
                     />
                     <VTextField
                       v-else
-                      :model-value="editForm[row.field]"
+                      :model-value="getEditFieldValue(row.field)"
                       :type="row.type === 'number' ? 'number' : 'text'"
                       hide-details
-                      @update:modelValue="updateEditField(row.field, $event)"
+                      @update:modelValue="setEditFieldValue(row.field, $event)"
                     />
                   </template>
                   <span v-else>{{ row.value }}</span>

@@ -121,7 +121,7 @@ const handleAction = (payload: { action: string; row: Contract }) => {
 const applyStatusUpdate = async ({ row, statusId: nextId }: { row: Contract; statusId: number | null }) => {
   if (!canEditContract.value) return
   if (nextId === null || row.contract_status_id === nextId) return
-  const previousId = row.contract_status_id ?? null
+  const previousId = row.contract_status_id
   const previousStatus = row.status ? { ...row.status } : undefined
 
   row.contract_status_id = nextId

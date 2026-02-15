@@ -74,7 +74,7 @@ const save = () => {
           :items="users"
           item-title="name"
           item-value="id"
-          :item-props="item => ({ title: item.raw.name || item.raw.email || `#${item.raw.id}` })"
+          :item-props="(item: any) => ({ title: item.raw.name || item.raw.email || `#${item.raw.id}` })"
           clearable
           :disabled="isReadOnly"
         />

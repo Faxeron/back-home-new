@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import Column from 'primevue/column'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { TRANSACTION_BADGES } from '@/constants/transactionBadges'
 
 type ColumnType = 'text' | 'money' | 'date' | 'dict' | 'status' | 'transaction_type'
+type DictItem = { id: number | string; name?: string | null }
+type DictKey =
+  | 'cashBoxes'
+  | 'companies'
+  | 'spendingFunds'
+  | 'spendingItems'
+  | 'cashflowItems'
+  | 'saleTypes'
+  | 'transactionTypes'
+  | 'paymentMethods'
+  | 'financeObjects'
+  | 'counterparties'
+  | 'cities'
+  | 'contractStatuses'
 
 const props = defineProps<{
   columns: Array<{
@@ -17,6 +32,27 @@ const props = defineProps<{
 }>()
 
 const dict = useDictionariesStore()
+const dictCollections = computed<Record<DictKey, DictItem[]>>(() => ({
+  cashBoxes: dict.cashBoxes,
+  companies: dict.companies,
+  spendingFunds: dict.spendingFunds,
+  spendingItems: dict.spendingItems,
+  cashflowItems: dict.cashflowItems,
+  saleTypes: dict.saleTypes,
+  transactionTypes: dict.transactionTypes,
+  paymentMethods: dict.paymentMethods,
+  financeObjects: dict.financeObjects,
+  counterparties: dict.counterparties,
+  cities: dict.cities,
+  contractStatuses: dict.contractStatuses,
+}))
+
+const dictValueName = (dictKey: string | undefined, value: unknown) => {
+  if (!dictKey) return '-'
+  const list = (dictCollections.value as Record<string, DictItem[]>)[dictKey] ?? []
+  const item = list.find(entry => String(entry.id) === String(value))
+  return item?.name ?? '-'
+}
 
 const formatDate = (value: string | null) => {
   if (!value) return '-'
@@ -56,7 +92,7 @@ const formatDate = (value: string | null) => {
       :style="{ width: (col.width || 200) + 'px' }"
     >
       <template #body="{ data }">
-        {{ dict[col.dict || '']?.find((item: any) => item.id === data[col.field])?.name ?? '-' }}
+        {{ dictValueName(col.dict, data[col.field]) }}
       </template>
     </Column>
 

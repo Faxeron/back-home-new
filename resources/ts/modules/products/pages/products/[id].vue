@@ -29,8 +29,9 @@ const router = useRouter()
 const activeTab = ref(0)
 
 const productId = computed(() => {
-  const raw = route.params.id
-  return Array.isArray(raw) ? raw[0] : raw
+  const raw = (route.params as Record<string, string | string[] | undefined>).id
+  if (Array.isArray(raw)) return raw[0] ?? ''
+  return raw ?? ''
 })
 
 const endpoint = computed(() => productEndpoint(productId.value ?? '').value)
@@ -142,7 +143,7 @@ const goBack = () => router.push({ path: '/products' })
     </div>
 
     <TabView v-model:activeIndex="activeTab">
-      <TabPanel :header="PRODUCT_DETAILS_TABS.overview">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.overview" :value="0">
         <div class="grid">
           <div class="col-12 md:col-7">
             <Card>
@@ -195,7 +196,7 @@ const goBack = () => router.push({ path: '/products' })
         </div>
       </TabPanel>
 
-      <TabPanel :header="PRODUCT_DETAILS_TABS.prices">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.prices" :value="1">
         <Card>
           <template #title>{{ PRODUCT_DETAILS_CARDS.prices }}</template>
           <template #content>
@@ -211,7 +212,7 @@ const goBack = () => router.push({ path: '/products' })
         </Card>
       </TabPanel>
 
-      <TabPanel :header="PRODUCT_DETAILS_TABS.descriptions">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.descriptions" :value="2">
         <Card>
           <template #title>{{ PRODUCT_DETAILS_CARDS.descriptions }}</template>
           <template #content>
@@ -227,7 +228,7 @@ const goBack = () => router.push({ path: '/products' })
         </Card>
       </TabPanel>
 
-      <TabPanel :header="PRODUCT_DETAILS_TABS.attributes">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.attributes" :value="3">
         <Card>
           <template #title>{{ PRODUCT_DETAILS_CARDS.attributes }}</template>
           <template #content>
@@ -248,7 +249,7 @@ const goBack = () => router.push({ path: '/products' })
         </Card>
       </TabPanel>
 
-      <TabPanel :header="PRODUCT_DETAILS_TABS.media">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.media" :value="4">
         <div v-if="mediaItems.length" class="grid">
           <div
             v-for="item in mediaItems"
@@ -287,7 +288,7 @@ const goBack = () => router.push({ path: '/products' })
         </div>
       </TabPanel>
 
-      <TabPanel :header="PRODUCT_DETAILS_TABS.relations">
+      <TabPanel :header="PRODUCT_DETAILS_TABS.relations" :value="5">
         <Card>
           <template #title>{{ PRODUCT_DETAILS_CARDS.relations }}</template>
           <template #content>

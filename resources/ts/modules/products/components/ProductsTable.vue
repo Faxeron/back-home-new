@@ -202,14 +202,14 @@ const formatDate = formatProductDate
                 <Button
                   icon="pi pi-list"
                   text
-                  :outlined="viewModeModel !== 'table'"
+                  :outlined="false"
                   :aria-label="PRODUCT_TABLE_LABELS.viewTableAria"
                   @click="viewModeModel = 'table'"
                 />
                 <Button
                   icon="pi pi-th-large"
                   text
-                  :outlined="viewModeModel !== 'cards'"
+                  :outlined="true"
                   :aria-label="PRODUCT_TABLE_LABELS.viewCardsAria"
                   @click="viewModeModel = 'cards'"
                 />
@@ -395,14 +395,14 @@ const formatDate = formatProductDate
             <Button
               icon="pi pi-list"
               text
-              :outlined="viewModeModel !== 'table'"
+              :outlined="true"
               :aria-label="PRODUCT_TABLE_LABELS.viewTableAria"
               @click="viewModeModel = 'table'"
             />
             <Button
               icon="pi pi-th-large"
               text
-              :outlined="viewModeModel !== 'cards'"
+              :outlined="false"
               :aria-label="PRODUCT_TABLE_LABELS.viewCardsAria"
               @click="viewModeModel = 'cards'"
             />

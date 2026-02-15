@@ -138,12 +138,14 @@ const handleUpdateField = async (payload: { row: Product; field: keyof Product; 
     errorMessage.value = 'Глобальные товары нельзя менять в прайсе.'
     return
   }
-  const previousValue = row[field]
+  const mutableRow = row as unknown as Record<string, unknown>
+  const fieldKey = String(field)
+  const previousValue = mutableRow[fieldKey]
   const nextValue = numericFields.has(String(field)) ? normalizeNumber(value) : value
-  row[field] = nextValue as any
+  mutableRow[fieldKey] = nextValue
   const ok = await updateProduct(row, { [field]: nextValue })
   if (!ok)
-    row[field] = previousValue as any
+    mutableRow[fieldKey] = previousValue
 }
 
 const handleUpdateFlag = async (payload: { row: Product; field: 'is_visible' | 'is_top' | 'is_new'; value: boolean }) => {

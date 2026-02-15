@@ -73,6 +73,8 @@ const handleDelete = async (row: ContractTemplate) => {
 }
 
 const totalLabel = computed(() => Number(totalRecords.value ?? 0).toLocaleString('ru-RU'))
+const formatProductTypes = (row: ContractTemplate) =>
+  row.product_types?.map(productType => productType.name).join(', ') || '-'
 
 onMounted(async () => {
   await reset()
@@ -136,7 +138,7 @@ onBeforeUnmount(() => {
     <Column :header="CONTRACT_TEMPLATE_HEADERS.productTypes">
       <template #body="{ data: row }">
         <span>
-          {{ row.product_types?.map(type => type.name).join(', ') || '-' }}
+          {{ formatProductTypes(row) }}
         </span>
       </template>
     </Column>

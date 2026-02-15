@@ -140,6 +140,21 @@ const totalLabel = computed(() => Number(totalRecords.value ?? 0).toLocaleString
 
 const formatDate = formatTemplateDate
 
+const formatTemplateRefs = (row: EstimateTemplateSeptik) => {
+  if (Array.isArray(row.template_titles) && row.template_titles.length) {
+    return row.template_titles.join(', ')
+  }
+
+  if (Array.isArray(row.template_ids) && row.template_ids.length) {
+    return row.template_ids.map(templateId => `#${templateId}`).join(', ')
+  }
+
+  return `#${row.template_id ?? TEMPLATE_EMPTY_TEXT}`
+}
+
+const formatTemplateIds = (templateIds: number[]) =>
+  templateIds.map(templateId => `#${templateId}`).join(', ')
+
 
 
 onMounted(async () => {
@@ -259,7 +274,7 @@ onBeforeUnmount(() => {
 
           : Array.isArray(row.template_ids) && row.template_ids.length
 
-            ? row.template_ids.map(id => `#${id}`).join(', ')
+            ? formatTemplateIds(row.template_ids)
 
             : `#${row.template_id ?? TEMPLATE_EMPTY_TEXT}` }}
 

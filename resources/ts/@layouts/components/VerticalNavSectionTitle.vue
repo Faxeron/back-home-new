@@ -19,7 +19,7 @@ const userData = useCookie<any>('userData')
 const isSuperAdmin = computed(() => userData.value?.role === 'superadmin')
 
 const canViewLink = (item: NavLink): boolean => {
-  const allowedByAcl = can(item.action, item.subject)
+  const allowedByAcl = Boolean(can(item.action, item.subject))
   return allowedByAcl && (!item.superadminOnly || isSuperAdmin.value)
 }
 
@@ -28,7 +28,7 @@ const canViewGroup = (item: NavGroup): boolean => {
   if (!hasVisibleChild)
     return false
 
-  const allowedByAcl = item.action && item.subject ? can(item.action, item.subject) : true
+  const allowedByAcl = item.action && item.subject ? Boolean(can(item.action, item.subject)) : true
   return allowedByAcl && (!item.superadminOnly || isSuperAdmin.value)
 }
 
@@ -51,7 +51,7 @@ const hasVisibleSectionItem = computed(() => {
 
 const canShow = computed(() => {
   const allowedByAcl = props.item.action && props.item.subject
-    ? can(props.item.action, props.item.subject)
+    ? Boolean(can(props.item.action, props.item.subject))
     : hasVisibleSectionItem.value
 
   return allowedByAcl && (!props.item.superadminOnly || isSuperAdmin.value)

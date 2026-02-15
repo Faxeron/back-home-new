@@ -28,7 +28,7 @@ const addDays = (value: string, days = 1) => {
   return date.toISOString().split('T')[0]
 }
 
-const statusColor = (status: InstallationRow['status']) => {
+const statusColor = (status?: InstallationRow['status']) => {
   if (status === 'completed') return 'success'
   if (status === 'assigned') return 'warning'
   return 'secondary'

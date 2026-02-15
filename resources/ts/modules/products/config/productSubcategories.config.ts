@@ -10,6 +10,6 @@ export const PRODUCT_SUBCATEGORY_HEADERS = [
   { title: 'Подкатегория', key: 'name' },
   { title: 'Категория', key: 'category' },
   { title: 'Товаров', key: 'products_count', align: 'end' },
-]
+] as const
 
 export { formatDictionaryNumber }

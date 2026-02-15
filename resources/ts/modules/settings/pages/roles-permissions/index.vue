@@ -113,10 +113,10 @@ const isPermissionChecked = (roleId: number, resource: string, action: string) =
   return list.includes(permissionKey(resource, action))
 }
 
-const togglePermission = (roleId: number, resource: string, action: string, checked: boolean) => {
+const togglePermission = (roleId: number, resource: string, action: string, checked: boolean | null) => {
   const key = permissionKey(resource, action)
   const list = new Set(rolePermissions.value[roleId] ?? [])
-  if (checked) list.add(key)
+  if (checked === true) list.add(key)
   else list.delete(key)
   rolePermissions.value[roleId] = Array.from(list)
 }
