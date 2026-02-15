@@ -10,4 +10,4 @@ export const TRANSACTION_TYPE_COLUMNS = {
   sign: { field: 'sign', header: 'Знак' },
   isActive: { field: 'is_active', header: 'Активен' },
   sortOrder: { field: 'sort_order', header: 'Сортировка' },
-}
+} as const

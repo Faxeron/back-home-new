@@ -10,4 +10,4 @@ export const CASH_BOX_COLUMNS = {
   company: { field: 'company_name', header: 'Компания' },
   description: { field: 'description', header: 'Описание' },
   isActive: { field: 'is_active', header: 'Активна' },
-}
+} as const

@@ -9,4 +9,4 @@ export const COMPANY_COLUMNS = {
   code: { field: 'code', header: 'Код' },
   phone: { field: 'phone', header: 'Телефон' },
   email: { field: 'email', header: 'Email' },
-}
+} as const

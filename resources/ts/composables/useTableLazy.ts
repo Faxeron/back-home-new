@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue'
+import type { Ref } from 'vue'
 import { mapPrimeToDTO } from '@/utils/filterMapper'
 import { $api } from '@/utils/api'
-import type { DataTableLazyLoadEvent } from 'primevue/datatable'
+import type { DataTableFilterEvent, DataTablePageEvent, DataTableSortEvent } from 'primevue/datatable'
+
+type DataTableLazyLikeEvent = Partial<DataTablePageEvent | DataTableSortEvent | DataTableFilterEvent>
 
 export interface UseTableLazyConfig {
   endpoint: string
@@ -10,14 +13,20 @@ export interface UseTableLazyConfig {
 }
 
 export function useTableLazy<T = any>(config: UseTableLazyConfig) {
-  const data = ref<T[]>([])
+  const data = ref<T[]>([]) as Ref<T[]>
   const total = ref(0)
   const loading = ref(false)
 
-  const load = async (event?: DataTableLazyLoadEvent) => {
+  const load = async (event?: DataTableLazyLikeEvent) => {
     loading.value = true
     try {
-      const dto = mapPrimeToDTO(event ?? {}, config.columns, config.include)
+      const normalizedEvent = event
+        ? {
+            ...event,
+            sortField: typeof event.sortField === 'string' ? event.sortField : undefined,
+          }
+        : {}
+      const dto = mapPrimeToDTO(normalizedEvent, config.columns, config.include)
       const endpointPath = config.endpoint.startsWith('/api/')
         ? config.endpoint.replace(/^\/api/, '')
         : config.endpoint
@@ -80,7 +89,7 @@ const mergeRows = <T>(
 }
 
 export function useTableInfinite<T = any>(config: UseTableInfiniteConfig<T>) {
-  const data = ref<T[]>([])
+  const data = ref<T[]>([]) as Ref<T[]>
   const total = ref(0)
   const loading = ref(false)
   const hasMore = ref(true)

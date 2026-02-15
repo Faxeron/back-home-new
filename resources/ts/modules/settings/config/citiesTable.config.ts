@@ -6,4 +6,4 @@ export const CITY_TABLE = {
 export const CITY_COLUMNS = {
   id: { field: 'id', header: 'ID', sortable: true, width: '6ch' },
   name: { field: 'name', header: 'Название', sortable: true, filter: 'text' },
-}
+} as const

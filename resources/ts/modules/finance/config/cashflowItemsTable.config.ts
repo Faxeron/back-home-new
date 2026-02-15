@@ -12,4 +12,4 @@ export const CASHFLOW_ITEM_COLUMNS = {
   parent: { field: 'parent_id', header: 'Родитель', filter: 'select' },
   sortOrder: { field: 'sort_order', header: 'Сортировка' },
   isActive: { field: 'is_active', header: 'Активна', filter: 'select' },
-}
+} as const

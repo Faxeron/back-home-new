@@ -9,4 +9,4 @@ export const SPENDING_FUND_COLUMNS = {
   description: { field: 'description', header: 'Описание' },
   itemsCount: { field: 'items_count', header: 'Кол-во статей' },
   isActive: { field: 'is_active', header: 'Активен' },
-}
+} as const

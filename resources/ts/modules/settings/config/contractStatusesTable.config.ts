@@ -10,4 +10,4 @@ export const CONTRACT_STATUS_COLUMNS = {
   color: { field: 'color', header: 'Цвет' },
   sortOrder: { field: 'sort_order', header: 'Сортировка' },
   isActive: { field: 'is_active', header: 'Активен' },
-}
+} as const

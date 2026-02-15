@@ -10,4 +10,4 @@ export const SPENDING_ITEM_COLUMNS = {
   cashflow: { field: 'cashflow_item_id', header: 'Статья ДДС', filter: 'select' },
   description: { field: 'description', header: 'Описание' },
   isActive: { field: 'is_active', header: 'Активна' },
-}
+} as const

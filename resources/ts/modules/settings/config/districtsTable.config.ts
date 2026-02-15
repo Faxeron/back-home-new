@@ -8,4 +8,4 @@ export const DISTRICT_COLUMNS = {
   name: { field: 'name', header: 'Название', sortable: true, filter: 'text' },
   city: { field: 'city_id', header: 'Город', filter: 'select' },
   isActive: { field: 'is_active', header: 'Активен' },
-}
+} as const
