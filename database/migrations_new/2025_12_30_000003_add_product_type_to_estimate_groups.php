@@ -26,9 +26,7 @@ return new class extends Migration
             });
 
             if (!$this->indexExists('estimate_groups', 'estimate_groups_product_type_idx')) {
-                DB::connection($this->connection)->statement(
-                    'ALTER TABLE estimate_groups ADD INDEX estimate_groups_product_type_idx (product_type_id)'
-                );
+                $this->addIndex('estimate_groups', 'estimate_groups_product_type_idx', ['product_type_id']);
             }
         }
     }
@@ -40,12 +38,40 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('index_name', $indexName)
             ->exists();
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    private function addIndex(string $table, string $indexName, array $columns): void
+    {
+        $cols = implode(', ', $columns);
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
     }
 };

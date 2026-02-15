@@ -12,6 +12,12 @@ return new class extends Migration
 
     public function up(): void
     {
+        $driver = DB::connection($this->connection)->getDriverName();
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
+            // Legacy canonicalization migration is MySQL-specific.
+            return;
+        }
+
         // drop existing FKs (cashbox_id and duplicates)
         $this->dropForeignIfExists('cash_transfers', 'cash_transfers_from_cashbox_id_fk');
         $this->dropForeignIfExists('cash_transfers', 'cash_transfers_to_cashbox_id_fk');

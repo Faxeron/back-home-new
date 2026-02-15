@@ -19,58 +19,88 @@ return new class extends Migration
             && $schema->hasColumn('transactions', 'cashbox_id')
             && $schema->hasColumn('transactions', 'is_completed')
             && !$this->indexExists('transactions', 'transactions_company_cashbox_completed_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE transactions ADD INDEX transactions_company_cashbox_completed_idx (company_id, cashbox_id, is_completed)'
-            );
+            $this->addIndex('transactions', 'transactions_company_cashbox_completed_idx', ['company_id', 'cashbox_id', 'is_completed']);
         }
 
         if ($schema->hasTable('counterparties')
             && $schema->hasColumn('counterparties', 'company_id')
             && $schema->hasColumn('counterparties', 'phone_normalized')
             && !$this->indexExists('counterparties', 'counterparties_company_phone_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE counterparties ADD INDEX counterparties_company_phone_idx (company_id, phone_normalized)'
-            );
+            $this->addIndex('counterparties', 'counterparties_company_phone_idx', ['company_id', 'phone_normalized']);
         }
 
         if ($schema->hasTable('estimate_items')
             && $schema->hasColumn('estimate_items', 'estimate_id')
             && !$this->indexExists('estimate_items', 'estimate_items_estimate_id_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE estimate_items ADD INDEX estimate_items_estimate_id_idx (estimate_id)'
-            );
+            $this->addIndex('estimate_items', 'estimate_items_estimate_id_idx', ['estimate_id']);
         }
     }
 
     public function down(): void
     {
         if ($this->indexExists('transactions', 'transactions_company_cashbox_completed_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE transactions DROP INDEX transactions_company_cashbox_completed_idx'
-            );
+            $this->dropIndex('transactions', 'transactions_company_cashbox_completed_idx');
         }
 
         if ($this->indexExists('counterparties', 'counterparties_company_phone_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE counterparties DROP INDEX counterparties_company_phone_idx'
-            );
+            $this->dropIndex('counterparties', 'counterparties_company_phone_idx');
         }
 
         if ($this->indexExists('estimate_items', 'estimate_items_estimate_id_idx')) {
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE estimate_items DROP INDEX estimate_items_estimate_id_idx'
-            );
+            $this->dropIndex('estimate_items', 'estimate_items_estimate_id_idx');
         }
     }
 
     private function indexExists(string $table, string $index): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.STATISTICS')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $index)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.STATISTICS')
             ->where('TABLE_SCHEMA', $db)
             ->where('TABLE_NAME', $table)
             ->where('INDEX_NAME', $index)
             ->exists();
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    private function addIndex(string $table, string $indexName, array $columns): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $cols = implode(', ', $columns);
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
+    }
+
+    private function dropIndex(string $table, string $indexName): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} DROP INDEX {$indexName}");
+
+            return;
+        }
+
+        $connection->statement("DROP INDEX IF EXISTS {$indexName}");
     }
 };

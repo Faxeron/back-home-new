@@ -32,23 +32,49 @@ return new class extends Migration
 
         if ($schema->hasColumn('users', 'default_company_id')
             && !$this->foreignExists('users', 'users_default_company_id_fk')) {
-            $db->statement('ALTER TABLE `users` ADD CONSTRAINT `users_default_company_id_fk` FOREIGN KEY (`default_company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE CASCADE');
+            $schema->table('users', function (Blueprint $table): void {
+                $table->foreign('default_company_id', 'users_default_company_id_fk')
+                    ->references('id')
+                    ->on('companies')
+                    ->nullOnDelete()
+                    ->cascadeOnUpdate();
+            });
         }
 
         if ($schema->hasTable('user_company')) {
-            $db->statement(
-                "INSERT IGNORE INTO `user_company` (`user_id`, `company_id`, `created_at`, `updated_at`)
-                 SELECT `id`, `company_id`, NOW(), NOW()
-                 FROM `users`
-                 WHERE `company_id` IS NOT NULL"
-            );
+            $now = now();
+            $pairs = $db->table('users')
+                ->select(['id as user_id', 'company_id', 'default_company_id'])
+                ->get();
 
-            $db->statement(
-                "INSERT IGNORE INTO `user_company` (`user_id`, `company_id`, `created_at`, `updated_at`)
-                 SELECT `id`, `default_company_id`, NOW(), NOW()
-                 FROM `users`
-                 WHERE `default_company_id` IS NOT NULL"
-            );
+            $payload = [];
+            foreach ($pairs as $row) {
+                if ($row->company_id !== null) {
+                    $payload[] = [
+                        'user_id' => (int) $row->user_id,
+                        'company_id' => (int) $row->company_id,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if ($row->default_company_id !== null) {
+                    $payload[] = [
+                        'user_id' => (int) $row->user_id,
+                        'company_id' => (int) $row->default_company_id,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+
+            $payload = collect($payload)
+                ->unique(fn (array $row): string => $row['user_id'] . ':' . $row['company_id'])
+                ->values()
+                ->all();
+
+            if ($payload !== []) {
+                $db->table('user_company')->insertOrIgnore($payload);
+            }
         }
     }
 
@@ -61,11 +87,14 @@ return new class extends Migration
     {
         $db = DB::connection($this->connection);
         $database = $db->getDatabaseName();
+        $driver = $db->getDriverName();
+        $schema = $driver === 'pgsql' ? 'public' : $database;
 
-        return $db->table('information_schema.KEY_COLUMN_USAGE')
-            ->where('TABLE_SCHEMA', $database)
-            ->where('TABLE_NAME', $table)
-            ->where('CONSTRAINT_NAME', $constraint)
+        return $db->table('information_schema.table_constraints')
+            ->where('constraint_schema', $schema)
+            ->where('table_name', $table)
+            ->where('constraint_name', $constraint)
+            ->where('constraint_type', 'FOREIGN KEY')
             ->exists();
     }
 };

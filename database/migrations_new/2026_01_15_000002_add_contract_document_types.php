@@ -56,8 +56,13 @@ return new class extends Migration
         });
 
         if ($this->hasColumn('contract_documents', 'file_path')) {
-            DB::connection($this->connection)
-                ->statement('ALTER TABLE contract_documents MODIFY file_path VARCHAR(255) NULL');
+            $connection = DB::connection($this->connection);
+            $driver = $connection->getDriverName();
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $connection->statement('ALTER TABLE contract_documents MODIFY file_path VARCHAR(255) NULL');
+            } elseif ($driver === 'pgsql') {
+                $connection->statement('ALTER TABLE contract_documents ALTER COLUMN file_path DROP NOT NULL');
+            }
         }
 
         if ($this->hasColumn('contract_documents', 'document_type')) {
@@ -68,17 +73,19 @@ return new class extends Migration
         }
 
         if (!$this->indexExistsOnColumn('contract_documents', 'document_type')) {
-            DB::connection($this->connection)
-                ->statement('ALTER TABLE contract_documents ADD INDEX contract_documents_type_idx (contract_id, document_type, is_current)');
+            $this->addIndex('contract_documents', 'contract_documents_type_idx', ['contract_id', 'document_type', 'is_current']);
         }
     }
 
     private function hasColumn(string $table, string $column): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
+        $schema = $driver === 'pgsql' ? 'public' : $db;
 
-        return DB::connection($this->connection)->table('information_schema.columns')
-            ->where('table_schema', $db)
+        return $connection->table('information_schema.columns')
+            ->where('table_schema', $schema)
             ->where('table_name', $table)
             ->where('column_name', $column)
             ->exists();
@@ -86,12 +93,40 @@ return new class extends Migration
 
     private function indexExistsOnColumn(string $table, string $column): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->whereRaw('indexdef ILIKE ?', ["%($column)%"])
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('column_name', $column)
             ->exists();
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    private function addIndex(string $table, string $indexName, array $columns): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $cols = implode(', ', $columns);
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
     }
 };

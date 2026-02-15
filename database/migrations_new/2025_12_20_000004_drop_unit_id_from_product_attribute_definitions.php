@@ -21,9 +21,9 @@ return new class extends Migration
 
         if ($schema->hasColumn('product_attribute_definitions', 'unit_id')) {
             if ($this->foreignExists('product_attribute_definitions', 'product_attr_defs_unit_id_fk')) {
-                DB::connection($this->connection)->statement(
-                    'ALTER TABLE product_attribute_definitions DROP FOREIGN KEY product_attr_defs_unit_id_fk'
-                );
+                $schema->table('product_attribute_definitions', function (Blueprint $table): void {
+                    $table->dropForeign('product_attr_defs_unit_id_fk');
+                });
             }
 
             $schema->table('product_attribute_definitions', function (Blueprint $table): void {
@@ -60,10 +60,13 @@ return new class extends Migration
 
     private function foreignExists(string $table, string $constraint): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
+        $schema = $driver === 'pgsql' ? 'public' : $db;
 
-        return DB::connection($this->connection)->table('information_schema.KEY_COLUMN_USAGE')
-            ->where('TABLE_SCHEMA', $db)
+        return $connection->table('information_schema.KEY_COLUMN_USAGE')
+            ->where('TABLE_SCHEMA', $schema)
             ->where('TABLE_NAME', $table)
             ->where('CONSTRAINT_NAME', $constraint)
             ->exists();

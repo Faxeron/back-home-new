@@ -25,13 +25,13 @@ return new class extends Migration
     public function down(): void
     {
         if ($this->indexExists('products', 'products_tenant_id_scu_unique')) {
-            DB::connection($this->connection)->statement('ALTER TABLE products DROP INDEX products_tenant_id_scu_unique');
+            $this->dropIndex('products', 'products_tenant_id_scu_unique');
         }
 
         foreach (['product_type_id', 'category_id', 'sub_category_id', 'brand_id'] as $column) {
             $indexName = "products_{$column}_idx";
             if ($this->indexExists('products', $indexName)) {
-                DB::connection($this->connection)->statement("ALTER TABLE products DROP INDEX {$indexName}");
+                $this->dropIndex('products', $indexName);
             }
         }
 
@@ -273,8 +273,8 @@ return new class extends Migration
     private function addProductIndexes(): void
     {
         if ($this->hasColumn('products', 'tenant_id') && $this->hasColumn('products', 'scu')) {
-            if (!$this->uniqueIndexExists('products', ['tenant_id', 'scu'])) {
-                DB::connection($this->connection)->statement('ALTER TABLE products ADD UNIQUE KEY products_tenant_id_scu_unique (tenant_id, scu)');
+            if (!$this->indexExists('products', 'products_tenant_id_scu_unique')) {
+                $this->addUniqueIndex('products', 'products_tenant_id_scu_unique', ['tenant_id', 'scu']);
             }
         }
 
@@ -282,17 +282,20 @@ return new class extends Migration
         foreach ($indexColumns as $column) {
             if ($this->hasColumn('products', $column) && !$this->indexExistsOnColumn('products', $column)) {
                 $indexName = "products_{$column}_idx";
-                DB::connection($this->connection)->statement("ALTER TABLE products ADD INDEX {$indexName} ({$column})");
+                $this->addIndex('products', $indexName, [$column]);
             }
         }
     }
 
     private function hasColumn(string $table, string $column): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
+        $schema = $driver === 'pgsql' ? 'public' : $db;
 
-        return DB::connection($this->connection)->table('information_schema.columns')
-            ->where('table_schema', $db)
+        return $connection->table('information_schema.columns')
+            ->where('table_schema', $schema)
             ->where('table_name', $table)
             ->where('column_name', $column)
             ->exists();
@@ -300,9 +303,24 @@ return new class extends Migration
 
     private function foreignExists(string $table, string $column): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.KEY_COLUMN_USAGE')
+        if ($driver === 'pgsql') {
+            return $connection->table('information_schema.table_constraints as tc')
+                ->join('information_schema.key_column_usage as kcu', function ($join): void {
+                    $join->on('tc.constraint_name', '=', 'kcu.constraint_name')
+                        ->on('tc.table_schema', '=', 'kcu.table_schema');
+                })
+                ->where('tc.table_schema', 'public')
+                ->where('tc.table_name', $table)
+                ->where('tc.constraint_type', 'FOREIGN KEY')
+                ->where('kcu.column_name', $column)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.KEY_COLUMN_USAGE')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('column_name', $column)
@@ -312,9 +330,19 @@ return new class extends Migration
 
     private function indexExistsOnColumn(string $table, string $column): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->whereRaw('indexdef ILIKE ?', ["%($column)%"])
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('column_name', $column)
@@ -323,9 +351,19 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('index_name', $indexName)
@@ -335,35 +373,50 @@ return new class extends Migration
     /**
      * @param array<int, string> $columns
      */
-    private function uniqueIndexExists(string $table, array $columns): bool
+    private function addIndex(string $table, string $indexName, array $columns): void
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $cols = implode(', ', $columns);
 
-        $indexes = DB::connection($this->connection)->table('information_schema.statistics')
-            ->select(['index_name', 'column_name', 'seq_in_index', 'non_unique'])
-            ->where('table_schema', $db)
-            ->where('table_name', $table)
-            ->orderBy('index_name')
-            ->orderBy('seq_in_index')
-            ->get()
-            ->groupBy('index_name');
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
 
-        foreach ($indexes as $indexName => $rows) {
-            $rows = $rows->sortBy('seq_in_index')->values();
-            if ($rows->isEmpty()) {
-                continue;
-            }
-
-            if ((int) $rows->first()->non_unique !== 0) {
-                continue;
-            }
-
-            $indexColumns = $rows->pluck('column_name')->all();
-            if ($indexColumns === $columns) {
-                return true;
-            }
+            return;
         }
 
-        return false;
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    private function addUniqueIndex(string $table, string $indexName, array $columns): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $cols = implode(', ', $columns);
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD UNIQUE KEY {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE UNIQUE INDEX {$indexName} ON {$table} ({$cols})");
+    }
+
+    private function dropIndex(string $table, string $indexName): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} DROP INDEX {$indexName}");
+
+            return;
+        }
+
+        $connection->statement("DROP INDEX IF EXISTS {$indexName}");
     }
 };

@@ -88,7 +88,16 @@ return new class extends Migration
         }
 
         $cols = implode(', ', $columns);
-        DB::connection($this->connection)->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
     }
 
     /**
@@ -101,7 +110,16 @@ return new class extends Migration
         }
 
         $cols = implode(', ', $columns);
-        DB::connection($this->connection)->statement("ALTER TABLE {$table} ADD UNIQUE {$indexName} ({$cols})");
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD UNIQUE {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE UNIQUE INDEX {$indexName} ON {$table} ({$cols})");
     }
 
     private function addForeignKey(
@@ -122,9 +140,19 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('index_name', $indexName)
@@ -133,14 +161,16 @@ return new class extends Migration
 
     private function foreignKeyExists(string $table, string $constraintName): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
+        $schemaName = $driver === 'pgsql' ? 'public' : $db;
 
-        return DB::connection($this->connection)->table('information_schema.table_constraints')
-            ->where('constraint_schema', $db)
+        return $connection->table('information_schema.table_constraints')
+            ->where('constraint_schema', $schemaName)
             ->where('table_name', $table)
             ->where('constraint_name', $constraintName)
             ->where('constraint_type', 'FOREIGN KEY')
             ->exists();
     }
 };
-

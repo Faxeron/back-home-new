@@ -20,9 +20,13 @@ return new class extends Migration
                 $table->unsignedBigInteger('cashflow_item_id')->nullable()->after('payment_method_id');
             });
 
-            DB::connection($this->connection)->statement(
-                'ALTER TABLE transactions ADD KEY transactions_cashflow_item_id_fk (cashflow_item_id)'
-            );
+            $connection = DB::connection($this->connection);
+            $driver = $connection->getDriverName();
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $connection->statement('ALTER TABLE transactions ADD KEY transactions_cashflow_item_id_fk (cashflow_item_id)');
+            } else {
+                $connection->statement('CREATE INDEX transactions_cashflow_item_id_fk ON transactions (cashflow_item_id)');
+            }
             DB::connection($this->connection)->statement(
                 'ALTER TABLE transactions ADD CONSTRAINT transactions_cashflow_item_id_fk FOREIGN KEY (cashflow_item_id) REFERENCES cashflow_items(id) ON DELETE SET NULL ON UPDATE CASCADE'
             );

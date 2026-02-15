@@ -10,6 +10,9 @@ return new class extends Migration {
 
     public function up(): void
     {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
         if (!Schema::connection($this->connection)->hasTable('contract_groups')) {
             return;
         }
@@ -20,8 +23,11 @@ return new class extends Migration {
             Schema::connection($this->connection)->hasColumn($table, 'installation_date')
             && !Schema::connection($this->connection)->hasColumn($table, 'work_date_actual')
         ) {
-            DB::connection($this->connection)
-                ->statement("ALTER TABLE {$table} CHANGE installation_date work_date_actual DATE NULL");
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $connection->statement("ALTER TABLE {$table} CHANGE installation_date work_date_actual DATE NULL");
+            } else {
+                $connection->statement("ALTER TABLE {$table} RENAME COLUMN installation_date TO work_date_actual");
+            }
         }
 
         if (!Schema::connection($this->connection)->hasColumn($table, 'worker_id')) {
@@ -34,6 +40,9 @@ return new class extends Migration {
 
     public function down(): void
     {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
         if (!Schema::connection($this->connection)->hasTable('contract_groups')) {
             return;
         }
@@ -51,8 +60,11 @@ return new class extends Migration {
             Schema::connection($this->connection)->hasColumn($table, 'work_date_actual')
             && !Schema::connection($this->connection)->hasColumn($table, 'installation_date')
         ) {
-            DB::connection($this->connection)
-                ->statement("ALTER TABLE {$table} CHANGE work_date_actual installation_date DATE NULL");
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $connection->statement("ALTER TABLE {$table} CHANGE work_date_actual installation_date DATE NULL");
+            } else {
+                $connection->statement("ALTER TABLE {$table} RENAME COLUMN work_date_actual TO installation_date");
+            }
         }
     }
 };

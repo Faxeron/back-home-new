@@ -63,7 +63,7 @@ return new class extends Migration
         $oldUnique = 'product_attr_values_product_attribute_unique';
         if ($this->indexExists('product_attribute_values', $oldUnique)) {
             $this->addIndex('product_attribute_values', 'prod_attr_values_product_id_idx', ['product_id']);
-            DB::connection($this->connection)->statement("ALTER TABLE product_attribute_values DROP INDEX {$oldUnique}");
+            $this->dropIndex('product_attribute_values', $oldUnique);
         }
 
         $this->addIndex('product_attribute_values', 'prod_attr_values_tenant_company_product_idx', ['tenant_id', 'company_id', 'product_id']);
@@ -100,7 +100,16 @@ return new class extends Migration
         }
 
         $cols = implode(', ', $columns);
-        DB::connection($this->connection)->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD INDEX {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE INDEX {$indexName} ON {$table} ({$cols})");
     }
 
     /**
@@ -113,18 +122,51 @@ return new class extends Migration
         }
 
         $cols = implode(', ', $columns);
-        DB::connection($this->connection)->statement("ALTER TABLE {$table} ADD UNIQUE KEY {$indexName} ({$cols})");
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} ADD UNIQUE KEY {$indexName} ({$cols})");
+
+            return;
+        }
+
+        $connection->statement("CREATE UNIQUE INDEX {$indexName} ON {$table} ({$cols})");
     }
 
     private function indexExists(string $table, string $indexName): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.statistics')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.statistics')
             ->where('table_schema', $db)
             ->where('table_name', $table)
             ->where('index_name', $indexName)
             ->exists();
+    }
+
+    private function dropIndex(string $table, string $indexName): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} DROP INDEX {$indexName}");
+
+            return;
+        }
+
+        $connection->statement("DROP INDEX IF EXISTS {$indexName}");
     }
 
 };

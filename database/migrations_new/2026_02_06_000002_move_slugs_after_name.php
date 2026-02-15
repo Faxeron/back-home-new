@@ -23,6 +23,11 @@ return new class extends Migration
 
     private function moveAfterName(string $table): void
     {
+        $driver = DB::connection($this->connection)->getDriverName();
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
+            return;
+        }
+
         $schema = Schema::connection($this->connection);
         if (!$schema->hasTable($table)) {
             return;

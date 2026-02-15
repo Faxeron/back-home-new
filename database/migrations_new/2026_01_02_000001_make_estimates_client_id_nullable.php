@@ -18,8 +18,18 @@ return new class extends Migration
             return;
         }
 
-        DB::connection($this->connection)
-            ->statement('ALTER TABLE estimates MODIFY client_id INT(11) NULL');
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement('ALTER TABLE estimates MODIFY client_id INT(11) NULL');
+
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            $connection->statement('ALTER TABLE estimates ALTER COLUMN client_id DROP NOT NULL');
+        }
     }
 
     public function down(): void

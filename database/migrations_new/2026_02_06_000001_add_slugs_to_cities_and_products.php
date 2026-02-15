@@ -48,7 +48,7 @@ return new class extends Migration
 
         if (Schema::connection($this->connection)->hasColumn($table, 'slug')) {
             if ($this->indexExists($table, "{$table}_slug_index")) {
-                DB::connection($this->connection)->statement("ALTER TABLE {$table} DROP INDEX {$table}_slug_index");
+                $this->dropIndex($table, "{$table}_slug_index");
             }
             Schema::connection($this->connection)->table($table, function (Blueprint $table): void {
                 $table->dropColumn('slug');
@@ -155,12 +155,36 @@ return new class extends Migration
 
     private function indexExists(string $table, string $index): bool
     {
-        $db = DB::connection($this->connection)->getDatabaseName();
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+        $db = $connection->getDatabaseName();
 
-        return DB::connection($this->connection)->table('information_schema.STATISTICS')
+        if ($driver === 'pgsql') {
+            return $connection->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', $table)
+                ->where('indexname', $index)
+                ->exists();
+        }
+
+        return $connection->table('information_schema.STATISTICS')
             ->where('TABLE_SCHEMA', $db)
             ->where('TABLE_NAME', $table)
             ->where('INDEX_NAME', $index)
             ->exists();
+    }
+
+    private function dropIndex(string $table, string $index): void
+    {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $connection->statement("ALTER TABLE {$table} DROP INDEX {$index}");
+
+            return;
+        }
+
+        $connection->statement("DROP INDEX IF EXISTS {$index}");
     }
 };

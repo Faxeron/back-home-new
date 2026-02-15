@@ -68,12 +68,19 @@ return new class extends Migration
                 }
             });
 
+        $driver = $db->getDriverName();
         $database = $db->getDatabaseName();
-        $indexExists = $db->table('information_schema.STATISTICS')
-            ->where('TABLE_SCHEMA', $database)
-            ->where('TABLE_NAME', 'estimates')
-            ->where('INDEX_NAME', 'estimates_random_id_unique')
-            ->exists();
+        $indexExists = $driver === 'pgsql'
+            ? $db->table('pg_indexes')
+                ->where('schemaname', 'public')
+                ->where('tablename', 'estimates')
+                ->where('indexname', 'estimates_random_id_unique')
+                ->exists()
+            : $db->table('information_schema.STATISTICS')
+                ->where('TABLE_SCHEMA', $database)
+                ->where('TABLE_NAME', 'estimates')
+                ->where('INDEX_NAME', 'estimates_random_id_unique')
+                ->exists();
 
         if (!$indexExists) {
             $schema->table('estimates', function (Blueprint $table): void {
