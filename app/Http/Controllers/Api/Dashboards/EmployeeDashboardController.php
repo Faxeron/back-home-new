@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Dashboards;
 use App\Domain\CRM\Models\Contract;
 use App\Domain\Estimates\Models\Estimate;
 use App\Domain\Finance\Models\PayrollAccrual;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -192,19 +193,16 @@ final class EmployeeDashboardController extends Controller
             ->where('manager_id', $userId)
             ->whereNotNull('contract_date')
             ->whereBetween('contract_date', [$from->toDateString(), $to->toDateString()])
-            ->selectRaw('FLOOR(DATEDIFF(contract_date, ?) / 7) as bucket', [$from->toDateString()])
-            ->selectRaw('COUNT(*) as cnt')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_sum')
-            ->groupBy('bucket')
+            ->select(['contract_date', 'total_amount'])
             ->get();
 
         foreach ($rows as $row) {
-            $i = (int) $row->bucket;
+            $i = $this->resolveWeekBucket($from, $row->contract_date);
             if ($i < 0 || $i >= count($weeks)) {
                 continue;
             }
-            $counts[$i] = (int) $row->cnt;
-            $sums[$i] = (float) $row->total_sum;
+            $counts[$i]++;
+            $sums[$i] += (float) ($row->total_amount ?? 0);
         }
 
         return ['counts' => $counts, 'sums' => $sums];
@@ -225,17 +223,15 @@ final class EmployeeDashboardController extends Controller
             ->whereNull('cancelled_at')
             ->where('status', 'active')
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('FLOOR(DATEDIFF(DATE(created_at), ?) / 7) as bucket', [$from->toDateString()])
-            ->selectRaw('COALESCE(SUM(amount), 0) as total_sum')
-            ->groupBy('bucket')
+            ->select(['created_at', 'amount'])
             ->get();
 
         foreach ($rows as $row) {
-            $i = (int) $row->bucket;
+            $i = $this->resolveWeekBucket($from, $row->created_at);
             if ($i < 0 || $i >= count($weeks)) {
                 continue;
             }
-            $sums[$i] = (float) $row->total_sum;
+            $sums[$i] += (float) ($row->amount ?? 0);
         }
 
         return ['sums' => $sums];
@@ -254,17 +250,15 @@ final class EmployeeDashboardController extends Controller
             ->where('company_id', $companyId)
             ->where('created_by', $userId)
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('FLOOR(DATEDIFF(DATE(created_at), ?) / 7) as bucket', [$from->toDateString()])
-            ->selectRaw('COUNT(*) as cnt')
-            ->groupBy('bucket')
+            ->select(['created_at'])
             ->get();
 
         foreach ($rows as $row) {
-            $i = (int) $row->bucket;
+            $i = $this->resolveWeekBucket($from, $row->created_at);
             if ($i < 0 || $i >= count($weeks)) {
                 continue;
             }
-            $counts[$i] = (int) $row->cnt;
+            $counts[$i]++;
         }
 
         return ['counts' => $counts];
@@ -284,14 +278,30 @@ final class EmployeeDashboardController extends Controller
 
         // If sessions has created_at, we can compute overlap more accurately.
         if ($schema->hasColumn('sessions', 'created_at')) {
-            return (int) $db
+            $sessions = $db
                 ->table('sessions')
                 ->where('user_id', $userId)
-                ->selectRaw(
-                    "COALESCE(SUM(GREATEST(0, TIMESTAMPDIFF(SECOND, GREATEST(created_at, ?), LEAST(FROM_UNIXTIME(last_activity), ?)))), 0) as seconds",
-                    [$from, $to]
-                )
-                ->value('seconds');
+                ->whereBetween('last_activity', [$fromUnix, $toUnix])
+                ->select(['created_at', 'last_activity'])
+                ->get();
+
+            $seconds = 0;
+            foreach ($sessions as $session) {
+                if (!$session->created_at || !$session->last_activity) {
+                    continue;
+                }
+
+                $sessionStart = Carbon::parse((string) $session->created_at)->getTimestamp();
+                $sessionEnd = (int) $session->last_activity;
+
+                $fromBound = max($sessionStart, $fromUnix);
+                $toBound = min($sessionEnd, $toUnix);
+                if ($toBound > $fromBound) {
+                    $seconds += ($toBound - $fromBound);
+                }
+            }
+
+            return $seconds;
         }
 
         // Fallback: count sessions that were active in the period and multiply by configured lifetime.
@@ -304,5 +314,18 @@ final class EmployeeDashboardController extends Controller
             ->count();
 
         return $sessionsCount * $lifetimeSeconds;
+    }
+
+    private function resolveWeekBucket($periodStart, $date): int
+    {
+        if (!$date) {
+            return -1;
+        }
+
+        $start = Carbon::parse((string) $periodStart)->startOfDay();
+        $current = Carbon::parse((string) $date)->startOfDay();
+        $delta = $start->diffInDays($current, false);
+
+        return (int) floor($delta / 7);
     }
 }

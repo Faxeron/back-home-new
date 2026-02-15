@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 
 final class NewDashboardController extends Controller
 {
@@ -62,6 +63,9 @@ final class NewDashboardController extends Controller
     {
         $from = Carbon::create($year, 1, 1)->startOfDay();
         $to = Carbon::create($year, 12, 31)->endOfDay();
+        $monthFromContractDate = $this->monthExpression('contract_date');
+        $monthFromCreatedAt = $this->monthExpression('created_at');
+        $monthFromTxCreatedAt = $this->monthExpression('transactions.created_at');
 
         $contractCounts = array_fill(0, 12, 0);
         $contractSums = array_fill(0, 12, 0.0);
@@ -71,10 +75,10 @@ final class NewDashboardController extends Controller
             ->where('company_id', $companyId)
             ->whereNotNull('contract_date')
             ->whereBetween('contract_date', [$from->toDateString(), $to->toDateString()])
-            ->selectRaw('MONTH(contract_date) as m')
+            ->selectRaw("$monthFromContractDate as m")
             ->selectRaw('COUNT(*) as cnt')
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_sum')
-            ->groupBy('m')
+            ->groupByRaw($monthFromContractDate)
             ->get();
 
         foreach ($contractRows as $row) {
@@ -91,9 +95,9 @@ final class NewDashboardController extends Controller
             ->where('tenant_id', $tenantId)
             ->where('company_id', $companyId)
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('MONTH(created_at) as m')
+            ->selectRaw("$monthFromCreatedAt as m")
             ->selectRaw('COUNT(*) as cnt')
-            ->groupBy('m')
+            ->groupByRaw($monthFromCreatedAt)
             ->get();
 
         foreach ($estimateRows as $row) {
@@ -110,10 +114,10 @@ final class NewDashboardController extends Controller
             ->where('transactions.tenant_id', $tenantId)
             ->where('transactions.company_id', $companyId)
             ->whereBetween('transactions.created_at', [$from, $to])
-            ->selectRaw('MONTH(transactions.created_at) as m')
+            ->selectRaw("$monthFromTxCreatedAt as m")
             ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign > 0 THEN transactions.sum ELSE 0 END), 0) as incomes_sum')
             ->selectRaw('COALESCE(SUM(CASE WHEN tt.sign < 0 THEN transactions.sum ELSE 0 END), 0) as expenses_sum')
-            ->groupBy('m')
+            ->groupByRaw($monthFromTxCreatedAt)
             ->get();
 
         foreach ($profitRows as $row) {
@@ -151,5 +155,15 @@ final class NewDashboardController extends Controller
     {
         return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     }
-}
 
+    private function monthExpression(string $column): string
+    {
+        $driver = DB::connection('legacy_new')->getDriverName();
+
+        return match ($driver) {
+            'pgsql' => "EXTRACT(MONTH FROM $column)::int",
+            'sqlite' => "CAST(strftime('%m', $column) AS INTEGER)",
+            default => "MONTH($column)",
+        };
+    }
+}

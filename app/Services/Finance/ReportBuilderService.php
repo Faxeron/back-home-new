@@ -176,8 +176,8 @@ class ReportBuilderService
         $summary = DB::connection('legacy_new')
             ->table('report_cashflow_monthly')
             ->selectRaw('
-                SUM(IF(direction = "IN", total_amount, 0)) as inflow_total,
-                SUM(IF(direction = "OUT", total_amount, 0)) as outflow_total
+                SUM(CASE WHEN direction = "IN" THEN total_amount ELSE 0 END) as inflow_total,
+                SUM(CASE WHEN direction = "OUT" THEN total_amount ELSE 0 END) as outflow_total
             ')
             ->where('tenant_id', $this->tenantId)
             ->where('company_id', $this->companyId)
@@ -192,7 +192,7 @@ class ReportBuilderService
         $yearMonthStart = Carbon::parse($yearMonth . '-01')->startOfMonth();
         $openingBalance = DB::connection('legacy_new')
             ->table('report_cashflow_daily')
-            ->selectRaw('SUM(IF(direction = "IN", total_amount, 0)) - SUM(IF(direction = "OUT", total_amount, 0)) as balance')
+            ->selectRaw('SUM(CASE WHEN direction = "IN" THEN total_amount ELSE 0 END) - SUM(CASE WHEN direction = "OUT" THEN total_amount ELSE 0 END) as balance')
             ->where('tenant_id', $this->tenantId)
             ->where('company_id', $this->companyId)
             ->where('day_date', '<', $yearMonthStart->toDateString())
@@ -345,8 +345,8 @@ class ReportBuilderService
                     c.total_amount,
                     COALESCE(c.paid_amount, 0) as paid_amount,
                     COALESCE(c.total_amount, 0) - COALESCE(c.paid_amount, 0) as debt_amount,
-                    DATEDIFF(?, c.contract_date) as days_overdue
-                ', [$dateYmd])
+                    c.contract_date
+                ')
                 ->leftJoin('counterparties as cp', 'c.counterparty_id', '=', 'cp.id')
                 ->where('c.tenant_id', $this->tenantId)
                 ->where('c.company_id', $this->companyId)
@@ -364,7 +364,7 @@ class ReportBuilderService
                     'amount_total' => $row->total_amount,
                     'amount_paid' => $row->paid_amount,
                     'amount_debt' => $row->debt_amount,
-                    'days_overdue' => $row->days_overdue,
+                    'days_overdue' => $this->calculateDaysOverdue($dateYmd, $row->contract_date),
                     'updated_at' => now(),
                 ], ['tenant_id', 'company_id', 'snapshot_date', 'type', 'entity_id']);
                 $count++;
@@ -386,14 +386,15 @@ class ReportBuilderService
         $issues = [];
 
         // Issue 1: Paid transactions without cashflow_item_id
-        $orphaned = DB::connection('legacy_new')
+        $orphanedQuery = DB::connection('legacy_new')
             ->table('transactions')
             ->where('is_paid', 1)
             ->whereNull('cashflow_item_id')
             ->where('tenant_id', $this->tenantId)
-            ->where('company_id', $this->companyId)
-            ->whereRaw('DATE_FORMAT(date_is_paid, "%Y-%m") = ?', [$yearMonth])
-            ->count();
+            ->where('company_id', $this->companyId);
+
+        $this->applyYearMonthFilter($orphanedQuery, 'date_is_paid', $yearMonth);
+        $orphaned = $orphanedQuery->count();
 
         if ($orphaned > 0) {
             $issues[] = "Paid transactions without cashflow_item_id: $orphaned";
@@ -413,7 +414,7 @@ class ReportBuilderService
         }
 
         // Issue 3: Cash transfers included in reports (they shouldn't be)
-        $transfers = DB::connection('legacy_new')
+        $transfersQuery = DB::connection('legacy_new')
             ->table('transactions as t')
             ->whereNotIn('t.id', function ($q) {
                 $q->select('transaction_in_id')->from('cash_transfers')
@@ -429,9 +430,10 @@ class ReportBuilderService
             })
             ->where('is_paid', 1)
             ->where('t.tenant_id', $this->tenantId)
-            ->where('t.company_id', $this->companyId)
-            ->whereRaw('DATE_FORMAT(t.date_is_paid, "%Y-%m") = ?', [$yearMonth])
-            ->count();
+            ->where('t.company_id', $this->companyId);
+
+        $this->applyYearMonthFilter($transfersQuery, 't.date_is_paid', $yearMonth);
+        $transfers = $transfersQuery->count();
 
         if ($transfers > 0) {
             $issues[] = "Cash transfers not properly excluded: $transfers";
@@ -455,5 +457,29 @@ class ReportBuilderService
             ->where('company_id', $this->companyId)
             ->where('year_month', $yearMonth)
             ->first();
+    }
+
+    private function applyYearMonthFilter($query, string $column, string $yearMonth): void
+    {
+        $driver = DB::connection('legacy_new')->getDriverName();
+        $monthExpression = match ($driver) {
+            'pgsql' => "to_char($column, 'YYYY-MM')",
+            'sqlite' => "strftime('%Y-%m', $column)",
+            default => "DATE_FORMAT($column, '%Y-%m')",
+        };
+
+        $query->whereRaw("$monthExpression = ?", [$yearMonth]);
+    }
+
+    private function calculateDaysOverdue(string $dateYmd, $contractDate): int
+    {
+        if (!$contractDate) {
+            return 0;
+        }
+
+        $end = Carbon::parse($dateYmd)->startOfDay();
+        $start = Carbon::parse((string) $contractDate)->startOfDay();
+
+        return max(0, $start->diffInDays($end, false));
     }
 }
