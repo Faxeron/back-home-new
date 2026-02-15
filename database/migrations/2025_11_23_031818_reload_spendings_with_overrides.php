@@ -56,6 +56,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         $legacy = DB::connection('legacy');
         $legacyNew = DB::connection('legacy_new');
 
@@ -132,3 +136,4 @@ return new class extends Migration
         $legacyNew->statement('SET FOREIGN_KEY_CHECKS=1');
     }
 };
+

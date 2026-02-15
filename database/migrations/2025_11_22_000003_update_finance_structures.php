@@ -29,9 +29,23 @@ return new class extends Migration
             }
         });
 
-        DB::connection('legacy_new')->statement(
-            "UPDATE receipts r JOIN transactions t ON t.id = r.transaction_id SET r.payment_date = DATE(t.date_is_paid) WHERE t.date_is_paid IS NOT NULL"
-        );
+        $driver = DB::connection('legacy_new')->getDriverName();
+        if ($driver === 'pgsql') {
+            DB::connection('legacy_new')->statement(
+                "UPDATE receipts r
+                 SET payment_date = t.date_is_paid::date
+                 FROM transactions t
+                 WHERE t.id = r.transaction_id
+                   AND t.date_is_paid IS NOT NULL"
+            );
+        } else {
+            DB::connection('legacy_new')->statement(
+                "UPDATE receipts r
+                 JOIN transactions t ON t.id = r.transaction_id
+                 SET r.payment_date = DATE(t.date_is_paid)
+                 WHERE t.date_is_paid IS NOT NULL"
+            );
+        }
 
         // 5-6) spendings: add counterparty_id, spent_to_user_id
         Schema::connection('legacy_new')->table('spendings', function (Blueprint $table): void {

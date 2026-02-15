@@ -13,18 +13,29 @@ return new class extends Migration
     public function up(): void
     {
         $fkName = 'transactions_related_id_fk';
+        $connection = DB::connection($this->connection);
 
         if (!Schema::connection($this->connection)->hasTable('transactions')) {
             return;
         }
 
+        $schemaName = $connection->getDriverName() === 'pgsql'
+            ? 'public'
+            : $connection->getDatabaseName();
+
         // Drop FK if it exists to allow related_id to reference receipt/spending ids.
-        $exists = DB::connection($this->connection)
-            ->table('information_schema.KEY_COLUMN_USAGE')
-            ->where('table_schema', DB::connection($this->connection)->getDatabaseName())
-            ->where('table_name', 'transactions')
-            ->where('column_name', 'related_id')
-            ->where('constraint_name', $fkName)
+        $exists = $connection
+            ->table('information_schema.table_constraints as tc')
+            ->join('information_schema.key_column_usage as kcu', function ($join): void {
+                $join->on('kcu.constraint_name', '=', 'tc.constraint_name')
+                    ->on('kcu.table_schema', '=', 'tc.table_schema');
+            })
+            ->where('tc.constraint_type', 'FOREIGN KEY')
+            ->where('tc.table_schema', $schemaName)
+            ->where('kcu.table_schema', $schemaName)
+            ->where('tc.table_name', 'transactions')
+            ->where('kcu.column_name', 'related_id')
+            ->where('tc.constraint_name', $fkName)
             ->exists();
 
         if ($exists) {

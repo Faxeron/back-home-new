@@ -15,6 +15,11 @@ return new class extends Migration
     {
         $schema = Schema::connection($this->connection);
         $db = DB::connection($this->connection);
+
+        if ($db->getDriverName() === 'pgsql') {
+            return;
+        }
+
         $database = $db->getDatabaseName();
 
         // Drop tenant_id on tenants if meta migration added it.

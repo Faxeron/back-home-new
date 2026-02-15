@@ -23,6 +23,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         DB::connection('legacy')
             ->table('receipts')
             ->orderBy('id')
@@ -65,3 +69,4 @@ return new class extends Migration
             });
     }
 };
+

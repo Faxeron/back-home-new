@@ -46,6 +46,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         $fundMap = DB::connection('legacy_new')
             ->table('spending_funds')
             ->pluck('id', 'id_old')
@@ -110,3 +114,4 @@ return new class extends Migration
             });
     }
 };
+

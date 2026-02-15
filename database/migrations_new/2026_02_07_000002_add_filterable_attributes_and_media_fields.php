@@ -166,6 +166,14 @@ return new class extends Migration
             return;
         }
 
+        if ($driver === 'pgsql') {
+            // On PostgreSQL unique constraints are backed by indexes with the same name.
+            $connection->statement("ALTER TABLE {$table} DROP CONSTRAINT IF EXISTS {$indexName}");
+            $connection->statement("DROP INDEX IF EXISTS {$indexName}");
+
+            return;
+        }
+
         $connection->statement("DROP INDEX IF EXISTS {$indexName}");
     }
 

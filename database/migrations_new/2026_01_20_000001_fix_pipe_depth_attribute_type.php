@@ -12,11 +12,14 @@ return new class extends Migration
 
     public function up(): void
     {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
         if (!Schema::connection($this->connection)->hasTable('product_attribute_definitions')) {
             return;
         }
 
-        DB::connection($this->connection)
+        $connection
             ->table('product_attribute_definitions')
             ->where('id', 4)
             ->update([
@@ -28,36 +31,53 @@ return new class extends Migration
             return;
         }
 
-        DB::connection($this->connection)
+        $dotRegex = $driver === 'pgsql'
+            ? "value_string ~ '^[0-9]+(\\\\.[0-9]+)?$'"
+            : "value_string REGEXP '^[0-9]+(\\\\.[0-9]+)?$'";
+        $commaRegex = $driver === 'pgsql'
+            ? "value_string ~ '^[0-9]+,[0-9]+$'"
+            : "value_string REGEXP '^[0-9]+,[0-9]+$'";
+
+        $dotCast = $driver === 'pgsql'
+            ? DB::raw('CAST(value_string AS NUMERIC(14,4))')
+            : DB::raw('CAST(value_string AS DECIMAL(14,4))');
+        $commaCast = $driver === 'pgsql'
+            ? DB::raw("CAST(REPLACE(value_string, ',', '.') AS NUMERIC(14,4)) * 100")
+            : DB::raw("CAST(REPLACE(value_string, ',', '.') AS DECIMAL(14,4)) * 100");
+
+        $connection
             ->table('product_attribute_values')
             ->where('attribute_id', 4)
             ->whereNull('value_number')
             ->whereNotNull('value_string')
-            ->whereRaw("value_string REGEXP '^[0-9]+(\\\\.[0-9]+)?$'")
+            ->whereRaw($dotRegex)
             ->update([
-                'value_number' => DB::raw('CAST(value_string AS DECIMAL(14,4))'),
+                'value_number' => $dotCast,
                 'updated_at' => now(),
             ]);
 
-        DB::connection($this->connection)
+        $connection
             ->table('product_attribute_values')
             ->where('attribute_id', 4)
             ->whereNull('value_number')
             ->whereNotNull('value_string')
-            ->whereRaw("value_string REGEXP '^[0-9]+,[0-9]+$'")
+            ->whereRaw($commaRegex)
             ->update([
-                'value_number' => DB::raw("CAST(REPLACE(value_string, ',', '.') AS DECIMAL(14,4)) * 100"),
+                'value_number' => $commaCast,
                 'updated_at' => now(),
             ]);
     }
 
     public function down(): void
     {
+        $connection = DB::connection($this->connection);
+        $driver = $connection->getDriverName();
+
         if (!Schema::connection($this->connection)->hasTable('product_attribute_definitions')) {
             return;
         }
 
-        DB::connection($this->connection)
+        $connection
             ->table('product_attribute_definitions')
             ->where('id', 4)
             ->update([
@@ -69,13 +89,17 @@ return new class extends Migration
             return;
         }
 
-        DB::connection($this->connection)
+        $valueStringCast = $driver === 'pgsql'
+            ? DB::raw('CAST(value_number AS TEXT)')
+            : DB::raw('CAST(value_number AS CHAR)');
+
+        $connection
             ->table('product_attribute_values')
             ->where('attribute_id', 4)
             ->whereNull('value_string')
             ->whereNotNull('value_number')
             ->update([
-                'value_string' => DB::raw('CAST(value_number AS CHAR)'),
+                'value_string' => $valueStringCast,
                 'updated_at' => now(),
             ]);
     }

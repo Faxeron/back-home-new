@@ -39,11 +39,21 @@ return new class extends Migration
     private function tableNames(): array
     {
         $connection = DB::connection('legacy_new');
-        $database = $connection->getDatabaseName();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'pgsql') {
+            return collect($connection->select(
+                "SELECT tablename AS table_name FROM pg_catalog.pg_tables WHERE schemaname = 'public'"
+            ))
+                ->map(static fn (object $row): string => (string) $row->table_name)
+                ->filter()
+                ->values()
+                ->all();
+        }
 
         return collect($connection->select('SHOW TABLES'))
             ->map(static function (object $row): string {
-                return reset($row); // first column contains table name
+                return (string) reset($row); // first column contains table name
             })
             ->filter()
             ->values()
@@ -56,7 +66,7 @@ return new class extends Migration
 
         $connection->table($tableName, function (Blueprint $table) use ($connection, $tableName): void {
             if (!$connection->hasColumn($tableName, 'tenant_id')) {
-                $table->unsignedBigInteger('tenant_id')->default(1);
+                $table->unsignedBigInteger('tenant_id')->nullable()->default(1);
             }
 
             if ($connection->hasColumn($tableName, 'created_by_user_id') && !$connection->hasColumn($tableName, 'created_by')) {

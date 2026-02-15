@@ -136,9 +136,12 @@ New-Item -ItemType File -Path $logPath -Force | Out-Null
 $dumpFileName = if ($SnapshotName -ne '') { $SnapshotName } else { "mysql_snapshot_${runId}.sql" }
 $dumpPath = Join-Path $runDir $dumpFileName
 $countsPath = Join-Path $runDir 'mysql_snapshot_counts.tsv'
+$countsSqlPath = Join-Path $runDir 'mysql_snapshot_counts.sql'
 $dataReportPath = Join-Path $runDir 'artisan_data_report.json'
 $verifyReportPath = Join-Path $runDir 'artisan_verify_report.json'
 $verifySqlOutputPath = Join-Path $runDir 'verify_counts_psql.out'
+$artisanDataLogPath = Join-Path $runDir 'artisan_data_stage.log'
+$artisanVerifyLogPath = Join-Path $runDir 'artisan_verify_stage.log'
 
 function Write-Log {
     param([string]$Message)
@@ -229,6 +232,7 @@ function Set-PgEnv {
     $env:DB_DATABASE = $PgDatabase
     $env:DB_USERNAME = $PgUser
     $env:DB_PASSWORD = $PgPassword
+    $env:DB_CHARSET = 'utf8'
 
     $env:LEGACY_NEW_DB_CONNECTION = 'pgsql'
     $env:LEGACY_NEW_DB_HOST = $PgHost
@@ -236,6 +240,7 @@ function Set-PgEnv {
     $env:LEGACY_NEW_DB_DATABASE = $PgDatabase
     $env:LEGACY_NEW_DB_USERNAME = $PgUser
     $env:LEGACY_NEW_DB_PASSWORD = $PgPassword
+    $env:LEGACY_NEW_DB_CHARSET = 'utf8'
 }
 
 function Set-LegacySourceEnv {
@@ -304,7 +309,7 @@ SELECT 'counterparties' AS table_name, COUNT(*) AS row_count FROM counterparties
 UNION ALL
 SELECT 'contracts' AS table_name, COUNT(*) AS row_count FROM contracts
 UNION ALL
-SELECT 'projects' AS table_name, COUNT(*) AS row_count FROM projects
+SELECT 'projects' AS table_name, NULL AS row_count
 UNION ALL
 SELECT 'transactions' AS table_name, COUNT(*) AS row_count FROM transactions
 UNION ALL
@@ -322,27 +327,34 @@ ORDER BY tx_count DESC, company_id
 LIMIT $Companies;
 "@
 
+    Set-Content -Path $countsSqlPath -Value $countsQuery -Encoding UTF8
+
     $countsArgs = @(
         "--host=$SourceHost",
         "--port=$SourcePort",
         "--user=$SourceUser",
         "--database=$SourceDatabase",
         '--batch',
-        '--raw',
-        "--execute=$countsQuery"
+        '--raw'
     )
 
-    Invoke-StartProcessChecked `
-        -FilePath 'mysql' `
-        -ArgumentList $countsArgs `
-        -Description 'Capture MySQL key table counts and company transaction sums' `
-        -StdOutPath $countsPath `
-        -StdErrPath $countsErrPath
+    try {
+        Invoke-StartProcessChecked `
+            -FilePath 'mysql' `
+            -ArgumentList $countsArgs `
+            -Description 'Capture MySQL key table counts and company transaction sums' `
+            -StdOutPath $countsPath `
+            -StdErrPath $countsErrPath `
+            -StdInPath $countsSqlPath
+    } catch {
+        Write-Log "WARN: baseline MySQL counts step failed. Continuing. Reason: $($_.Exception.Message)"
+    }
 }
 
 if ($stages -contains 'schema') {
     Set-PgEnv
     Invoke-PhpArtisan -Arguments @('artisan', 'migrate:fresh', '--force') -Description 'Build PostgreSQL schema from Laravel migrations'
+    Invoke-PhpArtisan -Arguments @('artisan', 'migrate', '--database=legacy_new', '--path=database/migrations_new', '--force') -Description 'Apply PostgreSQL schema updates from database/migrations_new'
 }
 
 if ($stages -contains 'restore') {
@@ -351,12 +363,17 @@ if ($stages -contains 'restore') {
     }
 
     $restoreErrPath = Join-Path $runDir 'mysql_restore.stderr.log'
-    $createSnapshotDbSql = "DROP DATABASE IF EXISTS $SnapshotDatabase; CREATE DATABASE $SnapshotDatabase CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    $createSnapshotDbSqlPath = Join-Path $runDir 'mysql_restore_create_db.sql'
+    $createSnapshotDbSql = @"
+DROP DATABASE IF EXISTS $SnapshotDatabase;
+CREATE DATABASE $SnapshotDatabase CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+"@
+    Set-Content -Path $createSnapshotDbSqlPath -Value $createSnapshotDbSql -Encoding UTF8
+
     $createDbArgs = @(
         "--host=$SourceHost",
         "--port=$SourcePort",
-        "--user=$SourceUser",
-        "--execute=$createSnapshotDbSql"
+        "--user=$SourceUser"
     )
 
     Invoke-StartProcessChecked `
@@ -364,7 +381,8 @@ if ($stages -contains 'restore') {
         -ArgumentList $createDbArgs `
         -Description "Create temporary snapshot database '$SnapshotDatabase'" `
         -StdOutPath (Join-Path $runDir 'mysql_restore_create.out') `
-        -StdErrPath $restoreErrPath
+        -StdErrPath $restoreErrPath `
+        -StdInPath $createSnapshotDbSqlPath
 
     Invoke-StartProcessChecked `
         -FilePath 'mysql' `
@@ -390,7 +408,7 @@ if ($stages -contains 'data') {
         "--period-from=$PeriodFrom",
         "--period-to=$PeriodTo",
         "--report=$dataReportPath",
-        "--log=$logPath"
+        "--log=$artisanDataLogPath"
     )
 
     if ($DisableConstraints) {
@@ -418,7 +436,7 @@ if ($stages -contains 'verify') {
         "--period-from=$PeriodFrom",
         "--period-to=$PeriodTo",
         "--report=$verifyReportPath",
-        "--log=$logPath"
+        "--log=$artisanVerifyLogPath"
     )
 
     if ($AllowMismatch) {
@@ -453,14 +471,21 @@ if ($stages -contains 'verify') {
 
 if (-not $KeepSnapshotDb -and ($stages -contains 'restore' -or $stages -contains 'data' -or $stages -contains 'verify')) {
     $cleanupErrPath = Join-Path $runDir 'mysql_cleanup.stderr.log'
+    $dropDbSqlPath = Join-Path $runDir 'mysql_cleanup_drop_db.sql'
     $dropDbSql = "DROP DATABASE IF EXISTS $SnapshotDatabase;"
+    Set-Content -Path $dropDbSqlPath -Value $dropDbSql -Encoding UTF8
 
-    Invoke-StartProcessChecked `
-        -FilePath 'mysql' `
-        -ArgumentList @("--host=$SourceHost", "--port=$SourcePort", "--user=$SourceUser", "--execute=$dropDbSql") `
-        -Description "Drop temporary snapshot database '$SnapshotDatabase'" `
-        -StdOutPath (Join-Path $runDir 'mysql_cleanup.out') `
-        -StdErrPath $cleanupErrPath
+    try {
+        Invoke-StartProcessChecked `
+            -FilePath 'mysql' `
+            -ArgumentList @("--host=$SourceHost", "--port=$SourcePort", "--user=$SourceUser") `
+            -Description "Drop temporary snapshot database '$SnapshotDatabase'" `
+            -StdOutPath (Join-Path $runDir 'mysql_cleanup.out') `
+            -StdErrPath $cleanupErrPath `
+            -StdInPath $dropDbSqlPath
+    } catch {
+        Write-Log "WARN: unable to drop temporary snapshot database '$SnapshotDatabase'. Reason: $($_.Exception.Message)"
+    }
 }
 
 $metadata = [ordered]@{

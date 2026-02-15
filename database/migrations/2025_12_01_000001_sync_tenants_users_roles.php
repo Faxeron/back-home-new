@@ -7,79 +7,93 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    protected $connection = 'legacy_new';
+
     public function up(): void
     {
-        // Tenants (SaaS accounts)
-        Schema::connection('legacy_new')->create('tenants', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('code')->unique();
-            $table->unsignedBigInteger('owner_user_id')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
+        $schema = Schema::connection($this->connection);
+        $db = DB::connection($this->connection);
 
-        // Roles
-        Schema::connection('legacy_new')->create('roles', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('code')->unique();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
+        if (!$schema->hasTable('tenants')) {
+            $schema->create('tenants', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('code')->unique();
+                $table->unsignedBigInteger('owner_user_id')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
 
-        // User profiles
-        Schema::connection('legacy_new')->create('user_profiles', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id')->unique();
-            $table->string('first_name')->nullable();
-            $table->string('last_name')->nullable();
-            $table->string('phone', 50)->nullable();
-            $table->string('position')->nullable();
-            $table->string('avatar')->nullable();
-            $table->timestamps();
+        if (!$schema->hasTable('roles')) {
+            $schema->create('roles', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('code')->unique();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
 
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+        if (!$schema->hasTable('user_profiles')) {
+            $schema->create('user_profiles', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('user_id')->unique();
+                $table->string('first_name')->nullable();
+                $table->string('last_name')->nullable();
+                $table->string('phone', 50)->nullable();
+                $table->string('position')->nullable();
+                $table->string('avatar')->nullable();
+                $table->timestamps();
+            });
+        }
 
-        // Role → User pivot
-        Schema::connection('legacy_new')->create('role_users', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('role_id');
-            $table->unsignedBigInteger('user_id');
-            $table->timestamps();
+        if (!$schema->hasTable('role_users')) {
+            $schema->create('role_users', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('role_id');
+                $table->unsignedBigInteger('user_id');
+                $table->timestamps();
 
-            $table->unique(['role_id', 'user_id']);
-            $table->foreign('role_id')->references('id')->on('roles')->cascadeOnDelete();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+                $table->unique(['role_id', 'user_id']);
+            });
+        }
 
-        // User ↔ Company pivot with role
-        Schema::connection('legacy_new')->create('user_company', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('company_id');
-            $table->string('role')->nullable();
-            $table->timestamps();
+        if (!$schema->hasTable('user_company')) {
+            $schema->create('user_company', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedBigInteger('company_id');
+                $table->string('role')->nullable();
+                $table->timestamps();
 
-            $table->unique(['user_id', 'company_id']);
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-        });
+                $table->unique(['user_id', 'company_id']);
+            });
+        }
 
-        // Add tenant_id to users and FK
-        Schema::connection('legacy_new')->table('users', function (Blueprint $table): void {
-            if (!Schema::connection('legacy_new')->hasColumn('users', 'tenant_id')) {
-                $table->unsignedBigInteger('tenant_id')->nullable()->after('id');
-            }
-            $table->foreign('tenant_id')->references('id')->on('tenants')->nullOnDelete();
-        });
+        if ($schema->hasTable('users')) {
+            $schema->table('users', function (Blueprint $table) use ($schema): void {
+                if (!$schema->hasColumn('users', 'tenant_id')) {
+                    $table->unsignedBigInteger('tenant_id')->nullable()->after('id');
+                }
 
-        // Seed master tenant
-        DB::connection('legacy_new')->table('tenants')->updateOrInsert(
+                if (!$schema->hasColumn('users', 'company_id')) {
+                    $table->unsignedBigInteger('company_id')->nullable()->after('tenant_id');
+                }
+            });
+        }
+
+        $this->addForeignIfMissing('users', 'tenant_id', 'tenants', nullable: true);
+        $this->addForeignIfMissing('user_profiles', 'user_id', 'users', onDelete: 'cascade');
+        $this->addForeignIfMissing('role_users', 'role_id', 'roles', onDelete: 'cascade');
+        $this->addForeignIfMissing('role_users', 'user_id', 'users', onDelete: 'cascade');
+        $this->addForeignIfMissing('user_company', 'user_id', 'users', onDelete: 'cascade');
+        $this->addForeignIfMissing('user_company', 'company_id', 'companies', onDelete: 'cascade');
+
+        $db->table('tenants')->updateOrInsert(
             ['id' => 1],
             [
-                'name' => 'Основной аккаунт',
+                'name' => 'Main Tenant',
                 'code' => 'main',
                 'owner_user_id' => null,
                 'is_active' => true,
@@ -87,61 +101,91 @@ return new class extends Migration
                 'updated_at' => now(),
             ]
         );
-
-        // Copy users from primary DB (erp_vuexy) into legacy_new
-        $sourceUsers = DB::connection('mysql')->table('users')->get();
-        foreach ($sourceUsers as $user) {
-            DB::connection('legacy_new')->table('users')->updateOrInsert(
-                ['id' => $user->id],
-                [
-                    'tenant_id' => 1,
-                    'company_id' => $user->company_id ?? null,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'email_verified_at' => $user->email_verified_at,
-                    'password' => $user->password,
-                    'remember_token' => $user->remember_token ?? null,
-                    'created_at' => $user->created_at,
-                    'updated_at' => $user->updated_at,
-                ]
-            );
-        }
-
-        // Link tenant owner if user id=1 exists
-        $hasUserOne = DB::connection('legacy_new')->table('users')->where('id', 1)->exists();
-        if ($hasUserOne) {
-            DB::connection('legacy_new')->table('tenants')->where('id', 1)->update(['owner_user_id' => 1]);
-        }
-
-        // Pre-fill user_company pivot based on users.company_id
-        $legacyUsers = DB::connection('legacy_new')->table('users')->whereNotNull('company_id')->get();
-        foreach ($legacyUsers as $lu) {
-            DB::connection('legacy_new')->table('user_company')->updateOrInsert(
-                ['user_id' => $lu->id, 'company_id' => $lu->company_id],
-                [
-                    'role' => 'owner',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-        }
     }
 
     public function down(): void
     {
-        // Pivot drops first
-        Schema::connection('legacy_new')->dropIfExists('user_company');
-        Schema::connection('legacy_new')->dropIfExists('role_users');
-        Schema::connection('legacy_new')->dropIfExists('user_profiles');
-        Schema::connection('legacy_new')->dropIfExists('roles');
+        $schema = Schema::connection($this->connection);
 
-        Schema::connection('legacy_new')->table('users', function (Blueprint $table): void {
-            if (Schema::connection('legacy_new')->hasColumn('users', 'tenant_id')) {
-                $table->dropForeign(['tenant_id']);
-                $table->dropColumn('tenant_id');
+        $schema->dropIfExists('user_company');
+        $schema->dropIfExists('role_users');
+        $schema->dropIfExists('user_profiles');
+        $schema->dropIfExists('roles');
+
+        if ($schema->hasTable('users') && $schema->hasColumn('users', 'tenant_id')) {
+            $schema->table('users', function (Blueprint $table): void {
+                $table->dropConstrainedForeignId('tenant_id');
+            });
+        }
+
+        $schema->dropIfExists('tenants');
+    }
+
+    private function addForeignIfMissing(
+        string $table,
+        string $column,
+        string $referenceTable,
+        string $referenceColumn = 'id',
+        bool $nullable = false,
+        ?string $onDelete = null
+    ): void {
+        $schema = Schema::connection($this->connection);
+        $db = DB::connection($this->connection);
+
+        if (
+            !$schema->hasTable($table)
+            || !$schema->hasColumn($table, $column)
+            || !$schema->hasTable($referenceTable)
+        ) {
+            return;
+        }
+
+        $schemaName = $db->getDriverName() === 'pgsql'
+            ? 'public'
+            : $db->getDatabaseName();
+
+        $exists = $db->table('information_schema.table_constraints as tc')
+            ->join('information_schema.key_column_usage as kcu', function ($join): void {
+                $join->on('kcu.constraint_name', '=', 'tc.constraint_name')
+                    ->on('kcu.table_schema', '=', 'tc.table_schema');
+            })
+            ->where('tc.constraint_type', 'FOREIGN KEY')
+            ->where('tc.table_schema', $schemaName)
+            ->where('kcu.table_schema', $schemaName)
+            ->where('tc.table_name', $table)
+            ->where('kcu.column_name', $column)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $constraint = "{$table}_{$column}_fk";
+
+        $schema->table($table, function (Blueprint $table) use (
+            $column,
+            $referenceTable,
+            $referenceColumn,
+            $nullable,
+            $constraint,
+            $onDelete
+        ): void {
+            $fk = $table->foreign($column, $constraint)
+                ->references($referenceColumn)
+                ->on($referenceTable)
+                ->onUpdate('cascade');
+
+            if ($onDelete === 'cascade') {
+                $fk->cascadeOnDelete();
+                return;
             }
-        });
 
-        Schema::connection('legacy_new')->dropIfExists('tenants');
+            if ($nullable) {
+                $fk->nullOnDelete();
+                return;
+            }
+
+            $fk->restrictOnDelete();
+        });
     }
 };

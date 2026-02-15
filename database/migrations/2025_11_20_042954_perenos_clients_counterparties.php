@@ -6,6 +6,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         // legacy placeholder: migration already handled in other scripts
     }
 
@@ -14,3 +18,4 @@ return new class extends Migration
         // nothing to rollback
     }
 };
+

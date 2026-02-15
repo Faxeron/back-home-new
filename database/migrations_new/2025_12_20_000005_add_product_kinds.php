@@ -113,11 +113,18 @@ return new class extends Migration
     {
         $connection = DB::connection($this->connection);
         $driver = $connection->getDriverName();
-        $db = $connection->getDatabaseName();
-        $schema = $driver === 'pgsql' ? 'public' : $db;
+
+        if ($driver === 'pgsql') {
+            return $connection->table('information_schema.table_constraints')
+                ->where('table_schema', 'public')
+                ->where('table_name', $table)
+                ->where('constraint_name', $constraint)
+                ->where('constraint_type', 'FOREIGN KEY')
+                ->exists();
+        }
 
         return $connection->table('information_schema.KEY_COLUMN_USAGE')
-            ->where('TABLE_SCHEMA', $schema)
+            ->where('TABLE_SCHEMA', $connection->getDatabaseName())
             ->where('TABLE_NAME', $table)
             ->where('CONSTRAINT_NAME', $constraint)
             ->exists();

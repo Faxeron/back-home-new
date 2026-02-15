@@ -19,6 +19,11 @@ return new class extends Migration
     public function up(): void
     {
         $conn = DB::connection('legacy_new');
+        if ($conn->getDriverName() === 'pgsql') {
+            // Column ordering and MySQL-specific ALTER syntax are not applicable on PostgreSQL.
+            return;
+        }
+
         $dbName = $conn->getDatabaseName();
 
         $tables = collect($conn->select('SHOW TABLES'))->map(function ($row) {

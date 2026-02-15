@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         $rows = [
             ['old_id' => 1, 'fond_id' => 1, 'name' => 'Андрей'],
             ['old_id' => 3, 'fond_id' => 2, 'name' => 'Септик'],
@@ -118,3 +122,4 @@ return new class extends Migration
         DB::connection('legacy_new')->table('spending_items')->whereIn('old_id', $oldIds)->delete();
     }
 };
+

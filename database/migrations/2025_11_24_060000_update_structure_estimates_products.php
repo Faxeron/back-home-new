@@ -34,11 +34,13 @@ return new class extends Migration
             ]);
         }
 
-        Schema::connection('legacy_new')->table('products', function (Blueprint $table): void {
-            if (!Schema::connection('legacy_new')->hasColumn('products', 'product_type_id')) {
-                $table->unsignedBigInteger('product_type_id')->nullable()->after('name');
-            }
-        });
+        if (Schema::connection('legacy_new')->hasTable('products')) {
+            Schema::connection('legacy_new')->table('products', function (Blueprint $table): void {
+                if (!Schema::connection('legacy_new')->hasColumn('products', 'product_type_id')) {
+                    $table->unsignedBigInteger('product_type_id')->nullable()->after('name');
+                }
+            });
+        }
 
         if (!Schema::connection('legacy_new')->hasTable('estimate_items')) {
             Schema::connection('legacy_new')->create('estimate_items', function (Blueprint $table): void {
@@ -97,11 +99,13 @@ return new class extends Migration
             }
         });
 
-        Schema::connection('legacy_new')->table('products', function (Blueprint $table): void {
-            if (Schema::connection('legacy_new')->hasColumn('products', 'product_type_id')) {
-                $table->dropColumn('product_type_id');
-            }
-        });
+        if (Schema::connection('legacy_new')->hasTable('products')) {
+            Schema::connection('legacy_new')->table('products', function (Blueprint $table): void {
+                if (Schema::connection('legacy_new')->hasColumn('products', 'product_type_id')) {
+                    $table->dropColumn('product_type_id');
+                }
+            });
+        }
 
         Schema::connection('legacy_new')->dropIfExists('contract_act_estimates');
         Schema::connection('legacy_new')->dropIfExists('contract_estimates');

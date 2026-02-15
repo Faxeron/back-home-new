@@ -55,6 +55,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (DB::connection($this->connection)->getDriverName() === 'pgsql') {
+            return;
+        }
+
         $legacyNew = DB::connection('legacy_new');
         $legacy = DB::connection('legacy');
 
@@ -148,3 +152,4 @@ return new class extends Migration
         }
     }
 };
+
