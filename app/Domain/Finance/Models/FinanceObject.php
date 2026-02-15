@@ -49,6 +49,11 @@ class FinanceObject extends Model
         return $this->belongsTo(Contract::class, 'legal_contract_id');
     }
 
+    public function typeDefinition(): BelongsTo
+    {
+        return $this->belongsTo(FinanceObjectTypeDefinition::class, 'type', 'key');
+    }
+
     public function contract(): HasOne
     {
         return $this->hasOne(Contract::class, 'finance_object_id');
@@ -99,4 +104,3 @@ class FinanceObject extends Model
         ], true);
     }
 }
-

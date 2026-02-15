@@ -8,6 +8,8 @@ export const financeObjectTransactionsEndpoint = (financeObjectId: number, query
 
 export const financeObjectsLookupEndpoint = (query: any) => createUrl('finance/objects/lookup', { query })
 
+export const financeObjectTypesEndpoint = (query: any) => createUrl('finance-object-types', { query })
+
 export const getFinanceObject = async (financeObjectId: number) => {
   const response = await $api(`finance/objects/${financeObjectId}`)
   return response?.data ?? response
@@ -29,3 +31,15 @@ export const updateFinanceObject = async (financeObjectId: number, payload: Reco
   return response?.data ?? response
 }
 
+export const listFinanceObjectTypes = async (params: Record<string, any> = {}) => {
+  const response = await $api('finance-object-types', { params })
+  return response?.data ?? response
+}
+
+export const patchFinanceObjectTypeSettings = async (typeKey: string, payload: Record<string, any>) => {
+  const response = await $api(`finance-object-types/${typeKey}/settings`, {
+    method: 'PATCH',
+    body: payload,
+  })
+  return response?.data ?? response
+}

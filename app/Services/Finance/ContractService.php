@@ -3,11 +3,14 @@
 namespace App\Services\Finance;
 
 use App\Domain\CRM\Models\Contract;
-use App\Domain\Finance\Models\FinanceObject;
 use Illuminate\Support\Facades\DB;
 
 class ContractService
 {
+    public function __construct(private readonly FinanceObjectService $financeObjectService)
+    {
+    }
+
     public function create(array $payload): Contract
     {
         return DB::transaction(function () use ($payload) {
@@ -63,23 +66,22 @@ class ContractService
             return;
         }
 
-        $financeObject = FinanceObject::query()->create([
-            'tenant_id' => $contract->tenant_id,
-            'company_id' => $contract->company_id,
-            'type' => 'CONTRACT',
-            'name' => $contract->title ?: ('Договор #' . $contract->id),
-            'code' => 'CTR-' . $contract->id,
-            'status' => 'DRAFT',
-            'date_from' => $contract->contract_date?->toDateString() ?? now()->toDateString(),
-            'date_to' => $contract->work_end_date?->toDateString(),
-            'counterparty_id' => $contract->counterparty_id,
-            'legal_contract_id' => $contract->id,
-            'description' => $contract->address,
-            'created_by' => $contract->created_by,
-            'updated_by' => $contract->updated_by,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $financeObject = $this->financeObjectService->create(
+            (int) $contract->tenant_id,
+            (int) $contract->company_id,
+            [
+                'type' => 'CONTRACT',
+                'name' => $contract->title ?: ('Contract #' . $contract->id),
+                'code' => 'CTR-' . $contract->id,
+                'status' => 'DRAFT',
+                'date_from' => $contract->contract_date?->toDateString() ?? now()->toDateString(),
+                'date_to' => $contract->work_end_date?->toDateString(),
+                'counterparty_id' => $contract->counterparty_id,
+                'legal_contract_id' => $contract->id,
+                'description' => $contract->address,
+            ],
+            $contract->created_by ? (int) $contract->created_by : null,
+        );
 
         $contract->forceFill([
             'finance_object_id' => $financeObject->id,

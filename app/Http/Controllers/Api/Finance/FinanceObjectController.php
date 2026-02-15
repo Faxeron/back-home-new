@@ -13,6 +13,7 @@ use App\Http\Resources\TransactionResource;
 use App\Services\Finance\FinanceObjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class FinanceObjectController extends Controller
 {
@@ -68,7 +69,11 @@ class FinanceObjectController extends Controller
         }
 
         $payload = $request->validated();
-        $object = $this->service->create($tenantId, $companyId, $payload, $request->user()?->id);
+        try {
+            $object = $this->service->create($tenantId, $companyId, $payload, $request->user()?->id);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
         $object->load(['counterparty', 'legalContract']);
         $object->setAttribute('kpi', $this->service->kpi($object));
 
@@ -90,7 +95,11 @@ class FinanceObjectController extends Controller
         }
 
         $payload = $request->validated();
-        $object = $this->service->update($object, $payload, $request->user()?->id);
+        try {
+            $object = $this->service->update($object, $payload, $request->user()?->id);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
         $object->load(['counterparty', 'legalContract']);
         $object->setAttribute('kpi', $this->service->kpi($object));
 

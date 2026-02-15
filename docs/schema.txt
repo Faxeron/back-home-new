@@ -20,6 +20,7 @@ CRM/contracts (legacy_new)
 Finance (legacy_new)
 - transactions, receipts, spendings, cash_transfers.
 - finance_objects, finance_object_allocations.
+- finance_object_types, finance_object_type_settings.
 - cashboxes, cashbox_company, cashbox_history, cashbox_balance_snapshots.
 - transaction_types, payment_methods.
 - finance_allocations.

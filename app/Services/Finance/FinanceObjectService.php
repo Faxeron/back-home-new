@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class FinanceObjectService
 {
+    public function __construct(private readonly FinanceObjectTypeService $typeService)
+    {
+    }
+
     /**
      * @param array<string, mixed> $filters
      */
@@ -76,6 +80,9 @@ class FinanceObjectService
      */
     public function create(int $tenantId, int $companyId, array $payload, ?int $userId = null): FinanceObject
     {
+        $payload['type'] = strtoupper((string) ($payload['type'] ?? ''));
+        $this->typeService->assertTypeEnabledForCreation($payload['type'], $tenantId, $companyId);
+
         $payload['tenant_id'] = $tenantId;
         $payload['company_id'] = $companyId;
         $payload['created_by'] = $userId;
@@ -89,6 +96,19 @@ class FinanceObjectService
      */
     public function update(FinanceObject $object, array $payload, ?int $userId = null): FinanceObject
     {
+        if (array_key_exists('type', $payload)) {
+            $nextType = strtoupper((string) $payload['type']);
+            $currentType = $object->type?->value ?? (string) $object->type;
+            if ($nextType !== $currentType) {
+                $this->typeService->assertTypeEnabledForCreation(
+                    $nextType,
+                    (int) $object->tenant_id,
+                    (int) $object->company_id,
+                );
+            }
+            $payload['type'] = $nextType;
+        }
+
         $payload['updated_by'] = $userId;
         $object->update($payload);
 
@@ -188,4 +208,3 @@ class FinanceObjectService
         ];
     }
 }
-

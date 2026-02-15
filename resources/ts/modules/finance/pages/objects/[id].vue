@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTableInfinite } from '@/composables/useTableLazy'
-import { getFinanceObject } from '@/modules/finance/api/finance-objects.api'
-import type { FinanceObject, Transaction } from '@/types/finance'
+import { getFinanceObject, listFinanceObjectTypes } from '@/modules/finance/api/finance-objects.api'
+import type { FinanceObject, FinanceObjectTypeView, Transaction } from '@/types/finance'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 
 const route = useRoute()
@@ -13,6 +13,7 @@ const objectId = computed(() => Number(route.params.id))
 const activeTab = ref('overview')
 const loadingObject = ref(false)
 const object = ref<FinanceObject | null>(null)
+const typeCatalog = ref<FinanceObjectTypeView[]>([])
 const errorMessage = ref('')
 
 const {
@@ -45,13 +46,32 @@ const loadObject = async () => {
   }
 }
 
+const loadTypeCatalog = async () => {
+  try {
+    const response: any = await listFinanceObjectTypes({ include_disabled: 1 })
+    const rows = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : []
+    typeCatalog.value = rows
+  } catch {
+    typeCatalog.value = []
+  }
+}
+
+const activeTypeMeta = computed(() => {
+  const key = object.value?.type
+  if (!key) return null
+  return typeCatalog.value.find(item => item.key === key) ?? null
+})
+
+const typeLabel = computed(() => activeTypeMeta.value?.name ?? object.value?.type ?? '')
+const typeDisabled = computed(() => activeTypeMeta.value ? !activeTypeMeta.value.is_enabled : false)
+
 onMounted(async () => {
   if (!objectId.value) {
     router.push({ path: '/operations/finance-objects' })
     return
   }
 
-  await Promise.all([loadObject(), reloadTransactions()])
+  await Promise.all([loadObject(), loadTypeCatalog(), reloadTransactions()])
 })
 </script>
 
@@ -61,8 +81,9 @@ onMounted(async () => {
       <div class="d-flex flex-column">
         <span class="text-h6">{{ object?.name ?? `Finance Object #${objectId}` }}</span>
         <span class="text-body-2 text-medium-emphasis">
-          {{ object?.type ?? '' }} | {{ object?.status ?? '' }} | {{ object?.code ?? '' }}
+          {{ typeLabel }} ({{ object?.type ?? '' }}) | {{ object?.status ?? '' }} | {{ object?.code ?? '' }}
         </span>
+        <VChip v-if="typeDisabled" size="small" color="warning" variant="tonal" class="mt-1">Тип отключен</VChip>
       </div>
       <VBtn variant="text" @click="router.push('/operations/finance-objects')">Back</VBtn>
     </VCardTitle>

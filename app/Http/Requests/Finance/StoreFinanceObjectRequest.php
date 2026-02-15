@@ -6,10 +6,12 @@ namespace App\Http\Requests\Finance;
 
 use App\Domain\Finance\Enums\FinanceObjectStatus;
 use App\Domain\Finance\Enums\FinanceObjectType;
+use App\Services\Finance\FinanceObjectTypeService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use RuntimeException;
 
 class StoreFinanceObjectRequest extends FormRequest
 {
@@ -50,6 +52,17 @@ class StoreFinanceObjectRequest extends FormRequest
             $tenantId = (int) ($this->user()?->tenant_id ?? 0);
             $companyId = (int) ($this->user()?->default_company_id ?? $this->user()?->company_id ?? 0);
             $type = (string) $this->input('type');
+            if ($type !== '') {
+                try {
+                    app(FinanceObjectTypeService::class)->assertTypeEnabledForCreation(
+                        $type,
+                        $tenantId,
+                        $companyId,
+                    );
+                } catch (RuntimeException $exception) {
+                    $validator->errors()->add('type', $exception->getMessage());
+                }
+            }
 
             if (in_array($type, ['CONTRACT', 'ORDER', 'SUBSCRIPTION'], true) && !$this->filled('counterparty_id')) {
                 $validator->errors()->add('counterparty_id', 'Counterparty is required for selected type.');
@@ -71,4 +84,3 @@ class StoreFinanceObjectRequest extends FormRequest
         });
     }
 }
-

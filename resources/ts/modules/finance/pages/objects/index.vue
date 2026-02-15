@@ -2,8 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTableInfinite } from '@/composables/useTableLazy'
-import { createFinanceObject } from '@/modules/finance/api/finance-objects.api'
-import type { FinanceObject, FinanceObjectStatus, FinanceObjectType } from '@/types/finance'
+import { createFinanceObject, listFinanceObjectTypes } from '@/modules/finance/api/finance-objects.api'
+import type { FinanceObject, FinanceObjectStatus, FinanceObjectType, FinanceObjectTypeView } from '@/types/finance'
 import { useDictionariesStore } from '@/stores/dictionaries'
 import { formatDateShort } from '@/utils/formatters/finance'
 
@@ -40,16 +40,29 @@ const {
   params: () => serverParams.value,
 })
 
-const typeOptions: Array<{ label: string; value: FinanceObjectType }> = [
-  { label: 'CONTRACT', value: 'CONTRACT' },
-  { label: 'PROJECT', value: 'PROJECT' },
-  { label: 'EVENT', value: 'EVENT' },
-  { label: 'ORDER', value: 'ORDER' },
-  { label: 'SUBSCRIPTION', value: 'SUBSCRIPTION' },
-  { label: 'TENDER', value: 'TENDER' },
-  { label: 'SERVICE', value: 'SERVICE' },
-  { label: 'INTERNAL', value: 'INTERNAL' },
-]
+const typeCatalog = ref<FinanceObjectTypeView[]>([])
+const typeNameMap = computed(() => {
+  const map = new Map<FinanceObjectType, string>()
+  typeCatalog.value.forEach(item => map.set(item.key, item.name))
+  return map
+})
+
+const typeOptions = computed(() =>
+  typeCatalog.value.map(item => ({
+    label: item.is_enabled ? item.name : `${item.name} (disabled)`,
+    value: item.key,
+  })),
+)
+
+const createTypeOptions = computed(() =>
+  typeCatalog.value
+    .filter(item => item.is_enabled)
+    .map(item => ({
+      label: item.name,
+      value: item.key,
+    })),
+)
+const hasEnabledTypes = computed(() => createTypeOptions.value.length > 0)
 
 const statusOptions: Array<{ label: string; value: FinanceObjectStatus }> = [
   { label: 'DRAFT', value: 'DRAFT' },
@@ -75,8 +88,18 @@ const createForm = reactive({
   description: '',
 })
 
+const loadTypeCatalog = async () => {
+  try {
+    const response: any = await listFinanceObjectTypes({ include_disabled: 1 })
+    const rows = Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : []
+    typeCatalog.value = rows
+  } catch {
+    typeCatalog.value = []
+  }
+}
+
 const resetCreateForm = () => {
-  createForm.type = 'PROJECT'
+  createForm.type = createTypeOptions.value[0]?.value ?? 'PROJECT'
   createForm.name = ''
   createForm.code = ''
   createForm.status = 'DRAFT'
@@ -88,7 +111,15 @@ const resetCreateForm = () => {
 }
 
 const openCreateDialog = async () => {
+  if (!hasEnabledTypes.value) {
+    createError.value = 'No enabled finance object types for current company.'
+    return
+  }
   resetCreateForm()
+  if (!createTypeOptions.value.length) {
+    await loadTypeCatalog()
+    resetCreateForm()
+  }
   await dictionaries.loadCounterparties()
   createOpen.value = true
 }
@@ -123,6 +154,8 @@ const openDetails = (item: FinanceObjectRow) => {
   router.push({ path: `/operations/finance-objects/${item.id}` })
 }
 
+const resolveTypeName = (type: FinanceObjectType) => typeNameMap.value.get(type) ?? type
+
 let reloadTimer: number | undefined
 watch(
   () => ({ ...filters }),
@@ -134,8 +167,11 @@ watch(
 )
 
 onMounted(async () => {
-  await dictionaries.loadCounterparties()
-  await reset()
+  await Promise.all([
+    dictionaries.loadCounterparties(),
+    loadTypeCatalog(),
+    reset(),
+  ])
 })
 </script>
 
@@ -143,7 +179,7 @@ onMounted(async () => {
   <VCard>
     <VCardTitle class="d-flex align-center justify-space-between gap-3">
       <span>Finance Objects</span>
-      <VBtn color="primary" @click="openCreateDialog">New Object</VBtn>
+      <VBtn color="primary" :disabled="!hasEnabledTypes" @click="openCreateDialog">New Object</VBtn>
     </VCardTitle>
     <VCardText class="d-flex flex-column gap-3">
       <div class="d-flex flex-wrap gap-3">
@@ -199,7 +235,7 @@ onMounted(async () => {
           >
             <td>{{ item.id }}</td>
             <td>{{ item.name }}</td>
-            <td>{{ item.type }}</td>
+            <td>{{ resolveTypeName(item.type) }}</td>
             <td>{{ item.status }}</td>
             <td>{{ item.code ?? '' }}</td>
             <td>{{ item.counterparty?.name ?? '' }}</td>
@@ -227,7 +263,7 @@ onMounted(async () => {
         <div class="d-flex flex-wrap gap-3">
           <VSelect
             v-model="createForm.type"
-            :items="typeOptions"
+            :items="createTypeOptions"
             item-title="label"
             item-value="value"
             label="Type"
@@ -270,4 +306,3 @@ onMounted(async () => {
     </VCard>
   </VDialog>
 </template>
-

@@ -24,6 +24,7 @@ use App\Http\Controllers\API\Finance\DirectorController;
 use App\Http\Controllers\API\Finance\FinanceObjectController;
 use App\Http\Controllers\API\Finance\FinanceObjectInboxController;
 use App\Http\Controllers\API\Finance\FinanceObjectLookupController;
+use App\Http\Controllers\API\Finance\FinanceObjectTypeController;
 use App\Http\Controllers\Api\SaleTypeController;
 use App\Http\Controllers\Api\SpendingFundController;
 use App\Http\Controllers\Api\SpendingItemController;
@@ -92,6 +93,9 @@ Route::prefix('public')->group(function (): void {
 });
 
 Route::middleware(['auth:sanctum', 'tenant.company'])->group(function (): void {
+    Route::get('finance-object-types', [FinanceObjectTypeController::class, 'index'])->middleware('permission:view,finance');
+    Route::patch('finance-object-types/{typeKey}/settings', [FinanceObjectTypeController::class, 'updateSettings'])->middleware('permission:edit,finance');
+
     Route::prefix('dashboards')->group(function (): void {
         Route::get('employee/summary', [EmployeeDashboardController::class, 'summary'])->middleware('permission:view,dashboard.employee');
         Route::get('new/earning-reports', [NewDashboardController::class, 'earningReports'])->middleware('permission:view,finance');

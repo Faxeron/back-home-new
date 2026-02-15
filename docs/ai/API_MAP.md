@@ -34,6 +34,8 @@ Public catalog rules (для сайта)
 - Отладка: `?no_cache=1` отключает серверный кэш (если endpoint поддерживает).
 
 Finance (auth:sanctum + tenant.company)
+- GET `/api/finance-object-types`
+- PATCH `/api/finance-object-types/{typeKey}/settings`
 - GET `/api/finance/transactions`
 - GET `/api/finance/transactions/summary`
 - GET `/api/finance/transactions/cashflow-series`

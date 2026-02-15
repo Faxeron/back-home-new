@@ -6,10 +6,12 @@ namespace App\Http\Requests\Finance;
 
 use App\Domain\Finance\Enums\FinanceObjectStatus;
 use App\Domain\Finance\Enums\FinanceObjectType;
+use App\Services\Finance\FinanceObjectTypeService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use RuntimeException;
 
 class UpdateFinanceObjectRequest extends FormRequest
 {
@@ -54,6 +56,18 @@ class UpdateFinanceObjectRequest extends FormRequest
             $companyId = (int) ($this->user()?->default_company_id ?? $this->user()?->company_id ?? 0);
 
             $type = (string) ($this->input('type') ?? $this->route('financeObject')?->type?->value ?? $this->route('financeObject')?->type ?? '');
+            if ($this->has('type')) {
+                try {
+                    app(FinanceObjectTypeService::class)->assertTypeEnabledForCreation(
+                        $type,
+                        $tenantId,
+                        $companyId,
+                    );
+                } catch (RuntimeException $exception) {
+                    $validator->errors()->add('type', $exception->getMessage());
+                }
+            }
+
             $counterpartyId = $this->input('counterparty_id', $this->route('financeObject')?->counterparty_id);
             $dateTo = $this->input('date_to', $this->route('financeObject')?->date_to?->toDateString());
 
@@ -77,4 +91,3 @@ class UpdateFinanceObjectRequest extends FormRequest
         });
     }
 }
-

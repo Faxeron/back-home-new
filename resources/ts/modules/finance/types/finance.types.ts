@@ -151,6 +151,14 @@ export type FinanceObjectType =
   | 'INTERNAL'
   | 'LEGACY_IMPORT'
 
+export type FinanceObjectTypeView = {
+  key: FinanceObjectType
+  name: string
+  icon?: string | null
+  sort_order: number
+  is_enabled: boolean
+}
+
 export type FinanceObjectStatus =
   | 'DRAFT'
   | 'ACTIVE'
