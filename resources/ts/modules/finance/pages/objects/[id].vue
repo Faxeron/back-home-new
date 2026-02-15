@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTableInfinite } from '@/composables/useTableLazy'
 import { getFinanceObject, listFinanceObjectTypes } from '@/modules/finance/api/finance-objects.api'
-import type { FinanceObject, FinanceObjectTypeView, Transaction } from '@/types/finance'
+import type { FinanceObject, FinanceObjectStatus, FinanceObjectTypeView, Transaction } from '@/types/finance'
 import { formatDateShort, formatSum } from '@/utils/formatters/finance'
 
 const route = useRoute()
@@ -30,6 +30,15 @@ const {
   rowHeight: 50,
 })
 
+const statusNameMap: Record<FinanceObjectStatus, string> = {
+  DRAFT: 'Черновик',
+  ACTIVE: 'Активный',
+  ON_HOLD: 'На паузе',
+  DONE: 'Завершен',
+  CANCELED: 'Отменен',
+  ARCHIVED: 'Архив',
+}
+
 const loadObject = async () => {
   loadingObject.value = true
   errorMessage.value = ''
@@ -40,7 +49,7 @@ const loadObject = async () => {
     errorMessage.value =
       error?.data?.message ??
       error?.response?.data?.message ??
-      'Failed to load finance object.'
+      'Не удалось загрузить объект учета.'
   } finally {
     loadingObject.value = false
   }
@@ -64,6 +73,11 @@ const activeTypeMeta = computed(() => {
 
 const typeLabel = computed(() => activeTypeMeta.value?.name ?? object.value?.type ?? '')
 const typeDisabled = computed(() => activeTypeMeta.value ? !activeTypeMeta.value.is_enabled : false)
+const statusLabel = computed(() => {
+  const status = object.value?.status as FinanceObjectStatus | undefined
+  if (!status) return ''
+  return object.value?.status_name_ru ?? statusNameMap[status] ?? status
+})
 
 onMounted(async () => {
   if (!objectId.value) {
@@ -79,13 +93,13 @@ onMounted(async () => {
   <VCard>
     <VCardTitle class="d-flex align-center justify-space-between gap-3">
       <div class="d-flex flex-column">
-        <span class="text-h6">{{ object?.name ?? `Finance Object #${objectId}` }}</span>
+        <span class="text-h6">{{ object?.name ?? `Объект учета #${objectId}` }}</span>
         <span class="text-body-2 text-medium-emphasis">
-          {{ typeLabel }} ({{ object?.type ?? '' }}) | {{ object?.status ?? '' }} | {{ object?.code ?? '' }}
+          {{ typeLabel }} ({{ object?.type ?? '' }}) | {{ statusLabel }} | {{ object?.code ?? '' }}
         </span>
         <VChip v-if="typeDisabled" size="small" color="warning" variant="tonal" class="mt-1">Тип отключен</VChip>
       </div>
-      <VBtn variant="text" @click="router.push('/operations/finance-objects')">Back</VBtn>
+      <VBtn variant="text" @click="router.push('/operations/finance-objects')">Назад</VBtn>
     </VCardTitle>
 
     <VCardText class="d-flex flex-column gap-4">
@@ -95,25 +109,25 @@ onMounted(async () => {
       <div class="d-grid grid-cols-1 md:grid-cols-4 gap-3">
         <VCard variant="tonal">
           <VCardText>
-            <div class="text-caption text-medium-emphasis">Income Fact</div>
+            <div class="text-caption text-medium-emphasis">Приход факт</div>
             <div class="text-h6">{{ formatSum({ amount: String(object?.kpi?.income_fact ?? 0), currency: 'RUB' }) }}</div>
           </VCardText>
         </VCard>
         <VCard variant="tonal">
           <VCardText>
-            <div class="text-caption text-medium-emphasis">Expense Fact</div>
+            <div class="text-caption text-medium-emphasis">Расход факт</div>
             <div class="text-h6">{{ formatSum({ amount: String(object?.kpi?.expense_fact ?? 0), currency: 'RUB' }) }}</div>
           </VCardText>
         </VCard>
         <VCard variant="tonal">
           <VCardText>
-            <div class="text-caption text-medium-emphasis">Net Fact</div>
+            <div class="text-caption text-medium-emphasis">Итог факт</div>
             <div class="text-h6">{{ formatSum({ amount: String(object?.kpi?.net_fact ?? 0), currency: 'RUB' }) }}</div>
           </VCardText>
         </VCard>
         <VCard variant="tonal">
           <VCardText>
-            <div class="text-caption text-medium-emphasis">Debitor / Creditor</div>
+            <div class="text-caption text-medium-emphasis">Дебиторка / Кредиторка</div>
             <div class="text-h6">
               {{ formatSum({ amount: String(object?.kpi?.debitor ?? 0), currency: 'RUB' }) }}
               /
@@ -124,35 +138,35 @@ onMounted(async () => {
       </div>
 
       <VTabs v-model="activeTab">
-        <VTab value="overview">Overview</VTab>
-        <VTab value="money">Money</VTab>
-        <VTab value="documents">Documents</VTab>
-        <VTab value="history">History</VTab>
+        <VTab value="overview">Обзор</VTab>
+        <VTab value="money">Деньги</VTab>
+        <VTab value="documents">Документы</VTab>
+        <VTab value="history">История</VTab>
       </VTabs>
 
       <VWindow v-model="activeTab">
         <VWindowItem value="overview">
           <div class="d-flex flex-column gap-2">
-            <div><strong>Counterparty:</strong> {{ object?.counterparty?.name ?? '-' }}</div>
-            <div><strong>Period:</strong> {{ formatDateShort(object?.date_from) }} - {{ formatDateShort(object?.date_to ?? null) }}</div>
-            <div><strong>Description:</strong> {{ object?.description ?? '-' }}</div>
+            <div><strong>Контрагент:</strong> {{ object?.counterparty?.name ?? '-' }}</div>
+            <div><strong>Период:</strong> {{ formatDateShort(object?.date_from) }} - {{ formatDateShort(object?.date_to ?? null) }}</div>
+            <div><strong>Описание:</strong> {{ object?.description ?? '-' }}</div>
           </div>
         </VWindowItem>
 
         <VWindowItem value="money">
           <div class="text-body-2 text-medium-emphasis mb-2">
-            Transactions: {{ Number(transactionsTotal ?? 0).toLocaleString('ru-RU') }}
+            Операций: {{ Number(transactionsTotal ?? 0).toLocaleString('ru-RU') }}
           </div>
           <VProgressLinear v-if="transactionsLoading" indeterminate color="primary" />
           <VTable density="compact">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Counterparty</th>
-                <th>Comment</th>
+                <th>Дата</th>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Контрагент</th>
+                <th>Комментарий</th>
               </tr>
             </thead>
             <tbody>
@@ -165,25 +179,23 @@ onMounted(async () => {
                 <td>{{ row.notes ?? '' }}</td>
               </tr>
               <tr v-if="!transactions.length && !transactionsLoading">
-                <td colspan="6" class="text-center py-4 text-medium-emphasis">No transactions</td>
+                <td colspan="6" class="text-center py-4 text-medium-emphasis">Нет операций</td>
               </tr>
             </tbody>
           </VTable>
           <div class="d-flex justify-center mt-3">
-            <VBtn v-if="hasMoreTransactions" variant="text" :loading="transactionsLoading" @click="loadMoreTransactions">Load More</VBtn>
+            <VBtn v-if="hasMoreTransactions" variant="text" :loading="transactionsLoading" @click="loadMoreTransactions">Показать еще</VBtn>
           </div>
         </VWindowItem>
 
         <VWindowItem value="documents">
-          <div class="text-medium-emphasis">Contract and files integration stays compatible with existing contract documents.</div>
+          <div class="text-medium-emphasis">Интеграция с договорами и файлами использует текущую контрактную модель.</div>
         </VWindowItem>
 
         <VWindowItem value="history">
-          <div class="text-medium-emphasis">History log will be expanded in next iteration.</div>
+          <div class="text-medium-emphasis">Журнал изменений будет расширен на следующем этапе.</div>
         </VWindowItem>
       </VWindow>
     </VCardText>
   </VCard>
 </template>
-
-

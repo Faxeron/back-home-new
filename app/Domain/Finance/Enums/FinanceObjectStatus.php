@@ -20,5 +20,16 @@ enum FinanceObjectStatus: string
     {
         return array_map(static fn (self $status) => $status->value, self::cases());
     }
-}
 
+    public function labelRu(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Черновик',
+            self::ACTIVE => 'Активный',
+            self::ON_HOLD => 'На паузе',
+            self::DONE => 'Завершен',
+            self::CANCELED => 'Отменен',
+            self::ARCHIVED => 'Архив',
+        };
+    }
+}

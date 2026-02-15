@@ -173,6 +173,7 @@ export type FinanceObjectShort = {
   name: string
   code?: string | null
   status: FinanceObjectStatus
+  status_name_ru?: string | null
 }
 
 export type FinanceObject = FinanceObjectShort & {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Finance\Enums\FinanceObjectStatus;
 use App\Domain\Finance\ValueObjects\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -68,6 +69,9 @@ class TransactionResource extends JsonResource
                 'name' => $this->financeObject->name,
                 'code' => $this->financeObject->code,
                 'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
+                'status_name_ru' => $this->financeObject->status instanceof FinanceObjectStatus
+                    ? $this->financeObject->status->labelRu()
+                    : null,
             ]),
             'finance_object_allocations' => $this->whenLoaded('financeObjectAllocations', fn () => $this->financeObjectAllocations->map(
                 static fn ($allocation) => [
@@ -81,6 +85,9 @@ class TransactionResource extends JsonResource
                             'name' => $allocation->financeObject->name,
                             'type' => $allocation->financeObject->type?->value ?? $allocation->financeObject->type,
                             'status' => $allocation->financeObject->status?->value ?? $allocation->financeObject->status,
+                            'status_name_ru' => $allocation->financeObject->status instanceof FinanceObjectStatus
+                                ? $allocation->financeObject->status->labelRu()
+                                : null,
                         ]
                         : null,
                 ]

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Finance\Enums\FinanceObjectStatus;
 use App\Domain\Finance\ValueObjects\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -57,6 +58,9 @@ class ReceiptResource extends JsonResource
                 'name' => $this->financeObject->name,
                 'code' => $this->financeObject->code,
                 'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
+                'status_name_ru' => $this->financeObject->status instanceof FinanceObjectStatus
+                    ? $this->financeObject->status->labelRu()
+                    : null,
             ]),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

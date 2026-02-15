@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Finance\Enums\FinanceObjectStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -95,6 +96,9 @@ class ContractResource extends JsonResource
                 'type' => $this->financeObject->type?->value ?? $this->financeObject->type,
                 'name' => $this->financeObject->name,
                 'status' => $this->financeObject->status?->value ?? $this->financeObject->status,
+                'status_name_ru' => $this->financeObject->status instanceof FinanceObjectStatus
+                    ? $this->financeObject->status->labelRu()
+                    : null,
                 'code' => $this->financeObject->code,
             ]),
         ];

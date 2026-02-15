@@ -49,7 +49,7 @@ const typeNameMap = computed(() => {
 
 const typeOptions = computed(() =>
   typeCatalog.value.map(item => ({
-    label: item.is_enabled ? item.name : `${item.name} (disabled)`,
+    label: item.is_enabled ? item.name : `${item.name} (отключен)`,
     value: item.key,
   })),
 )
@@ -65,12 +65,12 @@ const createTypeOptions = computed(() =>
 const hasEnabledTypes = computed(() => createTypeOptions.value.length > 0)
 
 const statusOptions: Array<{ label: string; value: FinanceObjectStatus }> = [
-  { label: 'DRAFT', value: 'DRAFT' },
-  { label: 'ACTIVE', value: 'ACTIVE' },
-  { label: 'ON_HOLD', value: 'ON_HOLD' },
-  { label: 'DONE', value: 'DONE' },
-  { label: 'CANCELED', value: 'CANCELED' },
-  { label: 'ARCHIVED', value: 'ARCHIVED' },
+  { label: 'Черновик', value: 'DRAFT' },
+  { label: 'Активный', value: 'ACTIVE' },
+  { label: 'На паузе', value: 'ON_HOLD' },
+  { label: 'Завершен', value: 'DONE' },
+  { label: 'Отменен', value: 'CANCELED' },
+  { label: 'Архив', value: 'ARCHIVED' },
 ]
 
 const createOpen = ref(false)
@@ -112,7 +112,7 @@ const resetCreateForm = () => {
 
 const openCreateDialog = async () => {
   if (!hasEnabledTypes.value) {
-    createError.value = 'No enabled finance object types for current company.'
+    createError.value = 'Для текущей компании нет включенных типов объектов учета.'
     return
   }
   resetCreateForm()
@@ -144,7 +144,7 @@ const submitCreate = async () => {
     createError.value =
       error?.data?.message ??
       error?.response?.data?.message ??
-      'Failed to create finance object.'
+      'Не удалось создать объект учета.'
   } finally {
     createSaving.value = false
   }
@@ -155,6 +155,15 @@ const openDetails = (item: FinanceObjectRow) => {
 }
 
 const resolveTypeName = (type: FinanceObjectType) => typeNameMap.value.get(type) ?? type
+const statusNameMap: Record<FinanceObjectStatus, string> = {
+  DRAFT: 'Черновик',
+  ACTIVE: 'Активный',
+  ON_HOLD: 'На паузе',
+  DONE: 'Завершен',
+  CANCELED: 'Отменен',
+  ARCHIVED: 'Архив',
+}
+const resolveStatusName = (item: FinanceObjectRow) => item.status_name_ru ?? statusNameMap[item.status] ?? item.status
 
 let reloadTimer: number | undefined
 watch(
@@ -178,18 +187,18 @@ onMounted(async () => {
 <template>
   <VCard>
     <VCardTitle class="d-flex align-center justify-space-between gap-3">
-      <span>Finance Objects</span>
-      <VBtn color="primary" :disabled="!hasEnabledTypes" @click="openCreateDialog">New Object</VBtn>
+      <span>Объекты учета</span>
+      <VBtn color="primary" :disabled="!hasEnabledTypes" @click="openCreateDialog">Новый объект</VBtn>
     </VCardTitle>
     <VCardText class="d-flex flex-column gap-3">
       <div class="d-flex flex-wrap gap-3">
-        <VTextField v-model="filters.q" label="Search" density="comfortable" hide-details />
+        <VTextField v-model="filters.q" label="Поиск" density="comfortable" hide-details />
         <VSelect
           v-model="filters.type"
           :items="typeOptions"
           item-title="label"
           item-value="value"
-          label="Type"
+          label="Тип"
           clearable
           density="comfortable"
           hide-details
@@ -199,16 +208,16 @@ onMounted(async () => {
           :items="statusOptions"
           item-title="label"
           item-value="value"
-          label="Status"
+          label="Статус"
           clearable
           density="comfortable"
           hide-details
         />
-        <VBtn variant="text" @click="() => { filters.q = ''; filters.type = null; filters.status = null }">Reset</VBtn>
+        <VBtn variant="text" @click="() => { filters.q = ''; filters.type = null; filters.status = null }">Сбросить</VBtn>
       </div>
 
       <div class="text-body-2 text-medium-emphasis">
-        Total: {{ Number(total ?? 0).toLocaleString('ru-RU') }}
+        Всего: {{ Number(total ?? 0).toLocaleString('ru-RU') }}
       </div>
 
       <VProgressLinear v-if="loading" indeterminate color="primary" />
@@ -217,13 +226,13 @@ onMounted(async () => {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Code</th>
-            <th>Counterparty</th>
-            <th>Date From</th>
-            <th>Date To</th>
+            <th>Название</th>
+            <th>Тип</th>
+            <th>Статус</th>
+            <th>Код</th>
+            <th>Контрагент</th>
+            <th>Дата начала</th>
+            <th>Дата окончания</th>
           </tr>
         </thead>
         <tbody>
@@ -236,27 +245,27 @@ onMounted(async () => {
             <td>{{ item.id }}</td>
             <td>{{ item.name }}</td>
             <td>{{ resolveTypeName(item.type) }}</td>
-            <td>{{ item.status }}</td>
+            <td>{{ resolveStatusName(item) }}</td>
             <td>{{ item.code ?? '' }}</td>
             <td>{{ item.counterparty?.name ?? '' }}</td>
             <td>{{ formatDateShort(item.date_from) }}</td>
             <td>{{ formatDateShort(item.date_to ?? null) }}</td>
           </tr>
           <tr v-if="!data.length && !loading">
-            <td colspan="8" class="text-center py-4 text-medium-emphasis">No data</td>
+            <td colspan="8" class="text-center py-4 text-medium-emphasis">Нет данных</td>
           </tr>
         </tbody>
       </VTable>
 
       <div class="d-flex justify-center py-2">
-        <VBtn v-if="hasMore" :loading="loading" variant="text" @click="loadMore">Load More</VBtn>
+        <VBtn v-if="hasMore" :loading="loading" variant="text" @click="loadMore">Показать еще</VBtn>
       </div>
     </VCardText>
   </VCard>
 
   <VDialog v-model="createOpen" max-width="760">
     <VCard>
-      <VCardTitle>Create Finance Object</VCardTitle>
+      <VCardTitle>Создать объект учета</VCardTitle>
       <VCardText class="d-flex flex-column gap-3">
         <div v-if="createError" class="text-error text-sm">{{ createError }}</div>
 
@@ -266,7 +275,7 @@ onMounted(async () => {
             :items="createTypeOptions"
             item-title="label"
             item-value="value"
-            label="Type"
+            label="Тип"
             hide-details
           />
           <VSelect
@@ -274,17 +283,17 @@ onMounted(async () => {
             :items="statusOptions"
             item-title="label"
             item-value="value"
-            label="Status"
+            label="Статус"
             hide-details
           />
         </div>
 
-        <VTextField v-model="createForm.name" label="Name" hide-details />
-        <VTextField v-model="createForm.code" label="Code" hide-details />
+        <VTextField v-model="createForm.name" label="Название" hide-details />
+        <VTextField v-model="createForm.code" label="Код" hide-details />
 
         <div class="d-flex flex-wrap gap-3">
-          <VTextField v-model="createForm.date_from" label="Date From" type="date" hide-details />
-          <VTextField v-model="createForm.date_to" label="Date To" type="date" hide-details />
+          <VTextField v-model="createForm.date_from" label="Дата начала" type="date" hide-details />
+          <VTextField v-model="createForm.date_to" label="Дата окончания" type="date" hide-details />
         </div>
 
         <VSelect
@@ -292,16 +301,16 @@ onMounted(async () => {
           :items="dictionaries.counterparties"
           item-title="name"
           item-value="id"
-          label="Counterparty"
+          label="Контрагент"
           clearable
           hide-details
         />
 
-        <VTextarea v-model="createForm.description" label="Description" rows="3" auto-grow hide-details />
+        <VTextarea v-model="createForm.description" label="Описание" rows="3" auto-grow hide-details />
       </VCardText>
       <VCardActions class="justify-end gap-2">
-        <VBtn variant="text" @click="createOpen = false">Cancel</VBtn>
-        <VBtn color="primary" :loading="createSaving" @click="submitCreate">Create</VBtn>
+        <VBtn variant="text" @click="createOpen = false">Отмена</VBtn>
+        <VBtn color="primary" :loading="createSaving" @click="submitCreate">Создать</VBtn>
       </VCardActions>
     </VCard>
   </VDialog>

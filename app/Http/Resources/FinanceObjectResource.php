@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Domain\Finance\Enums\FinanceObjectStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -25,6 +26,9 @@ class FinanceObjectResource extends JsonResource
             'name' => $this->name,
             'code' => $this->code,
             'status' => $this->status?->value ?? $this->status,
+            'status_name_ru' => $this->status instanceof FinanceObjectStatus
+                ? $this->status->labelRu()
+                : null,
             'date_from' => $this->date_from?->toDateString(),
             'date_to' => $this->date_to?->toDateString(),
             'counterparty_id' => $this->counterparty_id,
@@ -48,4 +52,3 @@ class FinanceObjectResource extends JsonResource
         ];
     }
 }
-

@@ -14,7 +14,7 @@ export const ACL_RESOURCE_PATHS: AclResourcePath[] = [
   { resource: 'installations', paths: ['/operations/installations'] },
   { resource: 'pricebook', paths: ['/products/price'] },
   { resource: 'products', paths: ['/products'] },
-  { resource: 'finance', paths: ['/finance', '/finances', '/operations/finance-objects', '/dashboards/new'] },
+  { resource: 'finance', paths: ['/finance', '/finances', '/operations/finance-objects', '/settings/finance-object-types', '/dashboards/new'] },
   { resource: 'knowledge', paths: ['/sales/knowledge'] },
   { resource: 'settings.roles', paths: ['/settings/roles-permissions'] },
   { resource: 'settings.cash_boxes', paths: ['/settings/cash-boxes'] },
